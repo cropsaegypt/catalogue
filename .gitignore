@@ -1,0 +1,14 @@
+node_modules/
+build/
+dist/
+coverage/
+.vercel/
+.firebase/
+.DS_Store
+*.log
+*.zip
+.env*
+!.env.example
+orders-store.json
+custom-catalogs-store.json
+public/uploads/

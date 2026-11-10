@@ -1,0 +1,149 @@
+{
+  "entities": {
+    "Company": {
+      "title": "Company",
+      "description": "Agricultural supply companies manufacturing fertilizers and pesticides",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "contactInfo": { "type": "string" },
+        "displayOrder": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "SubCategory": {
+      "title": "SubCategory",
+      "description": "Company-specific subcategories for agricultural products",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyId": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["fertilizer", "stimulant", "pesticide", "seeds", "other"] },
+        "description": { "type": "string" },
+        "displayOrder": { "type": "number" }
+      },
+      "required": ["id", "companyId", "name", "type"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Main agricultural categories",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "description": { "type": "string" },
+        "displayOrder": { "type": "number" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "name"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Agricultural chemical, fertilizer, or pesticide product",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyId": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "subCategoryId": { "type": "string" },
+        "name": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "description": { "type": "string" },
+        "productType": { "type": "string", "enum": ["fertilizer", "stimulant", "pesticide", "seeds", "other"] },
+        "mainImageUrl": { "type": "string" },
+        "active": { "type": "boolean" },
+        "displayOrder": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "companyId", "name"]
+    },
+    "Package": {
+      "title": "Package",
+      "description": "Product package volume and pricing unit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "productId": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "displayName": { "type": "string" },
+        "price": { "type": "number" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "productId", "price", "unit"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase and installment requests",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "phone": { "type": "string" },
+        "governorate": { "type": "string" },
+        "city": { "type": "string" },
+        "addressDetails": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["cash", "installment"] },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["new", "contacted", "confirmed", "cancelled", "completed"] },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "orderNumber", "customerName", "phone", "totalAmount"]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "Admin and operational team members",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "catalog_manager", "orders_manager", "installment_officer"] },
+        "phone": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["id", "name", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/companies/{companyId}": {
+      "schema": "Company",
+      "description": "Company records"
+    },
+    "/subCategories/{subCategoryId}": {
+      "schema": "SubCategory",
+      "description": "Subcategories linked to companies"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Global agricultural categories"
+    },
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Product records"
+    },
+    "/packages/{packageId}": {
+      "schema": "Package",
+      "description": "Packaging units and pricing"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Customer orders and installments"
+    },
+    "/team/{memberId}": {
+      "schema": "TeamMember",
+      "description": "Team staff accounts"
+    }
+  }
+}

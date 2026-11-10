@@ -1,0 +1,6 @@
+{
+  "firestore": {
+    "database": "ai-studio-cropsadynamicagr-1794466f-f2bd-4fa3-876f-32661d867edf",
+    "rules": "firestore.rules"
+  }
+}

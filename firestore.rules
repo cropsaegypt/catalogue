@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Public catalog read: anyone can browse companies, categories, products, packages, ads, images & settings
+    match /companies/{companyId} {
+      allow read: if isValidId(companyId);
+      allow write: if isSignedIn() && isValidId(companyId);
+    }
+
+    match /subCategories/{subCategoryId} {
+      allow read: if isValidId(subCategoryId);
+      allow write: if isSignedIn() && isValidId(subCategoryId);
+    }
+
+    match /categories/{categoryId} {
+      allow read: if isValidId(categoryId);
+      allow write: if isSignedIn() && isValidId(categoryId);
+    }
+
+    match /products/{productId} {
+      allow read: if isValidId(productId);
+      allow write: if isSignedIn() && isValidId(productId);
+    }
+
+    match /packages/{packageId} {
+      allow read: if isValidId(packageId);
+      allow write: if isSignedIn() && isValidId(packageId);
+    }
+
+    match /advertisements/{adId} {
+      allow read: if isValidId(adId);
+      allow write: if isSignedIn() && isValidId(adId);
+    }
+
+    match /images/{imageId} {
+      allow read: if isValidId(imageId);
+      allow write: if isSignedIn() && isValidId(imageId);
+    }
+
+    match /settings/{settingId} {
+      allow read: if isValidId(settingId);
+      allow write: if isSignedIn() && isValidId(settingId);
+    }
+
+    // Custom shareable client catalogs: readable by any customer opening the link
+    match /customCatalogs/{catalogId} {
+      allow read: if isValidId(catalogId);
+      allow write: if isSignedIn() && isValidId(catalogId);
+    }
+
+    // PDF Dividers & Price History
+    match /pdfDividers/{dividerId} {
+      allow read: if isSignedIn() && isValidId(dividerId);
+      allow write: if isSignedIn() && isValidId(dividerId);
+    }
+
+    match /priceHistory/{entryId} {
+      allow read: if isSignedIn() && isValidId(entryId);
+      allow write: if isSignedIn() && isValidId(entryId);
+    }
+
+    // Orders: anyone can submit (create) an order with required fields; authenticated staff can read/update
+    match /orders/{orderId} {
+      allow create: if isValidId(orderId)
+        && request.resource.data.orderNumber is string
+        && request.resource.data.customerName is string
+        && request.resource.data.phone is string
+        && request.resource.data.totalAmount is number;
+      allow read, update, delete: if isSignedIn();
+    }
+
+    // Team members: managed by authenticated staff
+    match /team/{memberId} {
+      allow read, write: if isSignedIn() && isValidId(memberId);
+    }
+  }
+}

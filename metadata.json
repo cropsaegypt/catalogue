@@ -1,0 +1,6 @@
+{
+  "name": "CROPSA Dynamic Agricultural Catalog",
+  "description": "نظام كتالوج كروپسا الديناميكي للمخصبات والأسمدة مع إدارة الأسعار، الاستيراد من إكسيل، وتوليد ملفات PDF احترافية للطباعة.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
