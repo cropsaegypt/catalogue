@@ -150,7 +150,7 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     label: '4 منتجات (التنسيق الكلاسيكي 2×2)',
     gridLabel: '2×2',
     gapClass: 'gap-3.5',
-    cardPaddingClass: 'p-3.5',
+    cardPaddingClass: 'p-3',
     orientation: 'horizontal',
     imageBoxClass: 'w-[132px] h-[170px]',
     titleClass: 'text-[23px]',
@@ -218,6 +218,410 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
 };
 
 const ALLOWED_PER_PAGE_COUNTS = [1, 2, 3, 4, 6, 8, 9] as const;
+
+interface AdaptiveTierSpec {
+  maxVolume: number;
+  imageBoxClass: string;
+  specLabelClass: string;
+  specBodyClass: string;
+  specWrapperClass: string;
+  specSectionClass: string;
+  charClampClass: string;
+  compClampClass: string;
+  usageClampClass: string;
+}
+
+interface AdaptiveCardMetrics {
+  imageBoxClass: string;
+  titleClass: string;
+  pkgBadgeClass: string;
+  specLabelClass: string;
+  specBodyClass: string;
+  specWrapperClass: string;
+  specSectionClass: string;
+  charClampClass: string;
+  compClampClass: string;
+  usageClampClass: string;
+  hasSpecs: boolean;
+}
+
+const ADAPTIVE_CARD_TIERS: Record<number, AdaptiveTierSpec[]> = {
+  1: [
+    {
+      maxVolume: 280,
+      imageBoxClass: 'w-[248px] h-[318px]',
+      specLabelClass: 'text-[19px]',
+      specBodyClass: 'text-[18.5px] leading-[1.78]',
+      specWrapperClass: 'mt-4 flex-1 flex flex-col justify-evenly gap-4 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DCEAE1] rounded-2xl px-5 py-4',
+      charClampClass: '',
+      compClampClass: '',
+      usageClampClass: '',
+    },
+    {
+      maxVolume: 520,
+      imageBoxClass: 'w-[232px] h-[296px]',
+      specLabelClass: 'text-[17px]',
+      specBodyClass: 'text-[16.5px] leading-[1.7]',
+      specWrapperClass: 'mt-4 flex-1 flex flex-col justify-between gap-3 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DFECE4] rounded-2xl px-4 py-3',
+      charClampClass: '',
+      compClampClass: '',
+      usageClampClass: '',
+    },
+    {
+      maxVolume: Infinity,
+      imageBoxClass: 'w-[215px] h-[274px]',
+      specLabelClass: 'text-[15px]',
+      specBodyClass: 'text-[14.5px] leading-[1.6]',
+      specWrapperClass: 'mt-3 flex-1 flex flex-col justify-between gap-2.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F7FAF8] border border-[#E2EDE6] rounded-xl px-4 py-2.5',
+      charClampClass: 'line-clamp-8',
+      compClampClass: 'line-clamp-6',
+      usageClampClass: 'line-clamp-6',
+    },
+  ],
+  2: [
+    {
+      maxVolume: 260,
+      imageBoxClass: 'w-[170px] h-[214px]',
+      specLabelClass: 'text-[16.5px]',
+      specBodyClass: 'text-[16px] leading-[1.7]',
+      specWrapperClass: 'mt-3 flex-1 flex flex-col justify-evenly gap-2.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DCEAE1] rounded-xl px-4 py-2.5',
+      charClampClass: '',
+      compClampClass: '',
+      usageClampClass: '',
+    },
+    {
+      maxVolume: 440,
+      imageBoxClass: 'w-[158px] h-[198px]',
+      specLabelClass: 'text-[15px]',
+      specBodyClass: 'text-[14.5px] leading-[1.6]',
+      specWrapperClass: 'mt-3 flex-1 flex flex-col justify-between gap-2 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DFECE4] rounded-xl px-3.5 py-2',
+      charClampClass: 'line-clamp-6',
+      compClampClass: 'line-clamp-4',
+      usageClampClass: 'line-clamp-4',
+    },
+    {
+      maxVolume: Infinity,
+      imageBoxClass: 'w-[144px] h-[182px]',
+      specLabelClass: 'text-[13.5px]',
+      specBodyClass: 'text-[13px] leading-[1.5]',
+      specWrapperClass: 'mt-2.5 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F7FAF8] border border-[#E2EDE6] rounded-xl px-3 py-1.5',
+      charClampClass: 'line-clamp-5',
+      compClampClass: 'line-clamp-3',
+      usageClampClass: 'line-clamp-3',
+    },
+  ],
+  3: [
+    {
+      maxVolume: 220,
+      imageBoxClass: 'w-[126px] h-[156px]',
+      specLabelClass: 'text-[14px]',
+      specBodyClass: 'text-[13.5px] leading-[1.56]',
+      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-evenly gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DFECE4] rounded-xl px-3 py-1.5',
+      charClampClass: '',
+      compClampClass: '',
+      usageClampClass: '',
+    },
+    {
+      maxVolume: 370,
+      imageBoxClass: 'w-[118px] h-[146px]',
+      specLabelClass: 'text-[13px]',
+      specBodyClass: 'text-[12.5px] leading-[1.46]',
+      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#E2EDE6] rounded-lg px-2.5 py-1',
+      charClampClass: 'line-clamp-4',
+      compClampClass: 'line-clamp-2',
+      usageClampClass: 'line-clamp-2',
+    },
+    {
+      maxVolume: Infinity,
+      imageBoxClass: 'w-[110px] h-[136px]',
+      specLabelClass: 'text-[11.5px]',
+      specBodyClass: 'text-[11px] leading-[1.36]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-start gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'pt-1 border-t border-[#C4D6CA] first:pt-0 first:border-t-0',
+      charClampClass: 'line-clamp-3',
+      compClampClass: 'line-clamp-2',
+      usageClampClass: 'line-clamp-2',
+    },
+  ],
+  4: [
+    {
+      maxVolume: 215,
+      imageBoxClass: 'w-[136px] h-[168px]',
+      specLabelClass: 'text-[15.5px]',
+      specBodyClass: 'text-[15px] leading-[1.64]',
+      specWrapperClass: 'mt-2.5 flex-1 flex flex-col justify-evenly gap-2 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DCEAE1] rounded-xl px-3 py-2',
+      charClampClass: '',
+      compClampClass: '',
+      usageClampClass: '',
+    },
+    {
+      maxVolume: 345,
+      imageBoxClass: 'w-[128px] h-[158px]',
+      specLabelClass: 'text-[14.5px]',
+      specBodyClass: 'text-[14px] leading-[1.54]',
+      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DFECE4] rounded-xl px-3 py-1.5',
+      charClampClass: 'line-clamp-5',
+      compClampClass: 'line-clamp-4',
+      usageClampClass: 'line-clamp-4',
+    },
+    {
+      maxVolume: 445,
+      imageBoxClass: 'w-[122px] h-[150px]',
+      specLabelClass: 'text-[13.5px]',
+      specBodyClass: 'text-[13px] leading-[1.46]',
+      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#E2EDE6] rounded-xl px-2.5 py-1.5',
+      charClampClass: 'line-clamp-5',
+      compClampClass: 'line-clamp-4',
+      usageClampClass: 'line-clamp-4',
+    },
+    {
+      maxVolume: 560,
+      imageBoxClass: 'w-[116px] h-[142px]',
+      specLabelClass: 'text-[12.5px]',
+      specBodyClass: 'text-[12px] leading-[1.4]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-between gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F7FAF8] border border-[#E5EFE9] rounded-lg px-2.5 py-1',
+      charClampClass: 'line-clamp-5',
+      compClampClass: 'line-clamp-3',
+      usageClampClass: 'line-clamp-4',
+    },
+    {
+      maxVolume: Infinity,
+      imageBoxClass: 'w-[110px] h-[136px]',
+      specLabelClass: 'text-[11.5px]',
+      specBodyClass: 'text-[11px] leading-[1.35]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-start gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'pt-1 border-t border-[#C4D6CA] first:pt-0 first:border-t-0',
+      charClampClass: 'line-clamp-6',
+      compClampClass: 'line-clamp-3',
+      usageClampClass: 'line-clamp-3',
+    },
+  ],
+  6: [
+    {
+      maxVolume: 190,
+      imageBoxClass: 'w-[98px] h-[122px]',
+      specLabelClass: 'text-[13px]',
+      specBodyClass: 'text-[12.5px] leading-[1.52]',
+      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#E2EDE6] rounded-lg px-2.5 py-1.5',
+      charClampClass: 'line-clamp-4',
+      compClampClass: 'line-clamp-3',
+      usageClampClass: 'line-clamp-3',
+    },
+    {
+      maxVolume: 310,
+      imageBoxClass: 'w-[92px] h-[116px]',
+      specLabelClass: 'text-[12px]',
+      specBodyClass: 'text-[11.5px] leading-[1.42]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-between gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#E5EFE9] rounded-lg px-2 py-1',
+      charClampClass: 'line-clamp-3',
+      compClampClass: 'line-clamp-2',
+      usageClampClass: 'line-clamp-3',
+    },
+    {
+      maxVolume: Infinity,
+      imageBoxClass: 'w-[86px] h-[108px]',
+      specLabelClass: 'text-[11px]',
+      specBodyClass: 'text-[10.5px] leading-[1.35]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-start gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'pt-1 border-t border-[#C4D6CA] first:pt-0 first:border-t-0',
+      charClampClass: 'line-clamp-3',
+      compClampClass: 'line-clamp-2',
+      usageClampClass: 'line-clamp-2',
+    },
+  ],
+  8: [
+    {
+      maxVolume: 185,
+      imageBoxClass: 'w-[78px] h-[98px]',
+      specLabelClass: 'text-[12px]',
+      specBodyClass: 'text-[11.5px] leading-[1.4]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-between gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#E5EFE9] rounded-md px-2 py-1',
+      charClampClass: 'line-clamp-3',
+      compClampClass: 'line-clamp-2',
+      usageClampClass: 'line-clamp-2',
+    },
+    {
+      maxVolume: Infinity,
+      imageBoxClass: 'w-[72px] h-[90px]',
+      specLabelClass: 'text-[10.5px]',
+      specBodyClass: 'text-[10px] leading-[1.3]',
+      specWrapperClass: 'mt-1 flex-1 flex flex-col justify-start gap-0.5 min-h-0 overflow-hidden',
+      specSectionClass: 'pt-0.5 border-t border-[#C4D6CA] first:pt-0 first:border-t-0',
+      charClampClass: 'line-clamp-2',
+      compClampClass: 'line-clamp-1',
+      usageClampClass: 'line-clamp-1',
+    },
+  ],
+  9: [
+    {
+      maxVolume: 185,
+      imageBoxClass: 'w-[98px] h-[114px]',
+      specLabelClass: 'text-[12px]',
+      specBodyClass: 'text-[11.5px] leading-[1.45]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#E2EDE6] rounded-lg px-2 py-1',
+      charClampClass: 'line-clamp-3',
+      compClampClass: 'line-clamp-2',
+      usageClampClass: 'line-clamp-2',
+    },
+    {
+      maxVolume: 290,
+      imageBoxClass: 'w-[92px] h-[106px]',
+      specLabelClass: 'text-[11px]',
+      specBodyClass: 'text-[10.5px] leading-[1.38]',
+      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-between gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'pt-1 border-t border-[#C4D6CA] first:pt-0 first:border-t-0',
+      charClampClass: 'line-clamp-3',
+      compClampClass: 'line-clamp-2',
+      usageClampClass: 'line-clamp-2',
+    },
+    {
+      maxVolume: Infinity,
+      imageBoxClass: 'w-[86px] h-[98px]',
+      specLabelClass: 'text-[10px]',
+      specBodyClass: 'text-[9.5px] leading-[1.32]',
+      specWrapperClass: 'mt-1 flex-1 flex flex-col justify-start gap-0.5 min-h-0 overflow-hidden',
+      specSectionClass: 'pt-0.5 border-t border-[#C4D6CA] first:pt-0 first:border-t-0',
+      charClampClass: 'line-clamp-2',
+      compClampClass: 'line-clamp-1',
+      usageClampClass: 'line-clamp-1',
+    },
+  ],
+};
+
+/** Isolates Latin/parenthetical segments (e.g. "(Triton - K)") in RTL headings so parentheses never flip awkwardly across wrapped lines. */
+function renderBidiTitle(name: string): React.ReactNode {
+  const parts = name.split(/(\([^)]*[A-Za-z][^)]*\))/g);
+  if (parts.length <= 1) return name;
+  return parts.map((part, idx) =>
+    /^\([^)]*[A-Za-z][^)]*\)$/.test(part) ? (
+      <bdi key={idx} dir="ltr" className="inline-block whitespace-nowrap">
+        {part}
+      </bdi>
+    ) : (
+      <React.Fragment key={idx}>{part}</React.Fragment>
+    )
+  );
+}
+
+/** Computes responsive card typography and vertical fill based on grid density and product copy volume. */
+function getAdaptiveCardMetrics(
+  product: Product,
+  layout: PdfPageLayoutSpec,
+  opts: {
+    showCharacteristics: boolean;
+    showComposition: boolean;
+    showUsage: boolean;
+    visiblePackageCount: number;
+  }
+): AdaptiveCardMetrics {
+  const charLen = opts.showCharacteristics && product.characteristics?.length
+    ? product.characteristics.join(' • ').length
+    : 0;
+  const compLen = opts.showComposition && product.composition?.length
+    ? product.composition.join(' • ').length
+    : 0;
+  const usageLen = opts.showUsage && product.usage?.length
+    ? product.usage.join(' • ').length
+    : 0;
+  const sectionsCount = (charLen > 0 ? 1 : 0) + (compLen > 0 ? 1 : 0) + (usageLen > 0 ? 1 : 0);
+  const nameLen = product.name.trim().length;
+  const heroOverhead = (opts.visiblePackageCount >= 2 ? 24 : 0) + (nameLen > 18 ? 18 : 0);
+  const volume = charLen + compLen + usageLen + sectionsCount * 28 + heroOverhead;
+
+  const tiers = ADAPTIVE_CARD_TIERS[layout.count] || ADAPTIVE_CARD_TIERS[4];
+  const matched = tiers.find((t) => volume <= t.maxVolume) || tiers[tiers.length - 1];
+  let titleClass = layout.titleClass;
+  if (layout.count === 1) {
+    titleClass = nameLen > 24 ? 'text-[28px]' : 'text-[34px]';
+  } else if (layout.count === 2) {
+    titleClass = nameLen > 24 ? 'text-[23px]' : 'text-[27px]';
+  } else if (layout.count === 3) {
+    titleClass = nameLen > 24 ? 'text-[19px]' : 'text-[22px]';
+  } else if (layout.count === 4) {
+    titleClass = nameLen > 26 ? 'text-[19px]' : nameLen > 17 ? 'text-[21.5px]' : 'text-[24px]';
+  } else if (layout.count === 6) {
+    titleClass = nameLen > 22 ? 'text-[16px]' : 'text-[18.5px]';
+  } else if (layout.count >= 8) {
+    titleClass = nameLen > 20 ? 'text-[14px]' : 'text-[16px]';
+  }
+
+  let pkgBadgeClass = layout.pkgBadgeClass;
+  if (layout.count === 4) {
+    pkgBadgeClass = opts.visiblePackageCount <= 2 ? 'text-[13px] px-3.5 py-1' : 'text-[12px] px-2.5 py-0.5';
+  } else if (layout.count === 6) {
+    pkgBadgeClass = opts.visiblePackageCount <= 2 ? 'text-[11.5px] px-3 py-0.5' : 'text-[10.5px] px-2 py-0.5';
+  }
+
+  return {
+    imageBoxClass: matched.imageBoxClass,
+    titleClass,
+    pkgBadgeClass,
+    specLabelClass: matched.specLabelClass,
+    specBodyClass: matched.specBodyClass,
+    specWrapperClass: matched.specWrapperClass,
+    specSectionClass: matched.specSectionClass,
+    charClampClass: matched.charClampClass,
+    compClampClass: matched.compClampClass,
+    usageClampClass: matched.usageClampClass,
+    hasSpecs: sectionsCount > 0,
+  };
+}
+
+/** Shared responsive specs block used by both vertical and horizontal PDF product cards. */
+function renderProductSpecsBlock(
+  product: Product,
+  metrics: AdaptiveCardMetrics,
+  opts: { showCharacteristics: boolean; showComposition: boolean; showUsage: boolean }
+): React.ReactNode {
+  if (!metrics.hasSpecs) return null;
+
+  return (
+    <div className={`${metrics.specWrapperClass} text-right`}>
+      {opts.showCharacteristics && product.characteristics && product.characteristics.length > 0 && (
+        <div className={metrics.specSectionClass}>
+          <p className={`${metrics.specBodyClass} font-bold text-stone-900 ${metrics.charClampClass}`}>
+            <span className={`${metrics.specLabelClass} font-black text-[#0A623B] ml-1`}>الخصائص :</span>
+            {product.characteristics.join(' • ')}
+          </p>
+        </div>
+      )}
+
+      {opts.showComposition && product.composition && product.composition.length > 0 && (
+        <div className={metrics.specSectionClass}>
+          <p className={`${metrics.specBodyClass} font-extrabold text-stone-950 ${metrics.compClampClass}`}>
+            <span className={`${metrics.specLabelClass} font-black text-[#0A623B] ml-1`}>التركيب :</span>
+            {product.composition.join(' • ')}
+          </p>
+        </div>
+      )}
+
+      {opts.showUsage && product.usage && product.usage.length > 0 && (
+        <div className={metrics.specSectionClass}>
+          <p className={`${metrics.specBodyClass} font-bold text-stone-900 ${metrics.usageClampClass}`}>
+            <span className={`${metrics.specLabelClass} font-black text-[#0A623B] ml-1`}>معدلات الاستخدام :</span>
+            {product.usage.join(' • ')}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface PdfGeneratorViewProps {
   products: Product[];
@@ -1021,16 +1425,23 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
               safeImgSrc.includes('unsplash.com') || safeImgSrc.includes('pexels.com');
             const maxPackagesShown = layout.count >= 8 ? 2 : 3;
             const visiblePackages = prodPackages.slice(0, maxPackagesShown);
+            const metrics = getAdaptiveCardMetrics(product, layout, {
+              showCharacteristics,
+              showComposition,
+              showUsage,
+              visiblePackageCount: visiblePackages.length,
+            });
+            const cardAlignClass = metrics.hasSpecs ? 'justify-start' : 'justify-center';
 
             if (layout.orientation === 'vertical') {
               return (
                 <div
                   key={product.id}
-                  className={`${layout.cardPaddingClass} bg-white/95 border-[1.5px] border-[#8FB39D] rounded-2xl shadow-xs flex flex-col justify-start h-full min-h-0 overflow-hidden text-right`}
+                  className={`${layout.cardPaddingClass} bg-white/95 border-[1.5px] border-[#8FB39D] rounded-2xl shadow-xs flex flex-col ${cardAlignClass} h-full min-h-0 overflow-hidden text-right`}
                 >
                   <div className="flex flex-col items-center text-center space-y-1.5 shrink-0">
                     <div
-                      className={`${layout.imageBoxClass} bg-[#F3F2EC] border border-[#82A18E] rounded-2xl ${isStockScene ? 'p-0' : 'p-1.5'} flex items-center justify-center overflow-hidden shadow-sm`}
+                      className={`${metrics.imageBoxClass} bg-[#F3F2EC] border border-[#82A18E] rounded-2xl ${isStockScene ? 'p-0' : 'p-1.5'} flex items-center justify-center overflow-hidden shadow-sm`}
                     >
                       <img
                         src={safeImgSrc}
@@ -1042,8 +1453,8 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                       />
                     </div>
 
-                    <h3 className={`font-black text-[#0A623B] leading-tight line-clamp-2 ${layout.titleClass}`}>
-                      {product.name}
+                    <h3 className={`font-black text-[#0A623B] leading-tight line-clamp-2 ${metrics.titleClass}`}>
+                      {renderBidiTitle(product.name)}
                     </h3>
 
                     {showPrices && visiblePackages.length > 0 && (
@@ -1051,7 +1462,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                         {visiblePackages.map((pkg) => (
                           <span
                             key={pkg.id}
-                            className={`bg-[#CF3B2B] text-white font-black ${layout.pkgBadgeClass} rounded-md shadow-2xs inline-block`}
+                            className={`bg-[#CF3B2B] text-white font-black ${metrics.pkgBadgeClass} rounded-md shadow-2xs inline-block`}
                           >
                             {pkg.displayName}{pkg.price ? ` / ${pkg.price} ج` : ''}
                           </span>
@@ -1060,44 +1471,27 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                     )}
                   </div>
 
-                  {(showCharacteristics || showComposition || showUsage) && (
-                    <div className="mt-1.5 pt-1.5 border-t border-[#C4D6CA] space-y-0.5 text-right min-h-0 overflow-hidden">
-                      {showCharacteristics && product.characteristics && product.characteristics.length > 0 && (
-                        <p className={`${layout.specTextClass} font-semibold text-stone-900 leading-snug ${layout.charClampClass}`}>
-                          <span className="font-black text-[#0A623B]">الخصائص: </span>
-                          {product.characteristics.join(' • ')}
-                        </p>
-                      )}
-                      {showComposition && product.composition && product.composition.length > 0 && (
-                        <p className={`${layout.specTextClass} font-bold text-stone-900 leading-snug ${layout.compClampClass}`}>
-                          <span className="font-black text-[#0A623B]">التركيب: </span>
-                          {product.composition.join(' - ')}
-                        </p>
-                      )}
-                      {showUsage && product.usage && product.usage.length > 0 && (
-                        <p className={`${layout.specTextClass} font-semibold text-stone-800 leading-snug ${layout.usageClampClass}`}>
-                          <span className="font-black text-[#0A623B]">الاستخدام: </span>
-                          {product.usage.join(' • ')}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  {renderProductSpecsBlock(product, metrics, {
+                    showCharacteristics,
+                    showComposition,
+                    showUsage,
+                  })}
                 </div>
               );
             }
 
-            // Horizontal Canva Brochure Card: Title + Red Prices RIGHT | Tall Rounded Cream Bottle Frame LEFT | Specs Immediately Below
+            // Horizontal Canva Brochure Card: Title + Red Prices RIGHT | Tall Rounded Cream Bottle Frame LEFT | Responsive Specs Filling Card
             return (
               <div
                 key={product.id}
-                className={`${layout.cardPaddingClass} bg-white/95 border-[1.5px] border-[#8FB39D] rounded-2xl shadow-xs flex flex-col justify-start h-full min-h-0 overflow-hidden`}
+                className={`${layout.cardPaddingClass} bg-white/95 border-[1.5px] border-[#8FB39D] rounded-2xl shadow-xs flex flex-col ${cardAlignClass} h-full min-h-0 overflow-hidden`}
               >
                 {/* Top Row: Title & Prices (Right in RTL) + Tall Rounded Bottle Box (Left in RTL) */}
                 <div className="flex items-start justify-between gap-3 shrink-0">
                   <div className="flex-1 min-w-0 text-right pt-0.5 space-y-1.5">
                     <div>
-                      <h3 className={`font-black text-[#0A623B] leading-tight line-clamp-2 ${layout.titleClass}`}>
-                        {product.name}
+                      <h3 className={`font-black text-[#0A623B] leading-tight line-clamp-2 ${metrics.titleClass}`}>
+                        {renderBidiTitle(product.name)}
                       </h3>
                       {mergeCompaniesOnPages && (
                         <span className={`${layout.companyBadgeClass} font-bold text-stone-600 block mt-0.5 truncate`}>
@@ -1109,7 +1503,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                     {showPrices && visiblePackages.length > 0 && (
                       <div className="space-y-1 pt-0.5">
                         {layout.count <= 6 && (
-                          <span className="text-[11px] font-extrabold text-[#0A623B] block">
+                          <span className="text-[11.5px] font-extrabold text-[#0A623B] block">
                             الأسعار وأحجام العبوات :
                           </span>
                         )}
@@ -1117,7 +1511,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                           {visiblePackages.map((pkg) => (
                             <span
                               key={pkg.id}
-                              className={`bg-[#CF3B2B] text-white font-black ${layout.pkgBadgeClass} rounded-md shadow-2xs inline-flex items-center justify-center`}
+                              className={`bg-[#CF3B2B] text-white font-black ${metrics.pkgBadgeClass} rounded-md shadow-2xs inline-flex items-center justify-center`}
                             >
                               {pkg.displayName}{pkg.price ? ` / ${pkg.price} ج` : ''}
                             </span>
@@ -1129,7 +1523,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
 
                   {/* Upright Portrait Cream Photo Frame */}
                   <div
-                    className={`${layout.imageBoxClass} bg-[#F3F2EC] border-[1.5px] border-[#82A18E] rounded-2xl ${isStockScene ? 'p-0' : 'p-1.5'} flex items-center justify-center shrink-0 overflow-hidden shadow-sm`}
+                    className={`${metrics.imageBoxClass} bg-[#F3F2EC] border-[1.5px] border-[#82A18E] rounded-2xl ${isStockScene ? 'p-0' : 'p-1.5'} flex items-center justify-center shrink-0 overflow-hidden shadow-sm`}
                   >
                     <img
                       src={safeImgSrc}
@@ -1142,39 +1536,12 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                   </div>
                 </div>
 
-                {/* Description & Specs Flowing Directly Below Top Row (No Dead Middle Space!) */}
-                {(showCharacteristics || showComposition || showUsage) && (
-                  <div className="mt-2 space-y-1.5 text-right min-h-0 overflow-hidden">
-                    {showCharacteristics && product.characteristics && product.characteristics.length > 0 && (
-                      <div>
-                        <span className={`${layout.specTextClass} font-black text-[#0A623B] block mb-0.5`}>
-                          الخصائص :
-                        </span>
-                        <p className={`${layout.specTextClass} font-bold text-stone-900 leading-relaxed ${layout.charClampClass}`}>
-                          {product.characteristics.join(' • ')}
-                        </p>
-                      </div>
-                    )}
-
-                    {showComposition && product.composition && product.composition.length > 0 && (
-                      <div className="pt-1 border-t border-[#C4D6CA]">
-                        <p className={`${layout.specTextClass} font-extrabold text-stone-950 leading-snug ${layout.compClampClass}`}>
-                          <span className="font-black text-[#0A623B] ml-1">التركيب :</span>
-                          {product.composition.join(' • ')}
-                        </p>
-                      </div>
-                    )}
-
-                    {showUsage && product.usage && product.usage.length > 0 && (
-                      <div className="pt-1 border-t border-[#C4D6CA]">
-                        <p className={`${layout.specTextClass} font-bold text-stone-900 leading-snug ${layout.usageClampClass}`}>
-                          <span className="font-black text-[#0A623B] ml-1">معدلات الاستخدام :</span>
-                          {product.usage.join(' • ')}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* Responsive Specs & Composition Flowing Naturally to Fill the Framed Card */}
+                {renderProductSpecsBlock(product, metrics, {
+                  showCharacteristics,
+                  showComposition,
+                  showUsage,
+                })}
               </div>
             );
           })}
