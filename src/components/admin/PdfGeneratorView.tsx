@@ -95,14 +95,14 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 1,
     label: 'منتج واحد (صفحة كاملة)',
     gridLabel: '1×1',
-    gapClass: 'gap-5',
-    cardPaddingClass: 'p-4',
+    gapClass: 'gap-4',
+    cardPaddingClass: 'p-6',
     orientation: 'horizontal',
-    imageBoxClass: 'w-[210px] h-[270px]',
+    imageBoxClass: 'w-[224px] h-[288px]',
     titleClass: 'text-3xl',
     companyBadgeClass: 'text-xs',
     pkgBadgeClass: 'text-sm px-4 py-1.5',
-    specTextClass: 'text-xs',
+    specTextClass: 'text-[13px]',
     charClampClass: 'line-clamp-8',
     compClampClass: 'line-clamp-6',
     usageClampClass: 'line-clamp-6',
@@ -113,14 +113,14 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 2,
     label: 'منتجان (صفوف عريضة)',
     gridLabel: '1×2',
-    gapClass: 'gap-5',
-    cardPaddingClass: 'p-2',
+    gapClass: 'gap-4',
+    cardPaddingClass: 'p-4',
     orientation: 'horizontal',
-    imageBoxClass: 'w-[152px] h-[196px]',
-    titleClass: 'text-2xl',
+    imageBoxClass: 'w-[162px] h-[206px]',
+    titleClass: 'text-[26px]',
     companyBadgeClass: 'text-xs',
-    pkgBadgeClass: 'text-xs px-3.5 py-1',
-    specTextClass: 'text-xs',
+    pkgBadgeClass: 'text-[13px] px-3.5 py-1',
+    specTextClass: 'text-[12.5px]',
     charClampClass: 'line-clamp-5',
     compClampClass: 'line-clamp-3',
     usageClampClass: 'line-clamp-3',
@@ -131,14 +131,14 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 3,
     label: '3 منتجات (صفوف متوازنة)',
     gridLabel: '1×3',
-    gapClass: 'gap-4',
-    cardPaddingClass: 'p-1.5',
+    gapClass: 'gap-3.5',
+    cardPaddingClass: 'p-3',
     orientation: 'horizontal',
-    imageBoxClass: 'w-[112px] h-[144px]',
-    titleClass: 'text-xl',
-    companyBadgeClass: 'text-[11px]',
+    imageBoxClass: 'w-[120px] h-[152px]',
+    titleClass: 'text-[22px]',
+    companyBadgeClass: 'text-[11.5px]',
     pkgBadgeClass: 'text-xs px-3 py-1',
-    specTextClass: 'text-[11px]',
+    specTextClass: 'text-[11.5px]',
     charClampClass: 'line-clamp-3',
     compClampClass: 'line-clamp-2',
     usageClampClass: 'line-clamp-2',
@@ -149,14 +149,14 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 2,
     label: '4 منتجات (التنسيق الكلاسيكي 2×2)',
     gridLabel: '2×2',
-    gapClass: 'gap-x-7 gap-y-4',
-    cardPaddingClass: 'p-1',
+    gapClass: 'gap-3.5',
+    cardPaddingClass: 'p-3.5',
     orientation: 'horizontal',
-    imageBoxClass: 'w-[122px] h-[158px]',
-    titleClass: 'text-[22px]',
-    companyBadgeClass: 'text-[11px]',
-    pkgBadgeClass: 'text-xs px-3.5 py-1',
-    specTextClass: 'text-[11px]',
+    imageBoxClass: 'w-[132px] h-[170px]',
+    titleClass: 'text-[23px]',
+    companyBadgeClass: 'text-[11.5px]',
+    pkgBadgeClass: 'text-[12.5px] px-3.5 py-1',
+    specTextClass: 'text-[11.5px]',
     charClampClass: 'line-clamp-5',
     compClampClass: 'line-clamp-2',
     usageClampClass: 'line-clamp-2',
@@ -167,14 +167,14 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 3,
     label: '6 منتجات (شبكة 2×3)',
     gridLabel: '2×3',
-    gapClass: 'gap-x-6 gap-y-3',
-    cardPaddingClass: 'p-1',
+    gapClass: 'gap-3',
+    cardPaddingClass: 'p-2.5',
     orientation: 'horizontal',
-    imageBoxClass: 'w-[92px] h-[118px]',
-    titleClass: 'text-base',
-    companyBadgeClass: 'text-[10px]',
-    pkgBadgeClass: 'text-[10.5px] px-2.5 py-0.5',
-    specTextClass: 'text-[10px]',
+    imageBoxClass: 'w-[96px] h-[122px]',
+    titleClass: 'text-[17px]',
+    companyBadgeClass: 'text-[10.5px]',
+    pkgBadgeClass: 'text-[11px] px-2.5 py-0.5',
+    specTextClass: 'text-[10.5px]',
     charClampClass: 'line-clamp-3',
     compClampClass: 'line-clamp-2',
     usageClampClass: 'line-clamp-1',
@@ -185,14 +185,14 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 4,
     label: '8 منتجات (مقارنة 2×4)',
     gridLabel: '2×4',
-    gapClass: 'gap-x-5 gap-y-2',
-    cardPaddingClass: 'p-1',
+    gapClass: 'gap-2.5',
+    cardPaddingClass: 'p-2',
     orientation: 'horizontal',
-    imageBoxClass: 'w-[74px] h-[94px]',
-    titleClass: 'text-sm',
-    companyBadgeClass: 'text-[9.5px]',
-    pkgBadgeClass: 'text-[9.5px] px-2 py-0.5',
-    specTextClass: 'text-[9.5px]',
+    imageBoxClass: 'w-[76px] h-[96px]',
+    titleClass: 'text-[15px]',
+    companyBadgeClass: 'text-[10px]',
+    pkgBadgeClass: 'text-[10px] px-2 py-0.5',
+    specTextClass: 'text-[10px]',
     charClampClass: 'line-clamp-2',
     compClampClass: 'line-clamp-1',
     usageClampClass: 'line-clamp-1',
@@ -203,14 +203,14 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 3,
     label: '9 منتجات (شبكة 3×3)',
     gridLabel: '3×3',
-    gapClass: 'gap-x-4 gap-y-3',
-    cardPaddingClass: 'p-1.5',
+    gapClass: 'gap-3',
+    cardPaddingClass: 'p-2.5',
     orientation: 'vertical',
-    imageBoxClass: 'w-[92px] h-[108px]',
-    titleClass: 'text-sm',
-    companyBadgeClass: 'text-[9.5px]',
-    pkgBadgeClass: 'text-[10px] px-2.5 py-0.5',
-    specTextClass: 'text-[9.5px]',
+    imageBoxClass: 'w-[96px] h-[112px]',
+    titleClass: 'text-[15px]',
+    companyBadgeClass: 'text-[10px]',
+    pkgBadgeClass: 'text-[10.5px] px-2.5 py-0.5',
+    specTextClass: 'text-[10px]',
     charClampClass: 'line-clamp-2',
     compClampClass: 'line-clamp-1',
     usageClampClass: 'line-clamp-1',
@@ -948,16 +948,16 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     return (
       <div
         key={item.uid}
-        className={`${classBase} bg-gradient-to-br from-[#F7FAF8] via-[#EDF4F0] to-[#E5EFE9] px-6 py-4`}
+        className={`${classBase} bg-gradient-to-br from-[#F7FAF8] via-[#EDF4F0] to-[#E5EFE9] px-4 py-3.5`}
         style={{ boxSizing: 'border-box' }}
       >
         {/* Top Forest-Green Canva Header Pill */}
-        <div className="bg-[#0A623B] text-white px-6 py-3 rounded-2xl flex items-center justify-between gap-4 shrink-0 shadow-sm mb-4">
-          {/* Right (RTL): Company Brand + Divider + Section Name */}
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
+        <div className="bg-[#0A623B] text-white px-5 py-2.5 rounded-2xl flex items-center justify-between gap-3 shrink-0 shadow-sm mb-3">
+          {/* Right (RTL): Company Brand + Divider + Full Section Name */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex items-center gap-2 shrink-0">
               {pageCompanyObj?.logoUrl ? (
-                <div className="w-9 h-9 bg-white rounded-xl p-1 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 bg-white rounded-xl p-1 flex items-center justify-center shrink-0">
                   <img
                     src={pageCompanyObj.logoUrl}
                     alt={item.companyName}
@@ -967,14 +967,22 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
               ) : (
                 <Building2 className="w-5 h-5 text-amber-300 shrink-0" />
               )}
-              <span className="text-lg font-black tracking-tight truncate max-w-[230px]">
+              <span className="text-[15px] font-black tracking-tight max-w-[215px] leading-tight">
                 {item.companyName}
               </span>
             </div>
 
             <span className="w-px h-7 bg-white/40 shrink-0" />
 
-            <span className="text-lg font-black text-emerald-50 truncate max-w-[210px]">
+            <span
+              className={`${
+                sectionHeaderLabel.length > 26
+                  ? 'text-[12.5px]'
+                  : sectionHeaderLabel.length > 16
+                    ? 'text-[13.5px]'
+                    : 'text-[15px]'
+              } font-black text-emerald-50 leading-tight whitespace-normal flex-1`}
+            >
               {sectionHeaderLabel}
             </span>
           </div>
@@ -987,13 +995,13 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                 CROPSA
               </div>
             </div>
-            <div className="w-9 h-9 bg-white text-[#0A623B] font-black rounded-xl flex items-center justify-center text-lg shadow-xs">
+            <div className="w-8 h-8 bg-white text-[#0A623B] font-black rounded-xl flex items-center justify-center text-base shadow-xs">
               🌱
             </div>
           </div>
         </div>
 
-        {/* Fixed Equal-Cell Borderless Editorial Grid (Zero empty middle holes!) */}
+        {/* Fixed Equal-Cell Framed Editorial Grid (Zero empty middle holes!) */}
         <div
           className={`flex-1 min-h-0 grid ${layout.gapClass}`}
           style={{
@@ -1009,6 +1017,8 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
               !rawImg || rawImg.includes('photo-1592417817098-8f3d6ef23a81')
                 ? FALLBACK_BOTTLE_SVG_DATA_URL
                 : rawImg;
+            const isStockScene =
+              safeImgSrc.includes('unsplash.com') || safeImgSrc.includes('pexels.com');
             const maxPackagesShown = layout.count >= 8 ? 2 : 3;
             const visiblePackages = prodPackages.slice(0, maxPackagesShown);
 
@@ -1016,11 +1026,11 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
               return (
                 <div
                   key={product.id}
-                  className={`${layout.cardPaddingClass} flex flex-col justify-start h-full min-h-0 overflow-hidden text-right`}
+                  className={`${layout.cardPaddingClass} bg-white/95 border-[1.5px] border-[#8FB39D] rounded-2xl shadow-xs flex flex-col justify-start h-full min-h-0 overflow-hidden text-right`}
                 >
                   <div className="flex flex-col items-center text-center space-y-1.5 shrink-0">
                     <div
-                      className={`${layout.imageBoxClass} bg-[#F3F2EC] border border-[#82A18E] rounded-2xl p-1.5 flex items-center justify-center overflow-hidden shadow-sm`}
+                      className={`${layout.imageBoxClass} bg-[#F3F2EC] border border-[#82A18E] rounded-2xl ${isStockScene ? 'p-0' : 'p-1.5'} flex items-center justify-center overflow-hidden shadow-sm`}
                     >
                       <img
                         src={safeImgSrc}
@@ -1028,7 +1038,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                         onError={(e) => {
                           e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
                         }}
-                        className="w-full h-full object-contain rounded-xl"
+                        className={`w-full h-full ${isStockScene ? 'object-cover' : 'object-contain'} rounded-xl`}
                       />
                     </div>
 
@@ -1080,7 +1090,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
             return (
               <div
                 key={product.id}
-                className={`${layout.cardPaddingClass} flex flex-col justify-start h-full min-h-0 overflow-hidden`}
+                className={`${layout.cardPaddingClass} bg-white/95 border-[1.5px] border-[#8FB39D] rounded-2xl shadow-xs flex flex-col justify-start h-full min-h-0 overflow-hidden`}
               >
                 {/* Top Row: Title & Prices (Right in RTL) + Tall Rounded Bottle Box (Left in RTL) */}
                 <div className="flex items-start justify-between gap-3 shrink-0">
@@ -1099,7 +1109,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                     {showPrices && visiblePackages.length > 0 && (
                       <div className="space-y-1 pt-0.5">
                         {layout.count <= 6 && (
-                          <span className="text-[10.5px] font-extrabold text-[#0A623B] block">
+                          <span className="text-[11px] font-extrabold text-[#0A623B] block">
                             الأسعار وأحجام العبوات :
                           </span>
                         )}
@@ -1119,7 +1129,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
 
                   {/* Upright Portrait Cream Photo Frame */}
                   <div
-                    className={`${layout.imageBoxClass} bg-[#F3F2EC] border-[1.5px] border-[#82A18E] rounded-2xl p-1.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm`}
+                    className={`${layout.imageBoxClass} bg-[#F3F2EC] border-[1.5px] border-[#82A18E] rounded-2xl ${isStockScene ? 'p-0' : 'p-1.5'} flex items-center justify-center shrink-0 overflow-hidden shadow-sm`}
                   >
                     <img
                       src={safeImgSrc}
@@ -1127,7 +1137,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                       onError={(e) => {
                         e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
                       }}
-                      className="w-full h-full object-contain rounded-xl"
+                      className={`w-full h-full ${isStockScene ? 'object-cover' : 'object-contain'} rounded-xl`}
                     />
                   </div>
                 </div>
