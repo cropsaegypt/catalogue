@@ -150,7 +150,7 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     label: '4 منتجات (التنسيق الكلاسيكي 2×2)',
     gridLabel: '2×2',
     gapClass: 'gap-3.5',
-    cardPaddingClass: 'p-3',
+    cardPaddingClass: 'p-3.5',
     orientation: 'horizontal',
     imageBoxClass: 'w-[132px] h-[170px]',
     titleClass: 'text-[23px]',
@@ -237,6 +237,10 @@ interface AdaptiveCardMetrics {
   pkgBadgeClass: string;
   specLabelClass: string;
   specBodyClass: string;
+  charBodyClass: string;
+  compBodyClass: string;
+  usageBodyClass: string;
+  blockCharacteristicsHeading: boolean;
   specWrapperClass: string;
   specSectionClass: string;
   charClampClass: string;
@@ -353,56 +357,56 @@ const ADAPTIVE_CARD_TIERS: Record<number, AdaptiveTierSpec[]> = {
   ],
   4: [
     {
-      maxVolume: 215,
-      imageBoxClass: 'w-[136px] h-[168px]',
+      maxVolume: 225,
+      imageBoxClass: 'w-[140px] h-[176px]',
       specLabelClass: 'text-[15.5px]',
-      specBodyClass: 'text-[15px] leading-[1.64]',
-      specWrapperClass: 'mt-2.5 flex-1 flex flex-col justify-evenly gap-2 min-h-0 overflow-hidden',
-      specSectionClass: 'bg-[#F6FAF7] border border-[#DCEAE1] rounded-xl px-3 py-2',
+      specBodyClass: 'text-[15px] leading-[1.66]',
+      specWrapperClass: 'mt-3 flex-1 flex flex-col justify-evenly gap-2.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DCEAE1] rounded-xl px-3.5 py-2.5',
       charClampClass: '',
       compClampClass: '',
       usageClampClass: '',
     },
     {
-      maxVolume: 345,
-      imageBoxClass: 'w-[128px] h-[158px]',
+      maxVolume: 365,
+      imageBoxClass: 'w-[134px] h-[168px]',
       specLabelClass: 'text-[14.5px]',
-      specBodyClass: 'text-[14px] leading-[1.54]',
-      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
-      specSectionClass: 'bg-[#F6FAF7] border border-[#DFECE4] rounded-xl px-3 py-1.5',
+      specBodyClass: 'text-[14px] leading-[1.56]',
+      specWrapperClass: 'mt-2.5 flex-1 flex flex-col justify-between gap-2 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#DFECE4] rounded-xl px-3 py-2',
       charClampClass: 'line-clamp-5',
       compClampClass: 'line-clamp-4',
       usageClampClass: 'line-clamp-4',
     },
     {
-      maxVolume: 445,
-      imageBoxClass: 'w-[122px] h-[150px]',
-      specLabelClass: 'text-[13.5px]',
-      specBodyClass: 'text-[13px] leading-[1.46]',
-      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
-      specSectionClass: 'bg-[#F6FAF7] border border-[#E2EDE6] rounded-xl px-2.5 py-1.5',
+      maxVolume: 470,
+      imageBoxClass: 'w-[132px] h-[164px]',
+      specLabelClass: 'text-[14px]',
+      specBodyClass: 'text-[13.5px] leading-[1.48]',
+      specWrapperClass: 'mt-2.5 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F6FAF7] border border-[#E2EDE6] rounded-xl px-3 py-1.5',
       charClampClass: 'line-clamp-5',
       compClampClass: 'line-clamp-4',
       usageClampClass: 'line-clamp-4',
     },
     {
-      maxVolume: 560,
-      imageBoxClass: 'w-[116px] h-[142px]',
-      specLabelClass: 'text-[12.5px]',
-      specBodyClass: 'text-[12px] leading-[1.4]',
-      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-between gap-1 min-h-0 overflow-hidden',
-      specSectionClass: 'bg-[#F7FAF8] border border-[#E5EFE9] rounded-lg px-2.5 py-1',
+      maxVolume: 590,
+      imageBoxClass: 'w-[126px] h-[158px]',
+      specLabelClass: 'text-[13px]',
+      specBodyClass: 'text-[12.5px] leading-[1.42]',
+      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1.5 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F7FAF8] border border-[#E5EFE9] rounded-xl px-2.5 py-1.5',
       charClampClass: 'line-clamp-5',
       compClampClass: 'line-clamp-3',
       usageClampClass: 'line-clamp-4',
     },
     {
       maxVolume: Infinity,
-      imageBoxClass: 'w-[110px] h-[136px]',
-      specLabelClass: 'text-[11.5px]',
-      specBodyClass: 'text-[11px] leading-[1.35]',
-      specWrapperClass: 'mt-1.5 flex-1 flex flex-col justify-start gap-1 min-h-0 overflow-hidden',
-      specSectionClass: 'pt-1 border-t border-[#C4D6CA] first:pt-0 first:border-t-0',
+      imageBoxClass: 'w-[122px] h-[152px]',
+      specLabelClass: 'text-[12px]',
+      specBodyClass: 'text-[11.5px] leading-[1.36]',
+      specWrapperClass: 'mt-2 flex-1 flex flex-col justify-between gap-1 min-h-0 overflow-hidden',
+      specSectionClass: 'bg-[#F7FAF8] border border-[#E5EFE9] rounded-lg px-2.5 py-1',
       charClampClass: 'line-clamp-6',
       compClampClass: 'line-clamp-3',
       usageClampClass: 'line-clamp-3',
@@ -519,6 +523,23 @@ function renderBidiTitle(name: string): React.ReactNode {
   );
 }
 
+/** Coordinates text size cleanly inside an individual spec box so dense copy (especially usage rates) fits inside full-size boxes without clipping. */
+function coordinateSectionBodyClass(
+  sectionLength: number,
+  defaultBodyClass: string,
+  layoutCount: number,
+  cardHasLongCopy: boolean
+): string {
+  if (sectionLength === 0) return defaultBodyClass;
+  if (layoutCount === 4 && cardHasLongCopy) {
+    if (sectionLength > 125) return 'text-[12px] leading-[1.38]';
+    if (sectionLength > 82) return 'text-[12.5px] leading-[1.42]';
+  } else if (layoutCount <= 2 && cardHasLongCopy) {
+    if (sectionLength > 210) return 'text-[13.5px] leading-[1.48]';
+  }
+  return defaultBodyClass;
+}
+
 /** Computes responsive card typography and vertical fill based on grid density and product copy volume. */
 function getAdaptiveCardMetrics(
   product: Product,
@@ -541,8 +562,8 @@ function getAdaptiveCardMetrics(
     : 0;
   const sectionsCount = (charLen > 0 ? 1 : 0) + (compLen > 0 ? 1 : 0) + (usageLen > 0 ? 1 : 0);
   const nameLen = product.name.trim().length;
-  const heroOverhead = (opts.visiblePackageCount >= 2 ? 24 : 0) + (nameLen > 18 ? 18 : 0);
-  const volume = charLen + compLen + usageLen + sectionsCount * 28 + heroOverhead;
+  const volume = charLen + compLen + usageLen + sectionsCount * 28;
+  const cardHasLongCopy = charLen + compLen + usageLen > 240;
 
   const tiers = ADAPTIVE_CARD_TIERS[layout.count] || ADAPTIVE_CARD_TIERS[4];
   const matched = tiers.find((t) => volume <= t.maxVolume) || tiers[tiers.length - 1];
@@ -563,9 +584,16 @@ function getAdaptiveCardMetrics(
 
   let pkgBadgeClass = layout.pkgBadgeClass;
   if (layout.count === 4) {
-    pkgBadgeClass = opts.visiblePackageCount <= 2 ? 'text-[13px] px-3.5 py-1' : 'text-[12px] px-2.5 py-0.5';
+    // Keep up to 2 prices cleanly side-by-side on one row without growing the hero height
+    pkgBadgeClass =
+      opts.visiblePackageCount >= 2
+        ? 'text-[11.5px] px-2.5 py-0.5 whitespace-nowrap'
+        : 'text-[13px] px-3.5 py-1 whitespace-nowrap';
   } else if (layout.count === 6) {
-    pkgBadgeClass = opts.visiblePackageCount <= 2 ? 'text-[11.5px] px-3 py-0.5' : 'text-[10.5px] px-2 py-0.5';
+    pkgBadgeClass =
+      opts.visiblePackageCount >= 2
+        ? 'text-[10.5px] px-2 py-0.5 whitespace-nowrap'
+        : 'text-[11.5px] px-3 py-0.5 whitespace-nowrap';
   }
 
   return {
@@ -574,6 +602,10 @@ function getAdaptiveCardMetrics(
     pkgBadgeClass,
     specLabelClass: matched.specLabelClass,
     specBodyClass: matched.specBodyClass,
+    charBodyClass: coordinateSectionBodyClass(charLen, matched.specBodyClass, layout.count, cardHasLongCopy),
+    compBodyClass: coordinateSectionBodyClass(compLen, matched.specBodyClass, layout.count, cardHasLongCopy),
+    usageBodyClass: coordinateSectionBodyClass(usageLen, matched.specBodyClass, layout.count, cardHasLongCopy),
+    blockCharacteristicsHeading: layout.count <= 4 && charLen + compLen + usageLen <= 340,
     specWrapperClass: matched.specWrapperClass,
     specSectionClass: matched.specSectionClass,
     charClampClass: matched.charClampClass,
@@ -595,16 +627,27 @@ function renderProductSpecsBlock(
     <div className={`${metrics.specWrapperClass} text-right`}>
       {opts.showCharacteristics && product.characteristics && product.characteristics.length > 0 && (
         <div className={metrics.specSectionClass}>
-          <p className={`${metrics.specBodyClass} font-bold text-stone-900 ${metrics.charClampClass}`}>
-            <span className={`${metrics.specLabelClass} font-black text-[#0A623B] ml-1`}>الخصائص :</span>
-            {product.characteristics.join(' • ')}
-          </p>
+          {metrics.blockCharacteristicsHeading ? (
+            <>
+              <span className={`${metrics.specLabelClass} font-black text-[#0A623B] block mb-0.5`}>
+                الخصائص :
+              </span>
+              <p className={`${metrics.charBodyClass} font-bold text-stone-900 ${metrics.charClampClass}`}>
+                {product.characteristics.join(' • ')}
+              </p>
+            </>
+          ) : (
+            <p className={`${metrics.charBodyClass} font-bold text-stone-900 ${metrics.charClampClass}`}>
+              <span className={`${metrics.specLabelClass} font-black text-[#0A623B] ml-1`}>الخصائص :</span>
+              {product.characteristics.join(' • ')}
+            </p>
+          )}
         </div>
       )}
 
       {opts.showComposition && product.composition && product.composition.length > 0 && (
         <div className={metrics.specSectionClass}>
-          <p className={`${metrics.specBodyClass} font-extrabold text-stone-950 ${metrics.compClampClass}`}>
+          <p className={`${metrics.compBodyClass} font-extrabold text-stone-950 ${metrics.compClampClass}`}>
             <span className={`${metrics.specLabelClass} font-black text-[#0A623B] ml-1`}>التركيب :</span>
             {product.composition.join(' • ')}
           </p>
@@ -613,7 +656,7 @@ function renderProductSpecsBlock(
 
       {opts.showUsage && product.usage && product.usage.length > 0 && (
         <div className={metrics.specSectionClass}>
-          <p className={`${metrics.specBodyClass} font-bold text-stone-900 ${metrics.usageClampClass}`}>
+          <p className={`${metrics.usageBodyClass} font-bold text-stone-900 ${metrics.usageClampClass}`}>
             <span className={`${metrics.specLabelClass} font-black text-[#0A623B] ml-1`}>معدلات الاستخدام :</span>
             {product.usage.join(' • ')}
           </p>
@@ -1487,7 +1530,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                 className={`${layout.cardPaddingClass} bg-white/95 border-[1.5px] border-[#8FB39D] rounded-2xl shadow-xs flex flex-col ${cardAlignClass} h-full min-h-0 overflow-hidden`}
               >
                 {/* Top Row: Title & Prices (Right in RTL) + Tall Rounded Bottle Box (Left in RTL) */}
-                <div className="flex items-start justify-between gap-3 shrink-0">
+                <div className="flex items-start justify-between gap-2.5 shrink-0">
                   <div className="flex-1 min-w-0 text-right pt-0.5 space-y-1.5">
                     <div>
                       <h3 className={`font-black text-[#0A623B] leading-tight line-clamp-2 ${metrics.titleClass}`}>
@@ -1507,7 +1550,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                             الأسعار وأحجام العبوات :
                           </span>
                         )}
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-1">
                           {visiblePackages.map((pkg) => (
                             <span
                               key={pkg.id}
