@@ -10,6 +10,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { Product, Package, Company } from '../../types';
+import { FALLBACK_BOTTLE_SVG_DATA_URL } from '../../utils/agriculturalImages';
 import { ImageZoomModal } from '../common/ImageZoomModal';
 
 interface ProductCardProps {
@@ -102,10 +103,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     );
   };
 
+  const rawImg = product.mainImageUrl || '';
   const imgSrc =
-    product.mainImageUrl ||
-    'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=600&auto=format&fit=crop&q=80';
-  const isPackImage = imgSrc.startsWith('/uploads/') || imgSrc.startsWith('data:image');
+    !rawImg || rawImg.includes('photo-1592417817098-8f3d6ef23a81')
+      ? FALLBACK_BOTTLE_SVG_DATA_URL
+      : rawImg;
+  const isPackImage =
+    imgSrc.startsWith('/uploads/') ||
+    imgSrc.startsWith('data:image') ||
+    imgSrc.includes('firebasestorage');
 
   return (
     <motion.div
@@ -140,6 +146,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={imgSrc}
           alt={product.name}
+          onError={(e) => {
+            e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
+          }}
           className={`w-full h-full group-hover:scale-105 transition-transform duration-300 ${
             isPackImage ? 'object-contain' : 'object-cover'
           }`}

@@ -8,6 +8,20 @@ export interface AgriculturalImageOption {
   url: string;
 }
 
+export const FALLBACK_BOTTLE_SVG_DATA_URL =
+  'data:image/svg+xml;utf8,' +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 300" width="240" height="300">
+      <rect width="240" height="300" fill="#F3F2EC" rx="18"/>
+      <rect x="88" y="34" width="64" height="22" rx="6" fill="#0A623B"/>
+      <path d="M84 56 L156 56 L172 98 C176 108 176 116 176 128 L176 248 C176 262 164 272 150 272 L90 272 C76 272 64 262 64 248 L64 128 C64 116 64 108 68 98 Z" fill="#FFFFFF" stroke="#0A623B" stroke-width="5"/>
+      <rect x="76" y="130" width="88" height="96" rx="10" fill="#E8F2EC" stroke="#0A623B" stroke-width="2.5"/>
+      <circle cx="120" cy="166" r="20" fill="#0A623B"/>
+      <path d="M110 168 C116 154 128 154 132 166 C126 174 116 174 110 168 Z" fill="#FBBF24"/>
+      <rect x="92" y="198" width="56" height="12" rx="6" fill="#CF3B2B"/>
+    </svg>`
+  );
+
 export const AGRICULTURAL_PRESET_IMAGES: AgriculturalImageOption[] = [
   {
     id: 'agri-potassium',

@@ -45,6 +45,7 @@ import { pdfService, RenderedCatalogImage } from '../../services/pdfService';
 import { dbStorage } from '../../services/dbStorage';
 import { firestoreSync } from '../../services/firestoreSync';
 import { aiCatalogService } from '../../services/aiCatalogService';
+import { FALLBACK_BOTTLE_SVG_DATA_URL } from '../../utils/agriculturalImages';
 import { ImageFileInput } from '../common/ImageFileInput';
 
 type CatalogSequenceItem =
@@ -94,13 +95,13 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 1,
     label: 'منتج واحد (صفحة كاملة)',
     gridLabel: '1×1',
-    gapClass: 'gap-4',
-    cardPaddingClass: 'p-6',
+    gapClass: 'gap-5',
+    cardPaddingClass: 'p-4',
     orientation: 'horizontal',
-    imageBoxClass: 'w-60 h-60',
-    titleClass: 'text-2xl',
+    imageBoxClass: 'w-[210px] h-[270px]',
+    titleClass: 'text-3xl',
     companyBadgeClass: 'text-xs',
-    pkgBadgeClass: 'text-sm px-3 py-1.5',
+    pkgBadgeClass: 'text-sm px-4 py-1.5',
     specTextClass: 'text-xs',
     charClampClass: 'line-clamp-8',
     compClampClass: 'line-clamp-6',
@@ -112,15 +113,15 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 2,
     label: 'منتجان (صفوف عريضة)',
     gridLabel: '1×2',
-    gapClass: 'gap-4',
-    cardPaddingClass: 'p-5',
+    gapClass: 'gap-5',
+    cardPaddingClass: 'p-2',
     orientation: 'horizontal',
-    imageBoxClass: 'w-44 h-44',
-    titleClass: 'text-xl',
+    imageBoxClass: 'w-[152px] h-[196px]',
+    titleClass: 'text-2xl',
     companyBadgeClass: 'text-xs',
-    pkgBadgeClass: 'text-xs px-2.5 py-1',
-    specTextClass: 'text-[11.5px]',
-    charClampClass: 'line-clamp-3',
+    pkgBadgeClass: 'text-xs px-3.5 py-1',
+    specTextClass: 'text-xs',
+    charClampClass: 'line-clamp-5',
     compClampClass: 'line-clamp-3',
     usageClampClass: 'line-clamp-3',
   },
@@ -130,15 +131,15 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 3,
     label: '3 منتجات (صفوف متوازنة)',
     gridLabel: '1×3',
-    gapClass: 'gap-3.5',
-    cardPaddingClass: 'p-4',
+    gapClass: 'gap-4',
+    cardPaddingClass: 'p-1.5',
     orientation: 'horizontal',
-    imageBoxClass: 'w-32 h-32',
-    titleClass: 'text-lg',
+    imageBoxClass: 'w-[112px] h-[144px]',
+    titleClass: 'text-xl',
     companyBadgeClass: 'text-[11px]',
-    pkgBadgeClass: 'text-xs px-2.5 py-1',
+    pkgBadgeClass: 'text-xs px-3 py-1',
     specTextClass: 'text-[11px]',
-    charClampClass: 'line-clamp-2',
+    charClampClass: 'line-clamp-3',
     compClampClass: 'line-clamp-2',
     usageClampClass: 'line-clamp-2',
   },
@@ -146,17 +147,17 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     count: 4,
     cols: 2,
     rows: 2,
-    label: '4 منتجات (القياسي 2×2)',
+    label: '4 منتجات (التنسيق الكلاسيكي 2×2)',
     gridLabel: '2×2',
-    gapClass: 'gap-4',
-    cardPaddingClass: 'p-4',
+    gapClass: 'gap-x-7 gap-y-4',
+    cardPaddingClass: 'p-1',
     orientation: 'horizontal',
-    imageBoxClass: 'w-32 h-32',
-    titleClass: 'text-base',
+    imageBoxClass: 'w-[122px] h-[158px]',
+    titleClass: 'text-[22px]',
     companyBadgeClass: 'text-[11px]',
-    pkgBadgeClass: 'text-xs px-2.5 py-1',
+    pkgBadgeClass: 'text-xs px-3.5 py-1',
     specTextClass: 'text-[11px]',
-    charClampClass: 'line-clamp-3',
+    charClampClass: 'line-clamp-5',
     compClampClass: 'line-clamp-2',
     usageClampClass: 'line-clamp-2',
   },
@@ -166,17 +167,17 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 3,
     label: '6 منتجات (شبكة 2×3)',
     gridLabel: '2×3',
-    gapClass: 'gap-3',
-    cardPaddingClass: 'p-3',
+    gapClass: 'gap-x-6 gap-y-3',
+    cardPaddingClass: 'p-1',
     orientation: 'horizontal',
-    imageBoxClass: 'w-24 h-24',
-    titleClass: 'text-sm',
+    imageBoxClass: 'w-[92px] h-[118px]',
+    titleClass: 'text-base',
     companyBadgeClass: 'text-[10px]',
-    pkgBadgeClass: 'text-[10px] px-2 py-0.5',
+    pkgBadgeClass: 'text-[10.5px] px-2.5 py-0.5',
     specTextClass: 'text-[10px]',
-    charClampClass: 'line-clamp-2',
+    charClampClass: 'line-clamp-3',
     compClampClass: 'line-clamp-2',
-    usageClampClass: 'line-clamp-2',
+    usageClampClass: 'line-clamp-1',
   },
   8: {
     count: 8,
@@ -184,15 +185,15 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 4,
     label: '8 منتجات (مقارنة 2×4)',
     gridLabel: '2×4',
-    gapClass: 'gap-2.5',
-    cardPaddingClass: 'p-2.5',
+    gapClass: 'gap-x-5 gap-y-2',
+    cardPaddingClass: 'p-1',
     orientation: 'horizontal',
-    imageBoxClass: 'w-20 h-20',
-    titleClass: 'text-xs',
+    imageBoxClass: 'w-[74px] h-[94px]',
+    titleClass: 'text-sm',
     companyBadgeClass: 'text-[9.5px]',
-    pkgBadgeClass: 'text-[9.5px] px-1.5 py-0.5',
+    pkgBadgeClass: 'text-[9.5px] px-2 py-0.5',
     specTextClass: 'text-[9.5px]',
-    charClampClass: 'line-clamp-1',
+    charClampClass: 'line-clamp-2',
     compClampClass: 'line-clamp-1',
     usageClampClass: 'line-clamp-1',
   },
@@ -202,13 +203,13 @@ const PDF_PAGE_LAYOUTS: Record<number, PdfPageLayoutSpec> = {
     rows: 3,
     label: '9 منتجات (شبكة 3×3)',
     gridLabel: '3×3',
-    gapClass: 'gap-3',
-    cardPaddingClass: 'p-2.5',
+    gapClass: 'gap-x-4 gap-y-3',
+    cardPaddingClass: 'p-1.5',
     orientation: 'vertical',
-    imageBoxClass: 'w-full h-24',
-    titleClass: 'text-xs',
+    imageBoxClass: 'w-[92px] h-[108px]',
+    titleClass: 'text-sm',
     companyBadgeClass: 'text-[9.5px]',
-    pkgBadgeClass: 'text-[9.5px] px-1.5 py-0.5',
+    pkgBadgeClass: 'text-[10px] px-2.5 py-0.5',
     specTextClass: 'text-[9.5px]',
     charClampClass: 'line-clamp-2',
     compClampClass: 'line-clamp-1',
@@ -845,7 +846,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
 
   // Shared A4 Page Renderer (used identically in Main View AND Fullscreen Preview Modal!)
   const renderCatalogPageNode = (item: CatalogSequenceItem, seqIndex: number, includePdfClass = true) => {
-    const classBase = `${includePdfClass ? 'pdf-a4-page ' : ''}w-[794px] h-[1123px] border-2 border-[#046A47] shadow-2xl flex flex-col justify-between dir-rtl relative overflow-hidden shrink-0`;
+    const classBase = `${includePdfClass ? 'pdf-a4-page ' : ''}w-[794px] h-[1123px] border border-[#B7CCC0] shadow-2xl flex flex-col justify-between dir-rtl relative overflow-hidden shrink-0`;
 
     // 1. Divider / Cover Page
     if (item.type === 'divider') {
@@ -861,12 +862,12 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       return (
         <div
           key={item.uid}
-          className={`${classBase} bg-gradient-to-br from-[#046A47] via-[#035237] to-[#013221] text-white p-12`}
+          className={`${classBase} bg-gradient-to-br from-[#0A623B] via-[#074E2F] to-[#03321D] text-white p-12`}
           style={{ boxSizing: 'border-box' }}
         >
           <div className="flex items-center justify-between border-b border-white/20 pb-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white text-[#046A47] rounded-2xl flex items-center justify-center font-black text-2xl shadow-md">
+              <div className="w-12 h-12 bg-white text-[#0A623B] rounded-2xl flex items-center justify-center font-black text-2xl shadow-md">
                 🌱
               </div>
               <div>
@@ -890,7 +891,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <Building2 className="w-24 h-24 text-[#046A47]" />
+                <Building2 className="w-24 h-24 text-[#0A623B]" />
               )}
             </div>
 
@@ -917,9 +918,28 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       );
     }
 
-    // 2. Product Grid Page — strictly fixed layout dimensions from PDF_PAGE_LAYOUTS
+    // 2. Product Grid Page — Canva Botanical Brochure Design + Fixed Layout Geometry
     const pageProducts = item.products;
     const layout = PDF_PAGE_LAYOUTS[productsPerPage] || PDF_PAGE_LAYOUTS[4];
+
+    const pageCompanyObj = companies.find((c) => c.id === item.companyId);
+    const pageCategoryNames = Array.from(
+      new Set(
+        pageProducts
+          .map((p) => categories.find((c) => c.id === p.categoryId)?.name)
+          .filter(Boolean)
+      )
+    );
+    const sectionHeaderLabel =
+      customClientName.trim()
+        ? `كتالوج: ${customClientName.trim()}`
+        : pageCategoryNames[0] || 'الأسمدة والمخصبات';
+
+    const qrSrc =
+      settings.qrCodeUrl ||
+      `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
+        settings.website ? `https://${settings.website.replace(/^https?:\/\//, '')}` : 'https://cropsaegypt.com'
+      )}`;
 
     // Calculate product page number
     const productPageNumber =
@@ -928,34 +948,52 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     return (
       <div
         key={item.uid}
-        className={`${classBase} bg-[#F2F7F4] p-5`}
+        className={`${classBase} bg-gradient-to-br from-[#F7FAF8] via-[#EDF4F0] to-[#E5EFE9] px-6 py-4`}
         style={{ boxSizing: 'border-box' }}
       >
-        {/* Top Header Banner */}
-        <div className="bg-[#046A47] text-white px-5 py-3.5 rounded-xl flex items-center justify-between shrink-0 shadow-sm mb-3.5">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-white text-[#046A47] font-black rounded-lg flex items-center justify-center text-lg shadow-xs">
-              🌱
-            </div>
-            <div>
-              <h1 className="text-lg font-black text-white tracking-tight leading-none">
-                كروپسا CROPSA
-              </h1>
-              <span className="text-[10px] text-[#A8CFC0] font-bold block mt-1">
-                {customClientName
-                  ? `كتالوج مخصص للعميل: ${customClientName}`
-                  : settings.subtitle || 'حلول وخدمات زراعية متكاملة'}
+        {/* Top Forest-Green Canva Header Pill */}
+        <div className="bg-[#0A623B] text-white px-6 py-3 rounded-2xl flex items-center justify-between gap-4 shrink-0 shadow-sm mb-4">
+          {/* Right (RTL): Company Brand + Divider + Section Name */}
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {pageCompanyObj?.logoUrl ? (
+                <div className="w-9 h-9 bg-white rounded-xl p-1 flex items-center justify-center shrink-0">
+                  <img
+                    src={pageCompanyObj.logoUrl}
+                    alt={item.companyName}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <Building2 className="w-5 h-5 text-amber-300 shrink-0" />
+              )}
+              <span className="text-lg font-black tracking-tight truncate max-w-[230px]">
+                {item.companyName}
               </span>
             </div>
+
+            <span className="w-px h-7 bg-white/40 shrink-0" />
+
+            <span className="text-lg font-black text-emerald-50 truncate max-w-[210px]">
+              {sectionHeaderLabel}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 text-sm font-black text-white bg-white/10 px-3.5 py-1.5 rounded-xl border border-white/15">
-            <Building2 className="w-4 h-4 text-amber-300 shrink-0" />
-            <span className="truncate max-w-[260px]">{item.companyName}</span>
+          {/* Left (RTL): CROPSA Logo Emblem */}
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="text-left">
+              <div className="text-base font-black leading-none tracking-tight">كروپسا</div>
+              <div className="text-[10px] font-bold text-emerald-200 tracking-widest uppercase leading-none mt-0.5">
+                CROPSA
+              </div>
+            </div>
+            <div className="w-9 h-9 bg-white text-[#0A623B] font-black rounded-xl flex items-center justify-center text-lg shadow-xs">
+              🌱
+            </div>
           </div>
         </div>
 
-        {/* Fixed Equal-Cell Product Grid (Partial pages keep identical card dimensions!) */}
+        {/* Fixed Equal-Cell Borderless Editorial Grid (Zero empty middle holes!) */}
         <div
           className={`flex-1 min-h-0 grid ${layout.gapClass}`}
           style={{
@@ -966,72 +1004,69 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
           {pageProducts.map((product) => {
             const comp = companies.find((c) => c.id === product.companyId);
             const prodPackages = packages.filter((p) => p.productId === product.id && p.active);
-            const imgSrc =
-              product.mainImageUrl ||
-              'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=300&auto=format&fit=crop&q=80';
-            const isPackImage = imgSrc.startsWith('/uploads/') || imgSrc.startsWith('data:image');
-            const maxPackagesShown = layout.count >= 8 ? 3 : 5;
+            const rawImg = product.mainImageUrl || '';
+            const safeImgSrc =
+              !rawImg || rawImg.includes('photo-1592417817098-8f3d6ef23a81')
+                ? FALLBACK_BOTTLE_SVG_DATA_URL
+                : rawImg;
+            const maxPackagesShown = layout.count >= 8 ? 2 : 3;
             const visiblePackages = prodPackages.slice(0, maxPackagesShown);
 
             if (layout.orientation === 'vertical') {
               return (
                 <div
                   key={product.id}
-                  className={`bg-white rounded-2xl border-2 border-[#046A47]/35 ${layout.cardPaddingClass} flex flex-col justify-between h-full min-h-0 shadow-xs overflow-hidden relative`}
+                  className={`${layout.cardPaddingClass} flex flex-col justify-start h-full min-h-0 overflow-hidden text-right`}
                 >
-                  <div className="space-y-1.5 min-h-0">
+                  <div className="flex flex-col items-center text-center space-y-1.5 shrink-0">
                     <div
-                      className={`${layout.imageBoxClass} ${
-                        isPackImage ? 'bg-white p-1.5' : 'bg-stone-100'
-                      } border border-[#046A47]/30 rounded-xl flex items-center justify-center shrink-0 overflow-hidden`}
+                      className={`${layout.imageBoxClass} bg-[#F3F2EC] border border-[#82A18E] rounded-2xl p-1.5 flex items-center justify-center overflow-hidden shadow-sm`}
                     >
                       <img
-                        src={imgSrc}
+                        src={safeImgSrc}
                         alt={product.name}
-                        className={`w-full h-full rounded-lg ${isPackImage ? 'object-contain' : 'object-cover'}`}
+                        onError={(e) => {
+                          e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
+                        }}
+                        className="w-full h-full object-contain rounded-xl"
                       />
                     </div>
 
-                    <div className="text-right space-y-1 min-w-0">
-                      <h3 className={`font-black text-[#046A47] leading-tight line-clamp-2 ${layout.titleClass}`}>
-                        {product.name}
-                      </h3>
-                      <span className={`${layout.companyBadgeClass} font-bold text-gray-500 block truncate`}>
-                        شركة: {comp?.name || item.companyName}
-                      </span>
+                    <h3 className={`font-black text-[#0A623B] leading-tight line-clamp-2 ${layout.titleClass}`}>
+                      {product.name}
+                    </h3>
 
-                      {showPrices && visiblePackages.length > 0 && (
-                        <div className="flex flex-wrap gap-1 pt-0.5">
-                          {visiblePackages.map((pkg) => (
-                            <span
-                              key={pkg.id}
-                              className={`bg-[#D93B2B] text-white font-black ${layout.pkgBadgeClass} rounded-lg inline-block`}
-                            >
-                              {pkg.displayName} {pkg.price ? `(${pkg.price}ج)` : ''}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    {showPrices && visiblePackages.length > 0 && (
+                      <div className="flex flex-wrap justify-center gap-1">
+                        {visiblePackages.map((pkg) => (
+                          <span
+                            key={pkg.id}
+                            className={`bg-[#CF3B2B] text-white font-black ${layout.pkgBadgeClass} rounded-md shadow-2xs inline-block`}
+                          >
+                            {pkg.displayName}{pkg.price ? ` / ${pkg.price} ج` : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {(showCharacteristics || showComposition || showUsage) && (
-                    <div className="mt-1 pt-1.5 border-t border-emerald-100/80 space-y-0.5 text-right shrink-0">
+                    <div className="mt-1.5 pt-1.5 border-t border-[#C4D6CA] space-y-0.5 text-right min-h-0 overflow-hidden">
                       {showCharacteristics && product.characteristics && product.characteristics.length > 0 && (
-                        <p className={`${layout.specTextClass} font-semibold text-gray-800 leading-snug ${layout.charClampClass}`}>
-                          <span className="font-black text-[#046A47]">الخصائص: </span>
+                        <p className={`${layout.specTextClass} font-semibold text-stone-900 leading-snug ${layout.charClampClass}`}>
+                          <span className="font-black text-[#0A623B]">الخصائص: </span>
                           {product.characteristics.join(' • ')}
                         </p>
                       )}
                       {showComposition && product.composition && product.composition.length > 0 && (
-                        <p className={`${layout.specTextClass} font-semibold text-gray-800 leading-snug ${layout.compClampClass}`}>
-                          <span className="font-black text-[#046A47]">التركيب: </span>
+                        <p className={`${layout.specTextClass} font-bold text-stone-900 leading-snug ${layout.compClampClass}`}>
+                          <span className="font-black text-[#0A623B]">التركيب: </span>
                           {product.composition.join(' - ')}
                         </p>
                       )}
                       {showUsage && product.usage && product.usage.length > 0 && (
-                        <p className={`${layout.specTextClass} font-medium text-gray-700 leading-snug ${layout.usageClampClass}`}>
-                          <span className="font-black text-[#046A47]">الاستخدام: </span>
+                        <p className={`${layout.specTextClass} font-semibold text-stone-800 leading-snug ${layout.usageClampClass}`}>
+                          <span className="font-black text-[#0A623B]">الاستخدام: </span>
                           {product.usage.join(' • ')}
                         </p>
                       )}
@@ -1041,101 +1076,89 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
               );
             }
 
+            // Horizontal Canva Brochure Card: Title + Red Prices RIGHT | Tall Rounded Cream Bottle Frame LEFT | Specs Immediately Below
             return (
               <div
                 key={product.id}
-                className={`bg-white rounded-2xl border-2 border-[#046A47]/40 ${layout.cardPaddingClass} flex flex-col justify-between h-full min-h-0 shadow-xs overflow-hidden relative`}
+                className={`${layout.cardPaddingClass} flex flex-col justify-start h-full min-h-0 overflow-hidden`}
               >
-                <div className="flex gap-3 items-start min-h-0">
-                  <div
-                    className={`${layout.imageBoxClass} ${
-                      isPackImage ? 'bg-[#FAF8F5] p-1.5' : 'bg-stone-100'
-                    } border-2 border-[#046A47] rounded-2xl flex items-center justify-center shrink-0 overflow-hidden shadow-xs`}
-                  >
-                    <img
-                      src={imgSrc}
-                      alt={product.name}
-                      className={`w-full h-full rounded-xl ${isPackImage ? 'object-contain' : 'object-cover'}`}
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-0 text-right space-y-1.5">
+                {/* Top Row: Title & Prices (Right in RTL) + Tall Rounded Bottle Box (Left in RTL) */}
+                <div className="flex items-start justify-between gap-3 shrink-0">
+                  <div className="flex-1 min-w-0 text-right pt-0.5 space-y-1.5">
                     <div>
-                      <h3 className={`font-black text-[#046A47] leading-tight line-clamp-2 ${layout.titleClass}`}>
+                      <h3 className={`font-black text-[#0A623B] leading-tight line-clamp-2 ${layout.titleClass}`}>
                         {product.name}
                       </h3>
-                      <span className={`${layout.companyBadgeClass} font-bold text-gray-500 block mt-0.5 truncate`}>
-                        شركة: {comp?.name || item.companyName}
-                      </span>
+                      {mergeCompaniesOnPages && (
+                        <span className={`${layout.companyBadgeClass} font-bold text-stone-600 block mt-0.5 truncate`}>
+                          شركة: {comp?.name || item.companyName}
+                        </span>
+                      )}
                     </div>
 
                     {showPrices && visiblePackages.length > 0 && (
-                      <div className="space-y-1">
-                        {layout.count <= 4 && (
-                          <span className="text-[10px] font-black text-[#046A47] block">
-                            أحجام العبوات والأسعار:
+                      <div className="space-y-1 pt-0.5">
+                        {layout.count <= 6 && (
+                          <span className="text-[10.5px] font-extrabold text-[#0A623B] block">
+                            الأسعار وأحجام العبوات :
                           </span>
                         )}
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1.5">
                           {visiblePackages.map((pkg) => (
                             <span
                               key={pkg.id}
-                              className={`bg-[#D93B2B] text-white font-black ${layout.pkgBadgeClass} rounded-xl shadow-xs inline-block`}
+                              className={`bg-[#CF3B2B] text-white font-black ${layout.pkgBadgeClass} rounded-md shadow-2xs inline-flex items-center justify-center`}
                             >
-                              {pkg.displayName} {pkg.price ? `(${pkg.price}ج)` : ''}
+                              {pkg.displayName}{pkg.price ? ` / ${pkg.price} ج` : ''}
                             </span>
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
+
+                  {/* Upright Portrait Cream Photo Frame */}
+                  <div
+                    className={`${layout.imageBoxClass} bg-[#F3F2EC] border-[1.5px] border-[#82A18E] rounded-2xl p-1.5 flex items-center justify-center shrink-0 overflow-hidden shadow-sm`}
+                  >
+                    <img
+                      src={safeImgSrc}
+                      alt={product.name}
+                      onError={(e) => {
+                        e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
+                      }}
+                      className="w-full h-full object-contain rounded-xl"
+                    />
+                  </div>
                 </div>
 
+                {/* Description & Specs Flowing Directly Below Top Row (No Dead Middle Space!) */}
                 {(showCharacteristics || showComposition || showUsage) && (
-                  <div className="mt-1.5 pt-1.5 border-t border-emerald-100/80 space-y-1 text-right min-h-0 overflow-hidden">
+                  <div className="mt-2 space-y-1.5 text-right min-h-0 overflow-hidden">
                     {showCharacteristics && product.characteristics && product.characteristics.length > 0 && (
                       <div>
-                        {layout.count <= 4 && (
-                          <span className="text-[10px] font-black text-[#046A47] block">
-                            الخصائص والفوائد الرئيسية:
-                          </span>
-                        )}
-                        <p className={`${layout.specTextClass} font-semibold text-gray-800 leading-snug ${layout.charClampClass}`}>
-                          {layout.count > 4 && (
-                            <span className="font-black text-[#046A47]">الخصائص: </span>
-                          )}
+                        <span className={`${layout.specTextClass} font-black text-[#0A623B] block mb-0.5`}>
+                          الخصائص :
+                        </span>
+                        <p className={`${layout.specTextClass} font-bold text-stone-900 leading-relaxed ${layout.charClampClass}`}>
                           {product.characteristics.join(' • ')}
                         </p>
                       </div>
                     )}
 
                     {showComposition && product.composition && product.composition.length > 0 && (
-                      <div>
-                        {layout.count <= 4 && (
-                          <span className="text-[10px] font-black text-[#046A47] block">
-                            التركيب الكيميائي:
-                          </span>
-                        )}
-                        <p className={`${layout.specTextClass} font-semibold text-gray-800 leading-snug ${layout.compClampClass}`}>
-                          {layout.count > 4 && (
-                            <span className="font-black text-[#046A47]">التركيب: </span>
-                          )}
-                          {product.composition.join(' - ')}
+                      <div className="pt-1 border-t border-[#C4D6CA]">
+                        <p className={`${layout.specTextClass} font-extrabold text-stone-950 leading-snug ${layout.compClampClass}`}>
+                          <span className="font-black text-[#0A623B] ml-1">التركيب :</span>
+                          {product.composition.join(' • ')}
                         </p>
                       </div>
                     )}
 
                     {showUsage && product.usage && product.usage.length > 0 && (
-                      <div>
-                        {layout.count <= 4 && (
-                          <span className="text-[10px] font-black text-[#046A47] block">
-                            طريقة الاستخدام والجرعة:
-                          </span>
-                        )}
-                        <p className={`${layout.specTextClass} font-medium text-gray-700 leading-snug ${layout.usageClampClass}`}>
-                          {layout.count > 4 && (
-                            <span className="font-black text-[#046A47]">الاستخدام: </span>
-                          )}
+                      <div className="pt-1 border-t border-[#C4D6CA]">
+                        <p className={`${layout.specTextClass} font-bold text-stone-900 leading-snug ${layout.usageClampClass}`}>
+                          <span className="font-black text-[#0A623B] ml-1">معدلات الاستخدام :</span>
                           {product.usage.join(' • ')}
                         </p>
                       </div>
@@ -1147,18 +1170,34 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
           })}
         </div>
 
-        {/* Footer */}
-        <div className="bg-[#046A47] text-white px-5 py-2.5 rounded-xl flex items-center justify-between text-xs font-bold shrink-0 mt-3.5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <span className="font-black text-sm">{settings.website || 'cropsaegypt.com'}</span>
-            <span className="opacity-50">|</span>
-            <span className="text-[11px] text-[#A8CFC0]">
-              للطلب والاستفسار: {settings.phone}
-            </span>
+        {/* Bottom Forest-Green Canva Footer Pill with QR Code */}
+        <div className="bg-[#0A623B] text-white px-5 py-2.5 rounded-2xl flex items-center justify-between gap-3 shrink-0 mt-3 shadow-sm">
+          {/* Right (RTL): QR Code + Page Badge */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="w-10 h-10 bg-white rounded-lg p-0.5 flex items-center justify-center overflow-hidden shadow-xs">
+              <img src={qrSrc} alt="QR" className="w-full h-full object-contain" />
+            </div>
+            <div className="bg-white/15 border border-white/25 px-2.5 py-1 rounded-lg text-[10px] font-mono font-black text-emerald-50">
+              {productPageNumber} / {productPagesCount}
+            </div>
           </div>
 
-          <div className="bg-white px-2.5 py-1 rounded-lg text-black text-[10px] font-mono font-bold">
-            صفحة {productPageNumber} من {productPagesCount}
+          {/* Center: Promo Message + Website */}
+          <div className="text-center flex-1 min-w-0">
+            <div className="text-[11px] font-extrabold text-emerald-100 leading-tight truncate">
+              عروض حصرية هتلاقيها على الابليكشن أو الويب سايت
+            </div>
+            <div className="text-xs font-black text-white tracking-wide mt-0.5 font-mono" dir="ltr">
+              {settings.website || 'www.cropsaegypt.com'}
+            </div>
+          </div>
+
+          {/* Left (RTL): Phone / Website */}
+          <div className="text-left shrink-0 text-[11px] font-bold text-emerald-100">
+            <span className="block text-[9.5px] text-emerald-200">للطلب والاستفسار</span>
+            <span className="font-mono font-black text-white" dir="ltr">
+              {settings.phone || '01000000000'}
+            </span>
           </div>
         </div>
       </div>
