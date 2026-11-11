@@ -31,6 +31,7 @@ import {
   resolveHomeShowcases,
 } from '../../utils/homeShowcases';
 import { FALLBACK_BOTTLE_SVG_DATA_URL } from '../../utils/agriculturalImages';
+import { getMainCategories, getProductMainCategoryId } from '../../utils/categoryHierarchy';
 
 interface HomeShowcasesManagerProps {
   settings: CatalogSettings;
@@ -178,7 +179,9 @@ export const HomeShowcasesManager: React.FC<HomeShowcasesManagerProps> = ({
     const matchesSearch =
       !q || p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
     const matchesComp = pickerCompanyId === 'ALL' || p.companyId === pickerCompanyId;
-    const matchesCat = pickerCategoryId === 'ALL' || p.categoryId === pickerCategoryId;
+    const matchesCat =
+      pickerCategoryId === 'ALL' ||
+      getProductMainCategoryId(p, categories) === pickerCategoryId;
     return matchesSearch && matchesComp && matchesCat;
   });
 
@@ -553,7 +556,7 @@ export const HomeShowcasesManager: React.FC<HomeShowcasesManagerProps> = ({
                 className="bg-white border border-[#D4D1C5] rounded-xl px-2.5 py-2 text-xs font-bold focus:outline-none"
               >
                 <option value="ALL">كل الأقسام</option>
-                {categories.map((c) => (
+                {getMainCategories(categories).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>

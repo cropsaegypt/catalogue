@@ -20,6 +20,7 @@ interface ProductModalProps {
   product: Product | null;
   company?: Company;
   category?: Category;
+  subCategory?: Category;
   packages: Package[];
   initialPackage?: Package;
   onClose: () => void;
@@ -35,6 +36,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   product,
   company,
   category,
+  subCategory,
   packages,
   initialPackage,
   onClose,
@@ -94,9 +96,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               <span className="bg-stone-900 text-white font-mono text-[10px] font-bold px-2.5 py-0.5 rounded-lg">
                 {product.id}
               </span>
-              {category && (
+              {(category || subCategory) && (
                 <span className="text-[11px] font-black text-[#046A47] bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                  {category.name}
+                  {category?.name}
+                  {subCategory ? ` › ${subCategory.name}` : ''}
                 </span>
               )}
             </div>

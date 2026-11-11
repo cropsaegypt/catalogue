@@ -4,6 +4,7 @@ export interface Category {
   slug: string;
   description: string;
   imageUrl?: string;
+  parentId?: string;
   displayOrder: number;
   active: boolean;
   createdAt: string;

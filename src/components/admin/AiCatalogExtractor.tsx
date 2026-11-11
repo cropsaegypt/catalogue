@@ -39,6 +39,7 @@ import { aiCatalogService, CatalogExtractionResult } from '../../services/aiCata
 import { pdfHelper } from '../../utils/pdfHelper';
 import { ImageFileInput } from '../common/ImageFileInput';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
+import { getMainCategories, getSubCategories } from '../../utils/categoryHierarchy';
 
 export interface UploadedCatalogFile {
   file: File;
@@ -301,7 +302,7 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       const result = await aiCatalogService.extractCatalog(
         {
           companyName: selectedCompany.name,
-          existingCategories: categories.map((c) => c.name),
+          existingCategories: getMainCategories(categories).map((c) => c.name),
           files: filesPayload,
           pastedText: combinedPastedText.trim() || undefined,
           additionalNotes: additionalNotes.trim() || undefined,
@@ -576,12 +577,22 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       }
 
       const firstPiecesPerCarton = extProd.packages[0]?.piecesPerCarton || 12;
+      const finalCategoryId = matchedCategory?.parentId
+        ? matchedCategory.parentId
+        : matchedCategory
+          ? matchedCategory.id
+          : getMainCategories(updatedCategoriesList)[0]?.id ||
+            updatedCategoriesList[0]?.id ||
+            'CAT-01';
+      const finalSubCategoryId =
+        extProd.subCategoryId || (matchedCategory?.parentId ? matchedCategory.id : undefined);
 
       // Build product (with productType properly preserved!)
       const productObj: Product = {
         id: prodId,
         companyId: selectedCompany.id,
-        categoryId: matchedCategory ? matchedCategory.id : (updatedCategoriesList[0]?.id || 'CAT-01'),
+        categoryId: finalCategoryId,
+        subCategoryId: finalSubCategoryId,
         productType: extProd.productType || 'fertilizer',
         name: extProd.name,
         shortDescription: extProd.shortDescription || extProd.name,
@@ -1086,7 +1097,7 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                 className="bg-[#FAF8F5] border border-[#D4D1C5] rounded-xl px-3 py-1.5 text-xs font-bold text-[#2D2D24] focus:ring-2 focus:ring-[#046A47] focus:outline-none"
               >
                 <option value="all">جميع الأقسام</option>
-                {categories.map((cat) => (
+                {getMainCategories(categories).map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.name}
                   </option>
@@ -1198,20 +1209,45 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                             <select
                               value={prod.categoryId}
                               onChange={(e) => {
-                                const matchedCat = categories.find((c) => c.id === e.target.value);
+                                const nextMainId = e.target.value;
+                                const matchedCat = categories.find((c) => c.id === nextMainId);
+                                const validSub = getSubCategories(categories, nextMainId).some(
+                                  (s) => s.id === prod.subCategoryId
+                                );
                                 handleUpdateProduct(prod.id, {
-                                  categoryId: e.target.value,
+                                  categoryId: nextMainId,
+                                  subCategoryId: validSub ? prod.subCategoryId : undefined,
                                   categoryName: matchedCat?.name || prod.categoryName,
                                 });
                               }}
                               className="text-xs font-bold text-[#046A47] bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
                             >
-                              {categories.map((c) => (
+                              {getMainCategories(categories).map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.name}
                                 </option>
                               ))}
                             </select>
+
+                            {prod.categoryId &&
+                              getSubCategories(categories, prod.categoryId).length > 0 && (
+                                <select
+                                  value={prod.subCategoryId || ''}
+                                  onChange={(e) =>
+                                    handleUpdateProduct(prod.id, {
+                                      subCategoryId: e.target.value || undefined,
+                                    })
+                                  }
+                                  className="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
+                                >
+                                  <option value="">— بدون قسم فرعي —</option>
+                                  {getSubCategories(categories, prod.categoryId).map((sub) => (
+                                    <option key={sub.id} value={sub.id}>
+                                      ↳ {sub.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
                           </div>
 
                           <input

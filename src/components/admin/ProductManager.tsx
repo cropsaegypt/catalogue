@@ -21,6 +21,13 @@ import { ImageFileInput } from '../common/ImageFileInput';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
 import { aiCatalogService } from '../../services/aiCatalogService';
 import { inferAgronomySearchTags } from '../../utils/agriculturalSearch';
+import {
+  getMainCategories,
+  getSubCategories,
+  getCategoryDisplayPath,
+  getProductMainCategoryId,
+  getProductSubCategoryId,
+} from '../../utils/categoryHierarchy';
 
 interface ProductManagerProps {
   products: Product[];
@@ -56,6 +63,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [name, setName] = useState('');
   const [companyId, setCompanyId] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [subCategoryId, setSubCategoryId] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [description, setDescription] = useState('');
   const [characteristics, setCharacteristics] = useState<string[]>(['']);
@@ -81,6 +89,9 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     }[]
   >([]);
 
+  const mainCategories = getMainCategories(categories);
+  const subCategoriesForSelected = getSubCategories(categories, categoryId);
+
   // Filtered Products List
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -88,7 +99,10 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.shortDescription.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCompany = filterCompanyId === 'ALL' || p.companyId === filterCompanyId;
-    const matchesCategory = filterCategoryId === 'ALL' || p.categoryId === filterCategoryId;
+    const matchesCategory =
+      filterCategoryId === 'ALL' ||
+      getProductMainCategoryId(p, categories) === filterCategoryId ||
+      getProductSubCategoryId(p, categories) === filterCategoryId;
     return matchesSearch && matchesCompany && matchesCategory;
   });
 
@@ -98,7 +112,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setProductId(newId);
     setName('');
     setCompanyId(companies.length > 0 ? companies[0].id : '');
-    setCategoryId(categories.length > 0 ? categories[0].id : '');
+    setCategoryId(mainCategories.length > 0 ? mainCategories[0].id : '');
+    setSubCategoryId('');
     setShortDescription('');
     setDescription('');
     setCharacteristics(['']);
@@ -131,7 +146,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setProductId(p.id);
     setName(p.name);
     setCompanyId(p.companyId);
-    setCategoryId(p.categoryId);
+    setCategoryId(getProductMainCategoryId(p, categories));
+    setSubCategoryId(getProductSubCategoryId(p, categories) || '');
     setShortDescription(p.shortDescription || '');
     setDescription(p.description || '');
     setCharacteristics(p.characteristics && p.characteristics.length > 0 ? p.characteristics : ['']);
@@ -211,7 +227,10 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       .split(/[،,\n]+/)
       .map((s) => s.trim())
       .filter(Boolean);
-    const categoryNameForTags = categories.find((c) => c.id === categoryId)?.name || '';
+    const categoryPath = getCategoryDisplayPath(categoryId, subCategoryId || undefined, categories);
+    const categoryNameForTags = [categoryPath.mainCategory?.name, categoryPath.subCategory?.name]
+      .filter(Boolean)
+      .join(' ');
     const resolvedSearchTags =
       manualSearchTags.length > 0
         ? manualSearchTags
@@ -241,6 +260,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
               name,
               companyId,
               categoryId,
+              subCategoryId: subCategoryId || undefined,
               shortDescription,
               description,
               characteristics: cleanChars,
@@ -261,6 +281,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         id: productId,
         companyId,
         categoryId,
+        subCategoryId: subCategoryId || undefined,
         name,
         shortDescription,
         description,
@@ -433,10 +454,15 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
             className="bg-[#F1EFEC] border border-[#D4D1C5] rounded-xl px-3 py-2 text-xs font-semibold"
           >
             <option value="ALL">كل الأقسام</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
+            {mainCategories.map((cat) => (
+              <React.Fragment key={cat.id}>
+                <option value={cat.id}>{cat.name}</option>
+                {getSubCategories(categories, cat.id).map((sub) => (
+                  <option key={sub.id} value={sub.id}>
+                    ↳ {sub.name}
+                  </option>
+                ))}
+              </React.Fragment>
             ))}
           </select>
         </div>
@@ -459,7 +485,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
             <tbody className="divide-y divide-[#E5E2D9]">
               {filteredProducts.map((p) => {
                 const comp = companies.find((c) => c.id === p.companyId);
-                const cat = categories.find((c) => c.id === p.categoryId);
+                const catPath = getCategoryDisplayPath(p.categoryId, p.subCategoryId, categories);
                 const prodPackages = packages.filter((pkg) => pkg.productId === p.id && pkg.active);
 
                 return (
@@ -479,7 +505,14 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       </div>
                     </td>
                     <td className="p-3.5 text-xs font-semibold text-[#5A5A40]">{comp?.name || '-'}</td>
-                    <td className="p-3.5 text-xs font-semibold text-[#5A5A40]">{cat?.name || '-'}</td>
+                    <td className="p-3.5 text-xs font-semibold text-[#5A5A40]">
+                      <span>{catPath.mainCategory?.name || '-'}</span>
+                      {catPath.subCategory && (
+                        <span className="block text-[10px] font-bold text-amber-800 mt-0.5">
+                          ↳ {catPath.subCategory.name}
+                        </span>
+                      )}
+                    </td>
                     <td className="p-3.5">
                       <div className="flex flex-wrap gap-1">
                         {prodPackages.map((pkg) => (
@@ -640,10 +673,17 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       <label className="text-xs font-bold text-gray-700 block mb-1">القسم الرئيسي *</label>
                       <select
                         value={categoryId}
-                        onChange={(e) => setCategoryId(e.target.value)}
+                        onChange={(e) => {
+                          const nextMainId = e.target.value;
+                          setCategoryId(nextMainId);
+                          const validChild = getSubCategories(categories, nextMainId).some(
+                            (s) => s.id === subCategoryId
+                          );
+                          if (!validChild) setSubCategoryId('');
+                        }}
                         className="w-full p-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                       >
-                        {categories.map((cat) => (
+                        {mainCategories.map((cat) => (
                           <option key={cat.id} value={cat.id}>
                             {cat.name}
                           </option>
@@ -651,6 +691,26 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       </select>
                     </div>
                   </div>
+
+                  {subCategoriesForSelected.length > 0 && (
+                    <div>
+                      <label className="text-xs font-bold text-amber-900 block mb-1">
+                        القسم الفرعي (تحت القسم الرئيسي — اختياري)
+                      </label>
+                      <select
+                        value={subCategoryId}
+                        onChange={(e) => setSubCategoryId(e.target.value)}
+                        className="w-full p-3 bg-amber-50/40 border border-amber-200 rounded-xl text-sm font-semibold focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      >
+                        <option value="">— عام داخل القسم الرئيسي (بدون قسم فرعي محدد) —</option>
+                        {subCategoriesForSelected.map((sub) => (
+                          <option key={sub.id} value={sub.id}>
+                            ↳ {sub.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div>
                     <label className="text-xs font-bold text-gray-700 block mb-1">وصف مختصر يظهر بالبطاقة *</label>

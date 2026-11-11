@@ -3,6 +3,7 @@ import { getAgriculturalProductImage } from '../utils/agriculturalImages';
 import { removeProductBackground } from '../utils/imageBackgroundRemoval';
 import { uploadDataUrlToFirebaseStorage } from './firebase';
 import { inferAgronomySearchTags } from '../utils/agriculturalSearch';
+import { getMainCategories } from '../utils/categoryHierarchy';
 
 export interface CatalogExtractionRequest {
   companyName: string;
@@ -213,7 +214,8 @@ export const aiCatalogService = {
     params: CatalogExtractionRequest,
     categories: Category[]
   ): Promise<CatalogExtractionResult> {
-    const categoryNames = categories.map((c) => c.name);
+    const mainCats = getMainCategories(categories);
+    const categoryNames = (mainCats.length > 0 ? mainCats : categories).map((c) => c.name);
 
     let response: Response;
     try {
@@ -276,11 +278,22 @@ export const aiCatalogService = {
     // Map extracted products & crop real product photos from catalog pages/images
     const products: ExtractedProductItem[] = await Promise.all(
       rawProducts.map(async (p: any, idx: number) => {
-        const matchedCat = categories.find(
-          (c) =>
-            c.name.toLowerCase().includes(p.categoryName?.toLowerCase() || '') ||
-            (p.categoryName || '').toLowerCase().includes(c.name.toLowerCase())
-        );
+        const matchedCat =
+          mainCats.find(
+            (c) =>
+              c.name.toLowerCase().includes(p.categoryName?.toLowerCase() || '') ||
+              (p.categoryName || '').toLowerCase().includes(c.name.toLowerCase())
+          ) ||
+          categories.find(
+            (c) =>
+              c.name.toLowerCase().includes(p.categoryName?.toLowerCase() || '') ||
+              (p.categoryName || '').toLowerCase().includes(c.name.toLowerCase())
+          );
+
+        const resolvedMainCategoryId = matchedCat?.parentId
+          ? matchedCat.parentId
+          : matchedCat?.id || mainCats[0]?.id || categories[0]?.id || '';
+        const resolvedSubCategoryId = matchedCat?.parentId ? matchedCat.id : undefined;
 
         const packages: ExtractedPackage[] = (p.packages || []).map((pkg: any, pIdx: number) => ({
           id: `PKG-EXT-${Date.now()}-${idx}-${pIdx}`,
@@ -377,7 +390,8 @@ export const aiCatalogService = {
           name: p.name || `مركب زراعي رقم ${idx + 1}`,
           productType: computedType,
           categoryName: assignedCategoryName,
-          categoryId: matchedCat?.id || categories[0]?.id || '',
+          categoryId: resolvedMainCategoryId,
+          subCategoryId: resolvedSubCategoryId,
           shortDescription:
             p.shortDescription ||
             (computedType === 'pesticide'

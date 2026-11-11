@@ -299,7 +299,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         )}
 
         {activeTab === 'categories' && (!currentUser || canAccessAdminTab(currentUser, 'categories')) && (
-          <CategoryManager categories={categories} onSaveCategories={onSaveCategories} onShowToast={addToast} />
+          <CategoryManager
+            categories={categories}
+            products={products}
+            onSaveCategories={onSaveCategories}
+            onShowToast={addToast}
+          />
         )}
 
         {activeTab === 'companies' && (!currentUser || canAccessAdminTab(currentUser, 'companies')) && (

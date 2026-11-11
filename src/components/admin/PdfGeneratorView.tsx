@@ -42,6 +42,7 @@ import {
   TeamMember,
 } from '../../types';
 import { pdfService, RenderedCatalogImage } from '../../services/pdfService';
+import { getMainCategories, getProductMainCategoryId } from '../../utils/categoryHierarchy';
 import { dbStorage } from '../../services/dbStorage';
 import { firestoreSync } from '../../services/firestoreSync';
 import { aiCatalogService } from '../../services/aiCatalogService';
@@ -772,7 +773,8 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
         selectedCompanyIds.length === 0 || selectedCompanyIds.includes(p.companyId);
 
       const matchesCat =
-        selectedCategoryIds.length === 0 || selectedCategoryIds.includes(p.categoryId);
+        selectedCategoryIds.length === 0 ||
+        selectedCategoryIds.includes(getProductMainCategoryId(p, categories));
 
       let matchesType = true;
       if (selectedProductTypes.length > 0) {
@@ -1215,7 +1217,13 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       const catalogId = `CAT-${Math.floor(100000 + Math.random() * 900000)}`;
       const selectedSet = new Set(pdfProducts.map((p) => p.id));
       const relatedCompanyIds = new Set(pdfProducts.map((p) => p.companyId));
-      const relatedCategoryIds = new Set(pdfProducts.map((p) => p.categoryId));
+      const relatedCategoryIds = new Set<string>();
+      for (const p of pdfProducts) {
+        if (p.categoryId) relatedCategoryIds.add(p.categoryId);
+        if (p.subCategoryId) relatedCategoryIds.add(p.subCategoryId);
+        const mainId = getProductMainCategoryId(p, categories);
+        if (mainId) relatedCategoryIds.add(mainId);
+      }
 
       const catalogObj: SharedCustomCatalog = {
         id: catalogId,
@@ -1859,7 +1867,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
             )}
           </div>
           <div className="flex flex-wrap gap-2">
-            {categories.map((cat) => {
+            {getMainCategories(categories).map((cat) => {
               const isSelected = selectedCategoryIds.includes(cat.id);
               return (
                 <button

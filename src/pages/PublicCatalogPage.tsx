@@ -24,11 +24,17 @@ import { CompanyDirectoryModal } from '../components/catalog/CompanyDirectoryMod
 import { OffersBannerCarousel } from '../components/catalog/OffersBannerCarousel';
 import {
   OnboardingBrowseSelector,
-  SelectorViewMode,
 } from '../components/catalog/OnboardingBrowseSelector';
 import { HomeShowcaseBoxes } from '../components/catalog/HomeShowcaseBoxes';
 import { FloatingOrderBar } from '../components/catalog/FloatingOrderBar';
 import { matchesProductSearch } from '../utils/agriculturalSearch';
+import {
+  computeCrossFilterAvailability,
+  getCategoryDisplayPath,
+  getProductMainCategoryId,
+  getProductSubCategoryId,
+  productMatchesCategoryFilter,
+} from '../utils/categoryHierarchy';
 
 import {
   Product,
@@ -83,11 +89,10 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   onLogout,
   onSubmitOrder,
 }) => {
-  const [selectorViewMode, setSelectorViewMode] = useState<SelectorViewMode>('both');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+  const [selectedSubCategoryIds, setSelectedSubCategoryIds] = useState<string[]>([]);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
-  const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
   const [selectedShowcaseKey, setSelectedShowcaseKey] = useState<HomeShowcaseKey | null>(null);
 
   const [basketItems, setBasketItems] = useState<OrderItem[]>([]);
@@ -119,41 +124,86 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   const isHomeDefaultView =
     searchQuery.trim() === '' &&
     selectedCategoryIds.length === 0 &&
+    selectedSubCategoryIds.length === 0 &&
     selectedCompanyIds.length === 0 &&
-    selectedProductTypes.length === 0 &&
     selectedShowcaseKey === null;
 
   const resetAllFilters = () => {
     setSelectedCategoryIds([]);
+    setSelectedSubCategoryIds([]);
     setSelectedCompanyIds([]);
-    setSelectedProductTypes([]);
     setSelectedShowcaseKey(null);
     setSearchQuery('');
   };
 
   const toggleCompany = (id: string) => {
-    setSelectedCompanyIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
-    );
+    const nextCompanies = selectedCompanyIds.includes(id)
+      ? selectedCompanyIds.filter((c) => c !== id)
+      : [...selectedCompanyIds, id];
+
+    setSelectedCompanyIds(nextCompanies);
+
+    // Prune any selected categories/subcategories that don't have products in nextCompanies
+    if (nextCompanies.length > 0) {
+      const pool = products.filter((p) => p.active && nextCompanies.includes(p.companyId));
+      const availableMainSet = new Set(
+        pool.map((p) => getProductMainCategoryId(p, categories))
+      );
+      const availableSubSet = new Set(
+        pool.map((p) => getProductSubCategoryId(p, categories)).filter(Boolean) as string[]
+      );
+      setSelectedCategoryIds((prev) => prev.filter((cId) => availableMainSet.has(cId)));
+      setSelectedSubCategoryIds((prev) => prev.filter((sId) => availableSubSet.has(sId)));
+    }
   };
 
   const toggleCategory = (id: string) => {
-    setSelectedCategoryIds((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    const targetCat = categories.find((c) => c.id === id);
+    const mainId = targetCat?.parentId || id;
+    const isRemoving = selectedCategoryIds.includes(mainId);
+
+    if (isRemoving) {
+      setSelectedCategoryIds((prev) => prev.filter((c) => c !== mainId));
+      setSelectedSubCategoryIds((prev) =>
+        prev.filter((subId) => {
+          const sub = categories.find((c) => c.id === subId);
+          return sub?.parentId !== mainId;
+        })
+      );
+    } else {
+      setSelectedCategoryIds((prev) => [...prev, mainId]);
+    }
+  };
+
+  const toggleSubCategory = (subId: string) => {
+    const subCat = categories.find((c) => c.id === subId);
+    if (subCat?.parentId && !selectedCategoryIds.includes(subCat.parentId)) {
+      setSelectedCategoryIds((prev) => [...prev, subCat.parentId!]);
+    }
+    setSelectedSubCategoryIds((prev) =>
+      prev.includes(subId) ? prev.filter((s) => s !== subId) : [...prev, subId]
     );
   };
 
-  const toggleProductType = (type: string) => {
-    setSelectedProductTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
-  };
+  const crossFilter = computeCrossFilterAvailability({
+    products,
+    companies,
+    categories,
+    selectedCompanyIds,
+    selectedCategoryIds,
+    selectedSubCategoryIds,
+  });
 
-  // Filter Active Products (Supports multi-select Companies + Categories/Types simultaneously!)
+  // Filter Active Products (Supports multi-select Companies + Main/Sub Categories + Smart Search)
   const activeProducts = products.filter((p) => {
     if (!p.active) return false;
 
-    const categoryName = categories.find((c) => c.id === p.categoryId)?.name || '';
+    const { mainCategory, subCategory } = getCategoryDisplayPath(
+      p.categoryId,
+      p.subCategoryId,
+      categories
+    );
+    const categoryName = [mainCategory?.name, subCategory?.name].filter(Boolean).join(' ');
     const companyName = companies.find((c) => c.id === p.companyId)?.name || '';
 
     const matchesSearch =
@@ -166,33 +216,14 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     const matchesComp =
       selectedCompanyIds.length === 0 || selectedCompanyIds.includes(p.companyId);
 
-    const hasCatOrTypeFilter =
-      selectedCategoryIds.length > 0 || selectedProductTypes.length > 0;
+    const matchesCat = productMatchesCategoryFilter(
+      p,
+      selectedCategoryIds,
+      selectedSubCategoryIds,
+      categories
+    );
 
-    let matchesCatOrType = true;
-    if (hasCatOrTypeFilter) {
-      const matchesCat =
-        selectedCategoryIds.length > 0 && selectedCategoryIds.includes(p.categoryId);
-
-      const matchesAnyType = selectedProductTypes.some((type) => {
-        if (type === 'fertilizer') return p.productType === 'fertilizer';
-        if (type === 'stimulant') return p.productType === 'stimulant';
-        if (type === 'pesticide') return p.productType === 'pesticide';
-        if (type === 'pesticide_insect') {
-          return (
-            p.productType === 'pesticide' &&
-            (matchesProductSearch(p, 'حشر', { categoryName }) ||
-              matchesProductSearch(p, 'دودة', { categoryName }))
-          );
-        }
-        if (type === 'featured') return Boolean(p.featured || p.displayOrder <= 3);
-        return false;
-      });
-
-      matchesCatOrType = matchesCat || matchesAnyType;
-    }
-
-    return matchesSearch && matchesComp && matchesCatOrType;
+    return matchesSearch && matchesComp && matchesCat;
   });
 
   const resolvedShowcases = resolveHomeShowcases(settings, products);
@@ -296,14 +327,6 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     setSelectedPackageModal(selectedPackage);
   };
 
-  const productTypeLabels: Record<string, string> = {
-    featured: 'عروض اليوم',
-    fertilizer: 'أسمدة بودرة',
-    stimulant: 'مخصبات سائلة',
-    pesticide: 'مبيدات حشائش',
-    pesticide_insect: 'مكافحة الحشرات',
-  };
-
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col justify-between font-sans dir-rtl text-stone-900">
       {/* 1. Noon / Amazon Style Sticky Header with Integrated Search */}
@@ -349,20 +372,23 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           />
         )}
 
-        {/* Instant Visual Entry Selector (Full-Square Company Logos & Category Images + Multi-Select!) */}
+        {/* Instant Visual Entry Selector (Compact Companies Strip + Cross-Filtered Categories & Sub-Categories) */}
         <OnboardingBrowseSelector
-          viewMode={selectorViewMode}
-          onChangeViewMode={setSelectorViewMode}
-          companies={companies}
-          categories={categories}
+          companiesMeta={crossFilter.visibleCompaniesMeta}
+          totalActiveCompaniesCount={crossFilter.allCompaniesMeta.length}
+          visibleMainCategories={crossFilter.visibleMainCategories}
+          visibleSubCategories={crossFilter.visibleSubCategories}
           selectedCompanyIds={selectedCompanyIds}
           selectedCategoryIds={selectedCategoryIds}
-          selectedProductTypes={selectedProductTypes}
+          selectedSubCategoryIds={selectedSubCategoryIds}
           onToggleCompany={toggleCompany}
           onToggleCategory={toggleCategory}
-          onToggleProductType={toggleProductType}
+          onToggleSubCategory={toggleSubCategory}
+          onOpenAllCompanies={() => setIsCompanyDirectoryOpen(true)}
           onClearAll={resetAllFilters}
           matchingProductsCount={displayedProducts.length}
+          hasCategoryRestrictionOnCompanies={crossFilter.hasCategoryRestrictionOnCompanies}
+          hasCompanyRestrictionOnCategories={crossFilter.hasCompanyRestrictionOnCategories}
         />
 
         {/* Standalone 3-Tile Showcase Board Right Under Categories (Latest • Merchant Deals • Season) */}
@@ -444,17 +470,21 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
                 );
               })}
 
-              {selectedProductTypes.map((type) => (
-                <span
-                  key={type}
-                  className="inline-flex items-center gap-1 bg-emerald-100 text-[#046A47] font-black px-2.5 py-1 rounded-lg"
-                >
-                  <span>{productTypeLabels[type] || type}</span>
-                  <button onClick={() => toggleProductType(type)} className="cursor-pointer">
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </span>
-              ))}
+              {selectedSubCategoryIds.map((subId) => {
+                const sub = categories.find((c) => c.id === subId);
+                if (!sub) return null;
+                return (
+                  <span
+                    key={subId}
+                    className="inline-flex items-center gap-1 bg-emerald-100 text-[#046A47] font-black px-2.5 py-1 rounded-lg border border-emerald-300"
+                  >
+                    <span>فرعي: {sub.name}</span>
+                    <button onClick={() => toggleSubCategory(subId)} className="cursor-pointer">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </span>
+                );
+              })}
 
               {activeShowcaseSection && (
                 <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-900 border border-rose-300 font-black px-2.5 py-1 rounded-lg">
@@ -575,17 +605,29 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
       <Footer settings={settings} />
 
       {/* Product Detail Modal */}
-      <ProductModal
-        product={selectedProductModal}
-        company={companies.find((c) => c.id === selectedProductModal?.companyId)}
-        category={categories.find((c) => c.id === selectedProductModal?.categoryId)}
-        packages={
-          selectedProductModal ? packages.filter((p) => p.productId === selectedProductModal.id) : []
-        }
-        initialPackage={selectedPackageModal}
-        onClose={() => setSelectedProductModal(null)}
-        onAddToCart={handleAddToCart}
-      />
+      {(() => {
+        const path = selectedProductModal
+          ? getCategoryDisplayPath(
+              selectedProductModal.categoryId,
+              selectedProductModal.subCategoryId,
+              categories
+            )
+          : {};
+        return (
+          <ProductModal
+            product={selectedProductModal}
+            company={companies.find((c) => c.id === selectedProductModal?.companyId)}
+            category={path.mainCategory}
+            subCategory={path.subCategory}
+            packages={
+              selectedProductModal ? packages.filter((p) => p.productId === selectedProductModal.id) : []
+            }
+            initialPackage={selectedPackageModal}
+            onClose={() => setSelectedProductModal(null)}
+            onAddToCart={handleAddToCart}
+          />
+        );
+      })()}
 
       {/* Quick Add Quantity Modal */}
       <QuickAddQuantityModal
@@ -625,15 +667,16 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         isOpen={isCompanyDirectoryOpen}
         onClose={() => setIsCompanyDirectoryOpen(false)}
         companies={companies}
+        companiesMeta={crossFilter.allCompaniesMeta}
         products={products}
         packages={packages}
+        selectedCompanyIds={selectedCompanyIds}
+        onToggleCompany={toggleCompany}
+        onClearCompanies={() => setSelectedCompanyIds([])}
         onOpenProductDetails={handleOpenProductDetails}
         onQuickAdd={handleAddToCart}
-        onSelectCompanyFilter={(companyId) => {
-          setSelectedCompanyIds([companyId]);
-          const el = document.getElementById('catalog-products-section');
-          if (el) el.scrollIntoView({ behavior: 'smooth' });
-        }}
+        hasCategoryRestrictionOnCompanies={crossFilter.hasCategoryRestrictionOnCompanies}
+        matchingProductsCount={displayedProducts.length}
       />
 
       {/* Mobile Bottom-Bar Sheet Drawer (Companies Picker / Categories Picker) */}
@@ -684,20 +727,25 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
               <div className="p-4 overflow-y-auto flex-1">
                 <OnboardingBrowseSelector
                   viewMode={mobileSheetMode === 'companies' ? 'by_company' : 'by_category'}
-                  onChangeViewMode={(m) => {
-                    if (m === 'by_company') setMobileSheetMode('companies');
-                    else if (m === 'by_category') setMobileSheetMode('categories');
-                  }}
-                  companies={companies}
-                  categories={categories}
+                  companiesMeta={crossFilter.visibleCompaniesMeta}
+                  totalActiveCompaniesCount={crossFilter.allCompaniesMeta.length}
+                  visibleMainCategories={crossFilter.visibleMainCategories}
+                  visibleSubCategories={crossFilter.visibleSubCategories}
                   selectedCompanyIds={selectedCompanyIds}
                   selectedCategoryIds={selectedCategoryIds}
-                  selectedProductTypes={selectedProductTypes}
+                  selectedSubCategoryIds={selectedSubCategoryIds}
                   onToggleCompany={toggleCompany}
                   onToggleCategory={toggleCategory}
-                  onToggleProductType={toggleProductType}
+                  onToggleSubCategory={toggleSubCategory}
+                  onOpenAllCompanies={() => {
+                    setMobileSheetMode('closed');
+                    setIsCompanyDirectoryOpen(true);
+                  }}
                   onClearAll={resetAllFilters}
-                  matchingProductsCount={activeProducts.length}
+                  matchingProductsCount={displayedProducts.length}
+                  hasCategoryRestrictionOnCompanies={crossFilter.hasCategoryRestrictionOnCompanies}
+                  hasCompanyRestrictionOnCategories={crossFilter.hasCompanyRestrictionOnCategories}
+                  compactModalMode
                 />
               </div>
 
@@ -798,16 +846,16 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             }
             className={`relative flex flex-col items-center gap-0.5 cursor-pointer px-2 py-0.5 rounded-xl transition-colors ${
               mobileSheetMode === 'categories' ||
-              selectedCategoryIds.length + selectedProductTypes.length > 0
+              selectedCategoryIds.length + selectedSubCategoryIds.length > 0
                 ? 'text-amber-600 font-black'
                 : 'text-stone-600 font-bold'
             }`}
           >
             <div className="relative">
               <Layers className="w-5 h-5" />
-              {selectedCategoryIds.length + selectedProductTypes.length > 0 && (
+              {selectedCategoryIds.length + selectedSubCategoryIds.length > 0 && (
                 <span className="absolute -top-1.5 -right-2 bg-amber-500 text-stone-950 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                  {selectedCategoryIds.length + selectedProductTypes.length}
+                  {selectedCategoryIds.length + selectedSubCategoryIds.length}
                 </span>
               )}
             </div>

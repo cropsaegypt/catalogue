@@ -281,7 +281,7 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
               <div>
                 <label className="text-xs font-bold text-[#2D2D24] block mb-1">ربط بالأقسام الرئيسية (تعدد الخيارات)</label>
                 <div className="grid grid-cols-2 gap-2 border border-[#D4D1C5] p-3 rounded-xl max-h-36 overflow-y-auto bg-white">
-                  {categories.map((cat) => (
+                  {categories.filter((cat) => !cat.parentId).map((cat) => (
                     <label key={cat.id} className="flex items-center gap-2 text-xs font-semibold text-[#2D2D24] cursor-pointer">
                       <input
                         type="checkbox"
