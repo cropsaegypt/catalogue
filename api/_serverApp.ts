@@ -8,14 +8,7 @@ let geminiClient: GoogleGenAI | null = null;
 function getGeminiClient(customApiKey?: string): GoogleGenAI {
   const cleanCustom = (customApiKey || '').trim();
   if (cleanCustom) {
-    return new GoogleGenAI({
-      apiKey: cleanCustom,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    });
+    return new GoogleGenAI({ apiKey: cleanCustom });
   }
   if (!geminiClient) {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -24,14 +17,7 @@ function getGeminiClient(customApiKey?: string): GoogleGenAI {
         'مفتاح Gemini API غير مُعدّ في السيرفر (GEMINI_API_KEY). يمكنك إضافته في إعدادات البيئة أو إدخاله مباشرة في نافذة الذكاء الاصطناعي.'
       );
     }
-    geminiClient = new GoogleGenAI({
-      apiKey,
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        },
-      },
-    });
+    geminiClient = new GoogleGenAI({ apiKey });
   }
   return geminiClient;
 }
@@ -157,6 +143,12 @@ export function createApiApp() {
       if (fileData && mimeType) {
         allFiles.push({ data: fileData, mimeType });
       }
+      if (allFiles.length === 0 && !String(pastedText || '').trim()) {
+        return res.status(400).json({
+          success: false,
+          error: 'يرجى رفع ملفات الكتالوج أو لصق نصوص المنتجات أولاً.',
+        });
+      }
 
       let imgIdx = 0;
       for (const f of allFiles) {
@@ -217,11 +209,15 @@ export function createApiApp() {
         text: promptLines.join('\n'),
       });
 
-      const candidateModels = ['gemini-2.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash'];
+      const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash'];
       let responseText = '';
       let lastError: any = null;
+      const startedAt = Date.now();
+      const overallBudgetMs = isVercelEnv ? 46_000 : 110_000;
+      const perAttemptMs = isVercelEnv ? 21_000 : 45_000;
+      const maxAttemptsPerModel = isVercelEnv ? 1 : 2;
 
-      const extractionConfig = {
+      const baseExtractionConfig = {
         systemInstruction:
           'You are an expert agronomist and catalog digitizer with vision localization. Strict rule: powder/granules=fertilizer, liquid/volume=stimulant, pest/weed/fungus targeting=pesticide. Extract agricultural chemical, fertilizer, and pesticide product catalogs with absolute precision into clean JSON. Always capture prices, package sizes, and for every visible product bottle/bag/packaging on any image/page, return sourceImageIndex (0-based) and exact normalized bounding box imageBox { ymin, xmin, ymax, xmax } in 0..1000 coordinates.',
         responseMimeType: 'application/json',
@@ -318,18 +314,41 @@ export function createApiApp() {
       };
 
       for (const modelName of candidateModels) {
-        for (let attempt = 1; attempt <= 2; attempt++) {
+        for (let attempt = 1; attempt <= maxAttemptsPerModel; attempt++) {
+          const remainingMs = overallBudgetMs - (Date.now() - startedAt);
+          if (remainingMs < 4000) break;
+
+          const attemptTimeoutMs = Math.min(perAttemptMs, remainingMs - 1000);
+          const controller = new AbortController();
+          const abortTimer = setTimeout(() => controller.abort(), attemptTimeoutMs);
+          let raceTimer: ReturnType<typeof setTimeout> | undefined;
+
           try {
-            console.log(`[CROPSA Catalog AI] Invoking model: ${modelName} (attempt ${attempt})...`);
-            const response = await ai.models.generateContent({
-              model: modelName,
-              contents: { parts },
-              config: extractionConfig,
-            });
+            console.log(
+              `[CROPSA Catalog AI] Invoking ${modelName} (attempt ${attempt}, timeout ${attemptTimeoutMs}ms)...`
+            );
+            const modelConfig = {
+              ...baseExtractionConfig,
+              abortSignal: controller.signal,
+              ...(modelName.includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+            };
+            const response = await Promise.race([
+              ai.models.generateContent({
+                model: modelName,
+                contents: { parts },
+                config: modelConfig,
+              }),
+              new Promise<never>((_, reject) => {
+                raceTimer = setTimeout(
+                  () => reject(new Error(`Gemini timeout (${modelName}) after ${attemptTimeoutMs}ms`)),
+                  attemptTimeoutMs + 250
+                );
+              }),
+            ]);
 
             if (response && response.text) {
               responseText = response.text;
-              console.log(`[CROPSA Catalog AI] Model ${modelName} succeeded!`);
+              console.log(`[CROPSA Catalog AI] Model ${modelName} succeeded in ${Date.now() - startedAt}ms!`);
               break;
             }
           } catch (err: any) {
@@ -338,9 +357,12 @@ export function createApiApp() {
               err.message || err
             );
             lastError = err;
-            if (attempt === 1) {
+            if (attempt < maxAttemptsPerModel) {
               await new Promise((r) => setTimeout(r, 800));
             }
+          } finally {
+            clearTimeout(abortTimer);
+            if (raceTimer) clearTimeout(raceTimer);
           }
         }
         if (responseText) break;
@@ -404,6 +426,8 @@ export function createApiApp() {
         errorMsg = 'تم الوصول إلى الحد اللحظي للطلبات. يرجى الانتظار قليلاً ثم إعادة المحاولة.';
       } else if (errorMsg.includes('API_KEY')) {
         errorMsg = 'مفتاح خدمة الذكاء الاصطناعي غير متوفر أو غير صالح. يرجى التحقق من إعدادات المفتاح.';
+      } else if (errorMsg.includes('timeout') || errorMsg.includes('abort')) {
+        errorMsg = `انتهت مهلة الاتصال بنموذج الذكاء الاصطناعي (${errorMsg}). يرجى تقليل عدد الصفحات أو المحاولة مرة أخرى.`;
       }
 
       res.status(500).json({
