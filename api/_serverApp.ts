@@ -2,7 +2,7 @@ import express from 'express';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
 
 let geminiClient: GoogleGenAI | null = null;
 function getGeminiClient(customApiKey?: string): GoogleGenAI {
@@ -209,12 +209,21 @@ export function createApiApp() {
         text: promptLines.join('\n'),
       });
 
-      const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+      const candidateConfigs: Array<{
+        model: string;
+        thinkingConfig?: { thinkingLevel?: ThinkingLevel; thinkingBudget?: number };
+      }> = [
+        { model: 'gemini-3.8-flash', thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
+        { model: 'gemini-3.5-flash-lite' },
+        { model: 'gemini-2.5-flash', thinkingConfig: { thinkingBudget: 0 } },
+        { model: 'gemini-flash-latest' },
+      ];
       let responseText = '';
       let lastError: any = null;
+      const modelErrors: string[] = [];
       const startedAt = Date.now();
       const overallBudgetMs = isVercelEnv ? 46_000 : 110_000;
-      const perAttemptMs = isVercelEnv ? 21_000 : 45_000;
+      const perAttemptMs = isVercelEnv ? 18_000 : 45_000;
       const maxAttemptsPerModel = isVercelEnv ? 1 : 2;
 
       const baseExtractionConfig = {
@@ -313,7 +322,8 @@ export function createApiApp() {
         },
       };
 
-      for (const modelName of candidateModels) {
+      for (const candidate of candidateConfigs) {
+        const modelName = candidate.model;
         for (let attempt = 1; attempt <= maxAttemptsPerModel; attempt++) {
           const remainingMs = overallBudgetMs - (Date.now() - startedAt);
           if (remainingMs < 4000) break;
@@ -330,7 +340,7 @@ export function createApiApp() {
             const modelConfig = {
               ...baseExtractionConfig,
               abortSignal: controller.signal,
-              ...(modelName.includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+              ...(candidate.thinkingConfig ? { thinkingConfig: candidate.thinkingConfig } : {}),
             };
             const response = await Promise.race([
               ai.models.generateContent({
@@ -352,10 +362,12 @@ export function createApiApp() {
               break;
             }
           } catch (err: any) {
+            const errStr = err?.message || String(err);
             console.warn(
               `[CROPSA Catalog AI] Model ${modelName} attempt ${attempt} failed:`,
-              err.message || err
+              errStr
             );
+            modelErrors.push(`${modelName}: ${errStr}`);
             lastError = err;
             if (attempt < maxAttemptsPerModel) {
               await new Promise((r) => setTimeout(r, 800));
@@ -369,7 +381,9 @@ export function createApiApp() {
       }
 
       if (!responseText) {
-        let fallbackMsg = lastError?.message || 'تعذر استخراج بيانات الكتالوج بالذكاء الاصطناعي.';
+        let fallbackMsg =
+          (modelErrors.length > 0 ? modelErrors.join(' | ') : lastError?.message) ||
+          'تعذر استخراج بيانات الكتالوج بالذكاء الاصطناعي.';
         try {
           const parsed = JSON.parse(fallbackMsg);
           if (parsed?.error?.message) fallbackMsg = parsed.error.message;
