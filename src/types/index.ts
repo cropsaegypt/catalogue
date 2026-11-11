@@ -168,6 +168,26 @@ export interface Order {
   updatedAt: string;
 }
 
+export type HomeShowcaseKey = 'latest' | 'merchant_deals' | 'seasonal';
+
+export interface HomeShowcaseItem {
+  id: string;
+  productId: string;
+  discountPercent?: number;
+  discountLabel?: string;
+  note?: string;
+}
+
+export interface HomeShowcaseSection {
+  key: HomeShowcaseKey;
+  title: string;
+  subtitle?: string;
+  badgeText?: string;
+  enabled: boolean;
+  customized?: boolean;
+  items: HomeShowcaseItem[];
+}
+
 export interface CatalogSettings {
   title: string;
   subtitle: string;
@@ -197,6 +217,7 @@ export interface CatalogSettings {
   showAdvertisements: boolean;
   showProductIds: boolean;
   pdfOrientation: 'portrait' | 'landscape';
+  homeShowcases?: Partial<Record<HomeShowcaseKey, HomeShowcaseSection>>;
 }
 
 export interface ImportLogError {

@@ -27,6 +27,7 @@ import {
   SelectorViewMode,
 } from '../components/catalog/OnboardingBrowseSelector';
 import { ProductRailSlider } from '../components/catalog/ProductRailSlider';
+import { HomeShowcaseBoxes } from '../components/catalog/HomeShowcaseBoxes';
 import { FloatingOrderBar } from '../components/catalog/FloatingOrderBar';
 
 import {
@@ -91,7 +92,12 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   const [mobileSheetMode, setMobileSheetMode] = useState<'closed' | 'companies' | 'categories'>('closed');
   const [selectedProductModal, setSelectedProductModal] = useState<Product | null>(null);
   const [selectedPackageModal, setSelectedPackageModal] = useState<Package | undefined>(undefined);
-  const [quickAddTarget, setQuickAddTarget] = useState<{ product: Product; pkg?: Package } | null>(null);
+  const [quickAddTarget, setQuickAddTarget] = useState<{
+    product: Product;
+    pkg?: Package;
+    promoDiscountPercent?: number;
+    promoLabel?: string;
+  } | null>(null);
   const [isEmployeeLoginOpen, setIsEmployeeLoginOpen] = useState(false);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -183,20 +189,25 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     return matchesSearch && matchesComp && matchesCatOrType;
   });
 
-  // Featured / Deals Products for the Horizontal Noon Slider
-  const dealsProducts = products
-    .filter((p) => p.active && (p.featured || p.displayOrder <= 6))
-    .slice(0, 10);
+  // Primary horizontal scrolling rail products (Featured first, then newest active catalog items)
+  const dealsProducts = [
+    ...products.filter((p) => p.active && (p.featured || p.displayOrder <= 6)),
+    ...products.filter((p) => p.active && !(p.featured || p.displayOrder <= 6)),
+  ].slice(0, 18);
 
   // Add to basket handler
   const handleAddToCart = (
     product: Product,
     packageObj: Package,
     quantity: number,
-    unit: 'piece' | 'carton' = 'piece'
+    unit: 'piece' | 'carton' = 'piece',
+    overrideUnitPrice?: number
   ) => {
     const company = companies.find((c) => c.id === product.companyId);
-    const unitPrice = packageObj.price;
+    const unitPrice =
+      typeof overrideUnitPrice === 'number' && !isNaN(overrideUnitPrice)
+        ? overrideUnitPrice
+        : packageObj.price;
     const subtotal = unitPrice * quantity;
 
     const newItem: OrderItem = {
@@ -367,12 +378,12 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           })}
         </div>
 
-        {/* Deals of the Day Horizontal Slider (Noon Style) */}
+        {/* Primary Horizontal Scrolling Products Slider */}
         {isHomeDefaultView && dealsProducts.length > 0 && (
           <ProductRailSlider
-            title="عروض اليوم وتخفيضات الموسم"
-            subtitle="أفضل المخصبات والمبيدات المختارة بأفضل سعر للمزارعين والتجار"
-            badgeText="توفير حقيقي"
+            title="تصفح منتجات كروپسا السريع"
+            subtitle="اسحب يميناً أو شمالاً لاستعراض المخصبات والمبيدات الأساسية بأسعار محدثة"
+            badgeText="الكتالوج السريع"
             products={dealsProducts}
             packages={packages}
             companies={companies}
@@ -383,9 +394,23 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             showPrices={settings.showPrices}
             whatsAppNumber={settings.whatsApp}
             onViewAll={() => {
-              setSelectorViewMode('by_category');
-              setSelectedProductTypes(['featured']);
+              const el = document.getElementById('catalog-products-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
             }}
+          />
+        )}
+
+        {/* 3 Responsive Homepage Showcase Boxes (Latest • Merchant Deals • Season Products) */}
+        {isHomeDefaultView && (
+          <HomeShowcaseBoxes
+            settings={settings}
+            products={products}
+            packages={packages}
+            companies={companies}
+            onOpenDetails={handleOpenProductDetails}
+            onRequestAdd={(prod, pkg, promoDiscountPercent, promoLabel) =>
+              setQuickAddTarget({ product: prod, pkg, promoDiscountPercent, promoLabel })
+            }
           />
         )}
 
@@ -560,9 +585,13 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             : []
         }
         initialPackage={quickAddTarget?.pkg}
+        promoDiscountPercent={quickAddTarget?.promoDiscountPercent}
+        promoLabel={quickAddTarget?.promoLabel}
         showPrices={settings.showPrices}
         onClose={() => setQuickAddTarget(null)}
-        onConfirmAdd={(prod, pkg, qty) => handleAddToCart(prod, pkg, qty, 'piece')}
+        onConfirmAdd={(prod, pkg, qty, overrideUnitPrice) =>
+          handleAddToCart(prod, pkg, qty, 'piece', overrideUnitPrice)
+        }
       />
 
       {/* Cart & Checkout Drawer */}

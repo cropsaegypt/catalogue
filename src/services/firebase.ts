@@ -124,7 +124,12 @@ export async function uploadDataUrlToFirebaseStorage(
   try {
     await ensureFirebaseAuthSession();
     const safePrefix = prefix.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 24) || 'img';
-    const fileName = `${folder}/${safePrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.jpg`;
+    const ext = dataUrl.startsWith('data:image/png')
+      ? 'png'
+      : dataUrl.startsWith('data:image/webp')
+        ? 'webp'
+        : 'jpg';
+    const fileName = `${folder}/${safePrefix}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`;
     const storageRef = ref(storage, fileName);
     await Promise.race([
       uploadString(storageRef, dataUrl, 'data_url'),

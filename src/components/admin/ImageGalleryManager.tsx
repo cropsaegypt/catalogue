@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Image as ImageIcon, Plus, Trash2, Building2, Eye, Check } from 'lucide-react';
+import { Image as ImageIcon, Plus, Trash2, Building2, Eye, Sparkles, Loader2 } from 'lucide-react';
 import { CompanyImage, Company, Product } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
+import { aiCatalogService } from '../../services/aiCatalogService';
 
 interface ImageGalleryManagerProps {
   images: CompanyImage[];
@@ -21,6 +22,7 @@ export const ImageGalleryManager: React.FC<ImageGalleryManagerProps> = ({
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(companies.length > 0 ? companies[0].id : '');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newFileName, setNewFileName] = useState('');
+  const [cleaningImgId, setCleaningImgId] = useState<string | null>(null);
 
   const companyImages = images.filter((img) => img.companyId === selectedCompanyId);
 
@@ -133,7 +135,7 @@ export const ImageGalleryManager: React.FC<ImageGalleryManagerProps> = ({
                   key={img.id}
                   className="bg-[#E5E2D9]/40 p-3 rounded-2xl border border-[#D4D1C5] flex flex-col justify-between space-y-2 group"
                 >
-                  <div className="h-32 w-full flex items-center justify-center overflow-hidden rounded-xl bg-white p-1">
+                  <div className="h-32 w-full flex items-center justify-center overflow-hidden rounded-xl bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:12px_12px] p-1">
                     <img src={img.url} alt={img.altText} className="max-h-full max-w-full object-contain" />
                   </div>
 
@@ -152,6 +154,42 @@ export const ImageGalleryManager: React.FC<ImageGalleryManagerProps> = ({
                     >
                       <Eye className="w-4 h-4" />
                     </a>
+                    <button
+                      type="button"
+                      disabled={cleaningImgId === img.id}
+                      onClick={async () => {
+                        setCleaningImgId(img.id);
+                        try {
+                          const cleaned = await aiCatalogService.cleanBackgroundAndUpload(
+                            img.url,
+                            `gal-${img.id}`
+                          );
+                          if (cleaned) {
+                            onSaveImages(
+                              images.map((item) =>
+                                item.id === img.id
+                                  ? { ...item, url: cleaned, thumbnailUrl: cleaned }
+                                  : item
+                              )
+                            );
+                            onShowToast('تم إزالة الخلفية وتحديث الصورة في المعرض', 'success');
+                          } else {
+                            onShowToast('الصورة شفافة بالفعل أو لا تحتوي على خلفية موحدة للإزالة', 'error');
+                          }
+                        } finally {
+                          setCleaningImgId(null);
+                        }
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 text-[10px] font-black flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      title="إزالة خلفية الصورة"
+                    >
+                      {cleaningImgId === img.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Sparkles className="w-3 h-3" />
+                      )}
+                      <span>تفريغ</span>
+                    </button>
                     <button
                       onClick={() => handleDeleteImage(img.id)}
                       className="p-1 text-amber-900 hover:text-amber-950"

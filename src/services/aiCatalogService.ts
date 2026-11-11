@@ -1,5 +1,6 @@
 import { ExtractedProductItem, ExtractedPackage, Category } from '../types';
 import { getAgriculturalProductImage } from '../utils/agriculturalImages';
+import { removeProductBackground } from '../utils/imageBackgroundRemoval';
 import { uploadDataUrlToFirebaseStorage } from './firebase';
 
 export interface CatalogExtractionRequest {
@@ -11,6 +12,7 @@ export interface CatalogExtractionRequest {
   pastedText?: string;
   additionalNotes?: string;
   customApiKey?: string;
+  removeBackground?: boolean;
   onProgress?: (msg: string) => void;
 }
 
@@ -96,13 +98,15 @@ export const aiCatalogService = {
   },
 
   /**
-   * Crop a specific product packaging image from a catalog page/photo using normalized 0..1000 bounding box
+   * Crop a specific product packaging image from a catalog page/photo using normalized 0..1000 bounding box,
+   * optionally removing the background cleanly to leave only the isolated transparent product cutout.
    */
   async cropProductImageFromSource(
     sourceDataUrl: string,
-    box: { ymin: number; xmin: number; ymax: number; xmax: number }
+    box: { ymin: number; xmin: number; ymax: number; xmax: number },
+    shouldRemoveBackground = true
   ): Promise<string | null> {
-    return new Promise((resolve) => {
+    const rawCrop = await new Promise<string | null>((resolve) => {
       try {
         const img = new Image();
         img.onload = () => {
@@ -125,7 +129,7 @@ export const aiCatalogService = {
           const sw = Math.max(20, Math.floor(((xmax - xmin) / 1000) * w));
           const sh = Math.max(20, Math.floor(((ymax - ymin) / 1000) * h));
 
-          const maxOut = 560;
+          const maxOut = 520;
           const scale = Math.min(1, maxOut / Math.max(sw, sh));
           const outW = Math.max(40, Math.round(sw * scale));
           const outH = Math.max(40, Math.round(sh * scale));
@@ -138,10 +142,9 @@ export const aiCatalogService = {
             resolve(null);
             return;
           }
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, outW, outH);
+          ctx.clearRect(0, 0, outW, outH);
           ctx.drawImage(img, sx, sy, sw, sh, 0, 0, outW, outH);
-          resolve(canvas.toDataURL('image/jpeg', 0.88));
+          resolve(canvas.toDataURL(shouldRemoveBackground ? 'image/png' : 'image/jpeg', 0.88));
         };
         img.onerror = () => resolve(null);
         img.src = sourceDataUrl;
@@ -149,6 +152,13 @@ export const aiCatalogService = {
         resolve(null);
       }
     });
+
+    if (!rawCrop) return null;
+    if (shouldRemoveBackground) {
+      const transparentCutout = await removeProductBackground(rawCrop);
+      if (transparentCutout) return transparentCutout;
+    }
+    return rawCrop;
   },
 
   /**
@@ -182,6 +192,17 @@ export const aiCatalogService = {
       // Fallback to dataUrl
     }
     return dataUrl;
+  },
+
+  /**
+   * Removes uniform studio/catalog background from an existing image URL and persists the transparent PNG cutout.
+   */
+  async cleanBackgroundAndUpload(imageUrl: string, prefix = 'clean-prd'): Promise<string | null> {
+    if (!imageUrl || imageUrl.startsWith('data:image/svg+xml')) return null;
+    const cleanedDataUrl = await removeProductBackground(imageUrl);
+    if (!cleanedDataUrl) return null;
+    const uploaded = await this.uploadExtractedImage(cleanedDataUrl, prefix);
+    return uploaded || cleanedDataUrl;
   },
 
   /**
@@ -326,14 +347,22 @@ export const aiCatalogService = {
             box.xmax > box.xmin + 15 &&
             box.ymax > box.ymin + 15
           ) {
-            const croppedDataUrl = await this.cropProductImageFromSource(sourceDataUrl, box);
+            const croppedDataUrl = await this.cropProductImageFromSource(
+              sourceDataUrl,
+              box,
+              params.removeBackground !== false
+            );
             if (croppedDataUrl) {
               finalImageUrl = await this.uploadExtractedImage(croppedDataUrl, `prd-${idx}`);
               extractedFromCatalogImage = true;
             }
           } else if (batchFiles.length === 1 && rawProducts.length === 1) {
             // Single product image uploaded directly
-            finalImageUrl = await this.uploadExtractedImage(sourceDataUrl, `prd-${idx}`);
+            const prepared =
+              params.removeBackground !== false
+                ? (await removeProductBackground(sourceDataUrl)) || sourceDataUrl
+                : sourceDataUrl;
+            finalImageUrl = await this.uploadExtractedImage(prepared, `prd-${idx}`);
             extractedFromCatalogImage = true;
           }
         }

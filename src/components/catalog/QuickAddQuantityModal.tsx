@@ -17,9 +17,11 @@ interface QuickAddQuantityModalProps {
   company?: Company;
   packages: Package[];
   initialPackage?: Package;
+  promoDiscountPercent?: number;
+  promoLabel?: string;
   showPrices?: boolean;
   onClose: () => void;
-  onConfirmAdd: (product: Product, packageObj: Package, quantity: number) => void;
+  onConfirmAdd: (product: Product, packageObj: Package, quantity: number, overrideUnitPrice?: number) => void;
 }
 
 export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
@@ -28,6 +30,8 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
   company,
   packages,
   initialPackage,
+  promoDiscountPercent = 0,
+  promoLabel,
   showPrices = true,
   onClose,
   onConfirmAdd,
@@ -53,7 +57,9 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
     activePackages.find((p) => p.id === selectedPackageId) || activePackages[0];
 
   const numericQty = Math.max(1, parseInt(quantityText, 10) || 1);
-  const unitPrice = currentPackage ? currentPackage.price : 0;
+  const rawPrice = currentPackage ? currentPackage.price : 0;
+  const pct = Math.max(0, Math.min(95, Number(promoDiscountPercent) || 0));
+  const unitPrice = pct > 0 ? Math.round(rawPrice * (1 - pct / 100)) : rawPrice;
   const totalPrice = unitPrice * numericQty;
 
   const handleStep = (delta: number) => {
@@ -64,7 +70,7 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
   const handleConfirm = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!currentPackage) return;
-    onConfirmAdd(product, currentPackage, numericQty);
+    onConfirmAdd(product, currentPackage, numericQty, pct > 0 ? unitPrice : undefined);
     onClose();
   };
 
@@ -106,9 +112,16 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
               <h3 className="text-base sm:text-lg font-black text-stone-900 leading-snug line-clamp-2">
                 {product.name}
               </h3>
-              <div className="inline-flex items-center gap-1.5 bg-white border border-stone-200 px-2.5 py-0.5 rounded-lg text-[11px] font-bold text-stone-700">
-                <Building2 className="w-3.5 h-3.5 text-[#046A47]" />
-                <span>شركة: {company?.name || 'كروپسا'}</span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <div className="inline-flex items-center gap-1.5 bg-white border border-stone-200 px-2.5 py-0.5 rounded-lg text-[11px] font-bold text-stone-700">
+                  <Building2 className="w-3.5 h-3.5 text-[#046A47]" />
+                  <span>شركة: {company?.name || 'كروپسا'}</span>
+                </div>
+                {promoLabel && (
+                  <span className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-lg">
+                    {promoLabel}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -151,7 +164,19 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
                           </span>
                           {showPrices && (
                             <span className="block text-xs font-extrabold text-[#046A47] mt-0.5">
-                              {Number(pkg.price).toLocaleString('en-US')} {pkg.currency || 'ج.م'}
+                              {pct > 0 ? (
+                                <>
+                                  {Math.round(pkg.price * (1 - pct / 100)).toLocaleString('en-US')}{' '}
+                                  {pkg.currency || 'ج.م'}{' '}
+                                  <span className="text-[10px] text-stone-400 line-through">
+                                    {Number(pkg.price).toLocaleString('en-US')}
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  {Number(pkg.price).toLocaleString('en-US')} {pkg.currency || 'ج.م'}
+                                </>
+                              )}
                             </span>
                           )}
                         </div>

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Loader2 } from 'lucide-react';
+import { Upload, X, Loader2, Sparkles } from 'lucide-react';
 import { aiCatalogService } from '../../services/aiCatalogService';
 
 interface ImageFileInputProps {
@@ -19,6 +19,20 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCleaningBg, setIsCleaningBg] = useState(false);
+
+  const handleRemoveBg = async () => {
+    if (!value || isCleaningBg) return;
+    setIsCleaningBg(true);
+    try {
+      const cleaned = await aiCatalogService.cleanBackgroundAndUpload(value, 'clean-asset');
+      if (cleaned) {
+        onChange(cleaned);
+      }
+    } finally {
+      setIsCleaningBg(false);
+    }
+  };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -87,14 +101,30 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
 
       {value && (
         <div className="flex items-center gap-3 p-2 bg-[#FAF8F5] border border-[#E5E2D9] rounded-xl">
-          <div className="w-12 h-12 bg-white rounded-lg border border-[#D4D1C5] p-1 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-12 h-12 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] rounded-lg border border-[#D4D1C5] p-1 flex items-center justify-center overflow-hidden shrink-0">
             <img src={value} alt="Preview" className="w-full h-full object-contain" />
           </div>
           <div className="text-[11px] text-[#5A5A40] font-bold truncate flex-1">
-            {value.startsWith('data:image')
+            {value.startsWith('data:image/png')
+              ? '✅ صورة مفرّغة أو PNG جاهزة'
+              : value.startsWith('data:image')
               ? '✅ صورة مرفوعة ومضغوطة بنجاح'
               : '✅ رابط صورة جاهز (سحابي / خارجي)'}
           </div>
+          <button
+            type="button"
+            disabled={isCleaningBg || isUploading}
+            onClick={handleRemoveBg}
+            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 text-[11px] font-black flex items-center gap-1 cursor-pointer disabled:opacity-60 shrink-0"
+            title="إزالة الخلفية وإبقاء صورة المنتج فقط"
+          >
+            {isCleaningBg ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="w-3.5 h-3.5" />
+            )}
+            <span>{isCleaningBg ? 'جاري التفريغ...' : 'إزالة الخلفية'}</span>
+          </button>
         </div>
       )}
     </div>

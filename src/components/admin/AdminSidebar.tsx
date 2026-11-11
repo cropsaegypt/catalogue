@@ -17,6 +17,7 @@ import {
   Sparkles,
   ShieldCheck,
   Users,
+  Tag,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { TeamMember } from '../../types';
@@ -31,6 +32,7 @@ export type AdminTab =
   | 'prices'
   | 'excel'
   | 'ai_catalog'
+  | 'showcases'
   | 'advertisements'
   | 'layout'
   | 'pdf'
@@ -94,6 +96,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     {
       title: 'التسويق والميديا',
       items: [
+        { id: 'showcases', label: 'مربعات الرئيسية والعروض', icon: <Tag className="w-4 h-4 text-amber-400" />, highlight: true },
         { id: 'advertisements', label: 'إدارة الإعلانات', icon: <Megaphone className="w-4 h-4 text-rose-400" /> },
         { id: 'gallery', label: 'معرض صور الشركات', icon: <ImageIcon className="w-4 h-4 text-purple-400" /> },
         { id: 'pdf', label: 'توليد الكتالوج PDF', icon: <FileText className="w-4 h-4 text-amber-400" /> },

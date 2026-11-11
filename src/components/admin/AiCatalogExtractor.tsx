@@ -95,6 +95,8 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
   const [customApiKey, setCustomApiKey] = useState<string>(() => {
     return localStorage.getItem('cropsa_custom_gemini_key') || '';
   });
+  const [autoRemoveBackground, setAutoRemoveBackground] = useState<boolean>(true);
+  const [cleaningProductId, setCleaningProductId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/health')
@@ -304,6 +306,7 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
           pastedText: combinedPastedText.trim() || undefined,
           additionalNotes: additionalNotes.trim() || undefined,
           customApiKey: customApiKey.trim() || undefined,
+          removeBackground: autoRemoveBackground,
           onProgress: (stepMsg) => setProcessingStep(stepMsg),
         },
         categories
@@ -916,6 +919,18 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
             </details>
           </div>
 
+          {/* Background Removal Option */}
+          <label className="flex items-center gap-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl px-3.5 py-2.5 text-xs font-bold text-[#2D2D24] cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={autoRemoveBackground}
+              onChange={(e) => setAutoRemoveBackground(e.target.checked)}
+              className="w-4 h-4 accent-[#046A47] rounded cursor-pointer"
+            />
+            <Sparkles className="w-4 h-4 text-[#046A47] shrink-0" />
+            <span>إزالة خلفية صور المنتجات تلقائياً عند السحب من الكتالوج (إبقاء صورة العبوة فقط بخلفية شفافة)</span>
+          </label>
+
           {/* Action Button */}
           <div className="pt-2">
             <button
@@ -1114,30 +1129,58 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                         </button>
 
                         {/* Product Thumbnail & Picker */}
-                        <div className="relative group/img shrink-0">
-                          <div className="w-16 h-16 rounded-xl border border-[#D4D1C5] bg-white overflow-hidden flex items-center justify-center shadow-2xs">
-                            {prod.imageUrl ? (
-                              <img src={prod.imageUrl} alt={prod.name} className="w-full h-full object-contain" />
-                            ) : (
-                              <ImageIcon className="w-6 h-6 text-[#8A8A6D]" />
+                        <div className="relative group/img shrink-0 flex flex-col items-center gap-1">
+                          <div className="relative">
+                            <div className="w-16 h-16 rounded-xl border border-[#D4D1C5] bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] overflow-hidden flex items-center justify-center shadow-2xs">
+                              {prod.imageUrl ? (
+                                <img src={prod.imageUrl} alt={prod.name} className="w-full h-full object-contain" />
+                              ) : (
+                                <ImageIcon className="w-6 h-6 text-[#8A8A6D]" />
+                              )}
+                            </div>
+                            {prod.extractedFromCatalogImage && (
+                              <span
+                                className="absolute -bottom-1.5 inset-x-0.5 text-center bg-emerald-700 text-white text-[8px] font-black px-1 py-0.2 rounded shadow-xs pointer-events-none"
+                                title="تم قص وسحب الصورة الحقيقية من الكتالوج المرفوع"
+                              >
+                                من الكتالوج
+                              </span>
                             )}
-                          </div>
-                          {prod.extractedFromCatalogImage && (
-                            <span
-                              className="absolute -bottom-1.5 inset-x-0.5 text-center bg-emerald-700 text-white text-[8px] font-black px-1 py-0.2 rounded shadow-xs pointer-events-none"
-                              title="تم قص وسحب الصورة الحقيقية من الكتالوج المرفوع"
+                            <button
+                              type="button"
+                              onClick={() => setActiveImagePickerProductId(prod.id)}
+                              className="absolute inset-0 bg-black/50 text-white text-[10px] font-bold rounded-xl flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-pointer"
+                              title="اختيار أو تغيير صورة المنتج"
                             >
-                              من الكتالوج
-                            </span>
+                              تغيير
+                            </button>
+                          </div>
+                          {prod.imageUrl && !prod.imageUrl.startsWith('data:image/svg+xml') && (
+                            <button
+                              type="button"
+                              disabled={cleaningProductId === prod.id}
+                              onClick={async () => {
+                                setCleaningProductId(prod.id);
+                                try {
+                                  const cleaned = await aiCatalogService.cleanBackgroundAndUpload(
+                                    prod.imageUrl!,
+                                    `ext-${prod.id}`
+                                  );
+                                  if (cleaned) {
+                                    handleUpdateProduct(prod.id, { imageUrl: cleaned });
+                                    onShowToast(`تم تفريغ خلفية "${prod.name}" بنجاح`, 'success');
+                                  } else {
+                                    onShowToast('الصورة شفافة بالفعل أو لا تحتوي على خلفية موحدة قابلة للإزالة', 'error');
+                                  }
+                                } finally {
+                                  setCleaningProductId(null);
+                                }
+                              }}
+                              className="text-[9px] font-black text-[#046A47] hover:underline cursor-pointer disabled:opacity-50 mt-1"
+                            >
+                              {cleaningProductId === prod.id ? 'جاري التفريغ...' : '✨ إزالة الخلفية'}
+                            </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => setActiveImagePickerProductId(prod.id)}
-                            className="absolute inset-0 bg-black/50 text-white text-[10px] font-bold rounded-xl flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-pointer"
-                            title="اختيار أو تغيير صورة المنتج"
-                          >
-                            تغيير
-                          </button>
                         </div>
 
                         {/* Name and Category Inputs */}

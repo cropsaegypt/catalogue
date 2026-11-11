@@ -13,11 +13,13 @@ import {
   Layers,
   Search,
   SlidersHorizontal,
+  Loader2,
 } from 'lucide-react';
 
 import { Product, Package, Company, Category, CompanyImage } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
+import { aiCatalogService } from '../../services/aiCatalogService';
 
 interface ProductManagerProps {
   products: Product[];
@@ -61,6 +63,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [mainImageUrl, setMainImageUrl] = useState('');
   const [active, setActive] = useState(true);
   const [featured, setFeatured] = useState(false);
+  const [isCleaningAllBg, setIsCleaningAllBg] = useState(false);
 
   // Dynamic Packages for this product
   const [formPackages, setFormPackages] = useState<
@@ -292,6 +295,51 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   // Company specific images for gallery selector
   const availableCompanyImages = companyImages.filter((img) => img.companyId === companyId);
 
+  const handleBatchCleanBackgrounds = async () => {
+    const candidates = filteredProducts.filter((p) => {
+      const url = p.mainImageUrl || '';
+      return (
+        url &&
+        !url.startsWith('data:image/svg+xml') &&
+        !url.includes('unsplash.com') &&
+        !url.includes('pexels.com')
+      );
+    });
+    if (candidates.length === 0) {
+      onShowToast('لا توجد صور منتجات مطابقة قابلة لإزالة الخلفية', 'error');
+      return;
+    }
+
+    setIsCleaningAllBg(true);
+    try {
+      const updatedMap = new Map<string, string>();
+      for (const prod of candidates) {
+        const cleaned = await aiCatalogService.cleanBackgroundAndUpload(
+          prod.mainImageUrl!,
+          `prd-${prod.id}`
+        );
+        if (cleaned) {
+          updatedMap.set(prod.id, cleaned);
+        }
+      }
+
+      if (updatedMap.size === 0) {
+        onShowToast('الصور مفرّغة بالفعل أو لا تحتوي على خلفية موحدة للإزالة', 'error');
+        return;
+      }
+
+      const nextProducts = products.map((p) =>
+        updatedMap.has(p.id)
+          ? { ...p, mainImageUrl: updatedMap.get(p.id), updatedAt: new Date().toISOString() }
+          : p
+      );
+      onSaveProducts(nextProducts);
+      onShowToast(`تم تفريغ وإزالة الخلفية لـ ${updatedMap.size} منتج وحفظهم بنجاح`, 'success');
+    } finally {
+      setIsCleaningAllBg(false);
+    }
+  };
+
   return (
     <div className="space-y-6 dir-rtl">
       {/* Top Header */}
@@ -303,13 +351,30 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           </h2>
           <p className="text-xs text-[#8A8A6D] font-medium">إضافة المنتجات وتحديد الحجم والأسعار والمعلومات الفنية</p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="bg-[#5A5A40] hover:bg-[#484833] text-[#F9F8F6] px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition-all shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>إضافة منتج جديد</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            type="button"
+            disabled={isCleaningAllBg}
+            onClick={handleBatchCleanBackgrounds}
+            className="bg-emerald-50 hover:bg-emerald-100 disabled:opacity-60 text-[#046A47] border border-emerald-200 px-3.5 py-2.5 rounded-xl text-xs font-black shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+            title="يزيل الخلفية البيضاء أو الرمادية تلقائياً لصور المنتجات المعروضة حالياً"
+          >
+            {isCleaningAllBg ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Sparkles className="w-4 h-4" />
+            )}
+            <span>{isCleaningAllBg ? 'جاري تفريغ الصور...' : 'إزالة خلفيات المنتجات'}</span>
+          </button>
+
+          <button
+            onClick={openAddModal}
+            className="bg-[#5A5A40] hover:bg-[#484833] text-[#F9F8F6] px-4 py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center gap-2 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>إضافة منتج جديد</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}

@@ -13,6 +13,7 @@ import { AdvertisementManager } from '../components/admin/AdvertisementManager';
 import { CatalogSettingsManager } from '../components/admin/CatalogSettingsManager';
 import { AuditLogViewer } from '../components/admin/AuditLogViewer';
 import { AiCatalogExtractor } from '../components/admin/AiCatalogExtractor';
+import { HomeShowcasesManager } from '../components/admin/HomeShowcasesManager';
 import { ToastContainer, ToastMessage } from '../components/common/Toast';
 
 
@@ -405,6 +406,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             teamMembers={teamMembers}
             onSaveTeamMembers={onSaveTeamMembers || (() => {})}
             currentUser={currentUser}
+          />
+        )}
+
+        {activeTab === 'showcases' && (!currentUser || canAccessAdminTab(currentUser, 'showcases')) && (
+          <HomeShowcasesManager
+            settings={settings}
+            products={products}
+            packages={packages}
+            companies={companies}
+            categories={categories}
+            onSaveSettings={onSaveSettings}
+            onShowToast={addToast}
           />
         )}
 
