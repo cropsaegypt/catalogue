@@ -399,14 +399,14 @@ export const aiCatalogService = {
   ): Promise<CatalogExtractionResult> {
     const rawFiles = params.files || [];
     const MAX_FILES_PER_BATCH = 2;
-    const MAX_BATCH_BYTES = 3_000_000; // Keep well under Vercel's 4.5MB serverless request body limit
+    const MAX_BATCH_BYTES = 1_400_000; // Keep each batch fast (<10s) and safe under Vercel's 4.5MB payload limit
 
-    // Split multi-page uploads by both count and byte budget to guarantee Vercel safety
+    // Split multi-page uploads by both count and byte budget to guarantee Vercel safety & speed
     const totalPayloadBytes = rawFiles.reduce(
       (sum, f) => sum + (f.data?.length || 0) + (f.pageText?.length || 0),
       0
     );
-    if (rawFiles.length > MAX_FILES_PER_BATCH || (rawFiles.length > 1 && totalPayloadBytes > MAX_BATCH_BYTES)) {
+    if (rawFiles.length > 1 || totalPayloadBytes > MAX_BATCH_BYTES) {
       console.log(`[CROPSA Batching] Splitting ${rawFiles.length} files (${Math.round(totalPayloadBytes / 1024)}KB) into Vercel-safe batches...`);
       const batches: Array<typeof rawFiles> = [];
       let currentBatch: typeof rawFiles = [];
@@ -438,14 +438,30 @@ export const aiCatalogService = {
         const progressMsg = `جاري استخراج بيانات الصفحات: دفعة (${bIdx + 1} من ${batches.length})...`;
         params.onProgress?.(progressMsg);
 
-        const batchResult = await this._sendSingleBatch(
-          {
-            ...params,
-            files: batchFiles,
-            pastedText: bIdx === 0 ? params.pastedText : undefined,
-          },
-          categories
-        );
+        let batchResult: CatalogExtractionResult | null = null;
+        let batchErr: any = null;
+        for (let retry = 0; retry < 2; retry++) {
+          try {
+            batchResult = await this._sendSingleBatch(
+              {
+                ...params,
+                files: batchFiles,
+                pastedText: bIdx === 0 ? params.pastedText : undefined,
+              },
+              categories
+            );
+            break;
+          } catch (err: any) {
+            batchErr = err;
+            if (retry === 0) {
+              params.onProgress?.(`إعادة محاولة الدفعة (${bIdx + 1} من ${batches.length})...`);
+              await new Promise((r) => setTimeout(r, 2200));
+            }
+          }
+        }
+        if (!batchResult) {
+          throw batchErr || new Error('تعذر استخراج بيانات الدفعة');
+        }
 
         if (!finalCatalogTitle && batchResult.catalogTitle) {
           finalCatalogTitle = batchResult.catalogTitle;

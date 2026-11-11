@@ -266,8 +266,8 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
             item.file,
             1,
             pagesToRender,
-            1400,
-            0.8
+            1150,
+            0.72
           );
           if (pageImages.length > 0) {
             for (const pImg of pageImages) {

@@ -5,6 +5,7 @@ import path from 'path';
 import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
 
 let geminiClient: GoogleGenAI | null = null;
+let cachedWorkingModel: string | null = null;
 function getGeminiClient(customApiKey?: string): GoogleGenAI {
   const cleanCustom = (customApiKey || '').trim();
   if (cleanCustom) {
@@ -210,20 +211,31 @@ export function createApiApp() {
         text: promptLines.join('\n'),
       });
 
-      const candidateConfigs: Array<{
+      const defaultCandidates: Array<{
         model: string;
         thinkingConfig?: { thinkingLevel?: ThinkingLevel; thinkingBudget?: number };
       }> = [
-        { model: 'gemini-3.8-flash', thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
         { model: 'gemini-3.5-flash-lite' },
         { model: 'gemini-2.5-flash', thinkingConfig: { thinkingBudget: 0 } },
+        { model: 'gemini-3.8-flash', thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
         { model: 'gemini-flash-latest' },
       ];
+      const candidateConfigs = cachedWorkingModel
+        ? [
+            ...defaultCandidates.filter((c) => c.model === cachedWorkingModel),
+            ...(defaultCandidates.some((c) => c.model === cachedWorkingModel)
+              ? []
+              : [{ model: cachedWorkingModel }]),
+            ...defaultCandidates.filter((c) => c.model !== cachedWorkingModel),
+          ]
+        : defaultCandidates;
+
       let responseText = '';
+      let modelUsed = '';
       let lastError: any = null;
       const startedAt = Date.now();
-      const overallBudgetMs = isVercelEnv ? 46_000 : 110_000;
-      const perAttemptMs = isVercelEnv ? 18_000 : 45_000;
+      const overallBudgetMs = isVercelEnv ? 52_000 : 110_000;
+      const perAttemptMs = isVercelEnv ? 28_000 : 50_000;
       const maxAttemptsPerModel = isVercelEnv ? 1 : 2;
 
       const baseExtractionConfig = {
@@ -359,6 +371,8 @@ export function createApiApp() {
 
           if (response && response.text) {
             responseText = response.text;
+            modelUsed = modelName;
+            cachedWorkingModel = modelName;
             console.log(`[CROPSA Catalog AI] Model ${modelName} succeeded in ${Date.now() - startedAt}ms!`);
             return true;
           }
@@ -448,6 +462,7 @@ export function createApiApp() {
 
       res.json({
         success: true,
+        modelUsed,
         data: parsedData,
         extractedProductsCount: parsedData.products?.length || 0,
       });
