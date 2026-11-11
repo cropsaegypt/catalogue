@@ -216,7 +216,8 @@ export function createApiApp() {
         thinkingConfig?: { thinkingLevel?: ThinkingLevel; thinkingBudget?: number };
       }> = [
         { model: 'gemini-3.5-flash-lite' },
-        { model: 'gemini-2.5-flash', thinkingConfig: { thinkingBudget: 0 } },
+        { model: 'gemini-flash-lite-latest' },
+        { model: 'gemini-3.6-flash' },
         { model: 'gemini-3.8-flash', thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } },
         { model: 'gemini-flash-latest' },
       ];
@@ -235,8 +236,8 @@ export function createApiApp() {
       let lastError: any = null;
       const startedAt = Date.now();
       const overallBudgetMs = isVercelEnv ? 52_000 : 110_000;
-      const perAttemptMs = isVercelEnv ? 28_000 : 50_000;
-      const maxAttemptsPerModel = isVercelEnv ? 1 : 2;
+      const perAttemptMs = isVercelEnv ? 15_000 : 45_000;
+      const maxAttemptsPerModel = 1;
 
       const baseExtractionConfig = {
         systemInstruction:
@@ -411,16 +412,19 @@ export function createApiApp() {
               rawName &&
               !triedModels.has(rawName) &&
               rawName.includes('gemini') &&
-              rawName.includes('flash') &&
+              (rawName.includes('flash') || rawName.includes('lite')) &&
               !rawName.includes('tts') &&
               !rawName.includes('image') &&
               !rawName.includes('live') &&
+              !rawName.includes('2.0') &&
+              !rawName.includes('2.5') &&
+              !rawName.includes('1.5') &&
               (!m.supportedActions || m.supportedActions.includes('generateContent'))
             ) {
               discovered.push(rawName);
             }
           }
-          for (const fallbackModel of discovered.slice(0, 2)) {
+          for (const fallbackModel of discovered.slice(0, 4)) {
             if (await tryInvokeModel(fallbackModel)) break;
           }
         } catch (listErr: any) {

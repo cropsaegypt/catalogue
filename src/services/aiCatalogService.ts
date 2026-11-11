@@ -434,13 +434,18 @@ export const aiCatalogService = {
       let finalNotes = '';
 
       for (let bIdx = 0; bIdx < batches.length; bIdx++) {
+        if (bIdx > 0) {
+          // Small pacing pause prevents bursting Google Free Tier RPM limits across multi-page PDFs
+          await new Promise((r) => setTimeout(r, 850));
+        }
+
         const batchFiles = batches[bIdx];
         const progressMsg = `جاري استخراج بيانات الصفحات: دفعة (${bIdx + 1} من ${batches.length})...`;
         params.onProgress?.(progressMsg);
 
         let batchResult: CatalogExtractionResult | null = null;
         let batchErr: any = null;
-        for (let retry = 0; retry < 2; retry++) {
+        for (let retry = 0; retry < 3; retry++) {
           try {
             batchResult = await this._sendSingleBatch(
               {
@@ -453,13 +458,22 @@ export const aiCatalogService = {
             break;
           } catch (err: any) {
             batchErr = err;
-            if (retry === 0) {
-              params.onProgress?.(`إعادة محاولة الدفعة (${bIdx + 1} من ${batches.length})...`);
-              await new Promise((r) => setTimeout(r, 2200));
+            if (retry < 2) {
+              const waitMs = retry === 0 ? 2200 : 4500;
+              params.onProgress?.(
+                `ضغط مؤقت على الخادم في الدفعة (${bIdx + 1}/${batches.length}) — إعادة المحاولة تلقائياً...`
+              );
+              await new Promise((r) => setTimeout(r, waitMs));
             }
           }
         }
         if (!batchResult) {
+          if (allExtractedProducts.length > 0) {
+            finalNotes +=
+              (finalNotes ? ' | ' : '') +
+              `تم حفظ ${allExtractedProducts.length} منتج من الدفعات السابقة (توقف عند الدفعة ${bIdx + 1} بسبب ضغط مؤقت).`;
+            break;
+          }
           throw batchErr || new Error('تعذر استخراج بيانات الدفعة');
         }
 
