@@ -28,6 +28,7 @@ import {
 } from '../components/catalog/OnboardingBrowseSelector';
 import { HomeShowcaseBoxes } from '../components/catalog/HomeShowcaseBoxes';
 import { FloatingOrderBar } from '../components/catalog/FloatingOrderBar';
+import { matchesProductSearch } from '../utils/agriculturalSearch';
 
 import {
   Product,
@@ -152,14 +153,15 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   const activeProducts = products.filter((p) => {
     if (!p.active) return false;
 
+    const categoryName = categories.find((c) => c.id === p.categoryId)?.name || '';
+    const companyName = companies.find((c) => c.id === p.companyId)?.name || '';
+
     const matchesSearch =
       searchQuery === '' ||
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.shortDescription.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      p.characteristics?.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      p.composition?.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase()));
+      matchesProductSearch(p, searchQuery, {
+        categoryName,
+        companyName,
+      });
 
     const matchesComp =
       selectedCompanyIds.length === 0 || selectedCompanyIds.includes(p.companyId);
@@ -179,9 +181,8 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         if (type === 'pesticide_insect') {
           return (
             p.productType === 'pesticide' &&
-            (p.name.includes('حشر') ||
-              (p.description && p.description.includes('حشر')) ||
-              p.characteristics?.some((c) => c.includes('حشر') || c.includes('ديدان')))
+            (matchesProductSearch(p, 'حشر', { categoryName }) ||
+              matchesProductSearch(p, 'دودة', { categoryName }))
           );
         }
         if (type === 'featured') return Boolean(p.featured || p.displayOrder <= 3);

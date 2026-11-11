@@ -20,6 +20,7 @@ import { Product, Package, Company, Category, CompanyImage } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
 import { aiCatalogService } from '../../services/aiCatalogService';
+import { inferAgronomySearchTags } from '../../utils/agriculturalSearch';
 
 interface ProductManagerProps {
   products: Product[];
@@ -60,6 +61,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [characteristics, setCharacteristics] = useState<string[]>(['']);
   const [composition, setComposition] = useState<string[]>(['']);
   const [usage, setUsage] = useState<string[]>(['']);
+  const [searchTagsText, setSearchTagsText] = useState('');
   const [mainImageUrl, setMainImageUrl] = useState('');
   const [active, setActive] = useState(true);
   const [featured, setFeatured] = useState(false);
@@ -102,6 +104,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setCharacteristics(['']);
     setComposition(['']);
     setUsage(['']);
+    setSearchTagsText('');
     setMainImageUrl('');
     setActive(true);
     setFeatured(false);
@@ -134,6 +137,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setCharacteristics(p.characteristics && p.characteristics.length > 0 ? p.characteristics : ['']);
     setComposition(p.composition && p.composition.length > 0 ? p.composition : ['']);
     setUsage(p.usage && p.usage.length > 0 ? p.usage : ['']);
+    setSearchTagsText(p.searchTags && p.searchTags.length > 0 ? p.searchTags.join(' ، ') : '');
     setMainImageUrl(p.mainImageUrl || '');
     setActive(p.active);
     setFeatured(p.featured || false);
@@ -203,11 +207,28 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     const cleanChars = characteristics.filter((c) => c.trim() !== '');
     const cleanComp = composition.filter((c) => c.trim() !== '');
     const cleanUsage = usage.filter((u) => u.trim() !== '');
+    const manualSearchTags = searchTagsText
+      .split(/[،,\n]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const categoryNameForTags = categories.find((c) => c.id === categoryId)?.name || '';
+    const resolvedSearchTags =
+      manualSearchTags.length > 0
+        ? manualSearchTags
+        : inferAgronomySearchTags({
+            name,
+            shortDescription,
+            description,
+            characteristics: cleanChars,
+            composition: cleanComp,
+            usage: cleanUsage,
+            categoryName: categoryNameForTags,
+          });
 
     const finalImage =
       mainImageUrl.trim() !== ''
         ? mainImageUrl
-        : getAgriculturalProductImage(name, categories.find((c) => c.id === categoryId)?.name || '');
+        : getAgriculturalProductImage(name, categoryNameForTags);
 
     let updatedProducts: Product[];
 
@@ -225,6 +246,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
               characteristics: cleanChars,
               composition: cleanComp,
               usage: cleanUsage,
+              searchTags: resolvedSearchTags,
               mainImageUrl: finalImage,
               active,
               featured,
@@ -245,6 +267,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         characteristics: cleanChars,
         composition: cleanComp,
         usage: cleanUsage,
+        searchTags: resolvedSearchTags,
         mainImageUrl: finalImage,
         displayOrder: products.length + 1,
         active,
@@ -757,6 +780,45 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                     >
                       + إضافة طريقة استخدام
                     </button>
+                  </div>
+
+                  {/* Hidden Search Tags */}
+                  <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 space-y-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label className="text-xs font-bold text-amber-950 block">
+                        وسوم بحث مخفية (لا تظهر على الكارت للعميل — لربط الآفات والمحاصيل بالبحث السريع):
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const existingTags = searchTagsText
+                            .split(/[،,\n]+/)
+                            .map((s) => s.trim())
+                            .filter(Boolean);
+                          const generated = inferAgronomySearchTags({
+                            name,
+                            shortDescription,
+                            description,
+                            characteristics: characteristics.filter((c) => c.trim() !== ''),
+                            composition: composition.filter((c) => c.trim() !== ''),
+                            usage: usage.filter((u) => u.trim() !== ''),
+                            categoryName: categories.find((c) => c.id === categoryId)?.name || '',
+                            searchTags: existingTags,
+                          });
+                          setSearchTagsText(generated.join(' ، '));
+                        }}
+                        className="text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 rounded-lg transition-colors"
+                      >
+                        ✨ استنتاج تلقائي من الوصف
+                      </button>
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={searchTagsText}
+                      onChange={(e) => setSearchTagsText(e.target.value)}
+                      placeholder="مثال: دودة ، ديدان ، طماطم ، بطاطس ، حشري ، قاطع الأوراق (اتركه فارغاً للتوليد التلقائي عند الحفظ)"
+                      className="w-full p-2.5 bg-white border border-amber-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    />
                   </div>
                 </div>
               )}

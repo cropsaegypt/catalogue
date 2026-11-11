@@ -590,6 +590,7 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
         composition: extProd.composition || [],
         usage: extProd.usage || [],
         applicationRate: extProd.applicationRate || '200 سم / 100 لتر ماء',
+        searchTags: extProd.searchTags || [],
         mainImageUrl: finalMainImageUrl,
         displayOrder: existingProducts.length + index + 1,
         active: true,
@@ -1312,6 +1313,27 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                                 })
                               }
                               placeholder="مثال: 200 سم / 100 لتر ماء للخضر والفاكهة"
+                              className="w-full bg-[#FAF8F5] border border-[#D4D1C5] rounded-lg p-2 text-xs text-[#2D2D24] focus:outline-none focus:ring-1 focus:ring-[#046A47]"
+                            />
+                          </div>
+
+                          {/* Hidden Search Tags (for Quick Search, Pests, Crops) */}
+                          <div className="bg-white p-3 rounded-xl border border-[#E5E2D9] space-y-1.5">
+                            <label className="font-black text-[#2D2D24] block">
+                              وسوم بحث مخفية (لا تظهر على الكارت — للآفات والمحاصيل والبحث السريع):
+                            </label>
+                            <input
+                              type="text"
+                              value={(prod.searchTags || []).join(' ، ')}
+                              onChange={(e) =>
+                                handleUpdateProduct(prod.id, {
+                                  searchTags: e.target.value
+                                    .split(/[،,]/)
+                                    .map((s) => s.trim())
+                                    .filter(Boolean),
+                                })
+                              }
+                              placeholder="مثال: دودة ، ديدان ، طماطم ، بطاطس ، حشري"
                               className="w-full bg-[#FAF8F5] border border-[#D4D1C5] rounded-lg p-2 text-xs text-[#2D2D24] focus:outline-none focus:ring-1 focus:ring-[#046A47]"
                             />
                           </div>

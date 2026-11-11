@@ -69,6 +69,7 @@ export interface Product {
   applicationRate?: string;
   mainImageId?: string;
   mainImageUrl?: string;
+  searchTags?: string[]; // وسوم بحث مخفية للآفات والأمراض والمحاصيل والأغراض الزراعية
   costPrice?: number; // سعر التكلفة
   stockQuantity?: number; // المخزون الحالي للمنتج
   minStockAlert?: number; // حد التنبيه لنفاد المخزون
@@ -283,6 +284,7 @@ export interface ExtractedProductItem {
   imageHint?: string;
   imageUrl?: string;
   extractedFromCatalogImage?: boolean;
+  searchTags?: string[];
   packages: ExtractedPackage[];
   selectedForImport: boolean;
 }

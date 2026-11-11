@@ -2,6 +2,7 @@ import { ExtractedProductItem, ExtractedPackage, Category } from '../types';
 import { getAgriculturalProductImage } from '../utils/agriculturalImages';
 import { removeProductBackground } from '../utils/imageBackgroundRemoval';
 import { uploadDataUrlToFirebaseStorage } from './firebase';
+import { inferAgronomySearchTags } from '../utils/agriculturalSearch';
 
 export interface CatalogExtractionRequest {
   companyName: string;
@@ -389,6 +390,17 @@ export const aiCatalogService = {
           composition: Array.isArray(p.composition) ? p.composition : [],
           usage: Array.isArray(p.usage) ? p.usage : [],
           applicationRate: p.applicationRate || '',
+          searchTags: inferAgronomySearchTags({
+            name: p.name || '',
+            shortDescription: p.shortDescription || '',
+            description: p.description || '',
+            characteristics: Array.isArray(p.characteristics) ? p.characteristics : [],
+            composition: Array.isArray(p.composition) ? p.composition : [],
+            usage: Array.isArray(p.usage) ? p.usage : [],
+            categoryName: p.categoryName || '',
+            productType: p.productType,
+            searchTags: Array.isArray(p.searchTags) ? p.searchTags : [],
+          }),
           imageHint: p.imageHint || '',
           imageUrl: finalImageUrl,
           extractedFromCatalogImage,
