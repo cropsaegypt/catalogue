@@ -399,13 +399,34 @@ export const aiCatalogService = {
   ): Promise<CatalogExtractionResult> {
     const rawFiles = params.files || [];
     const MAX_FILES_PER_BATCH = 2;
+    const MAX_BATCH_BYTES = 3_000_000; // Keep well under Vercel's 4.5MB serverless request body limit
 
-    // If multiple files are uploaded, batch them to guarantee staying well under the 32MB reverse proxy limit
-    if (rawFiles.length > MAX_FILES_PER_BATCH) {
-      console.log(`[CROPSA Batching] Splitting ${rawFiles.length} files into batches of ${MAX_FILES_PER_BATCH}...`);
+    // Split multi-page uploads by both count and byte budget to guarantee Vercel safety
+    const totalPayloadBytes = rawFiles.reduce(
+      (sum, f) => sum + (f.data?.length || 0) + (f.pageText?.length || 0),
+      0
+    );
+    if (rawFiles.length > MAX_FILES_PER_BATCH || (rawFiles.length > 1 && totalPayloadBytes > MAX_BATCH_BYTES)) {
+      console.log(`[CROPSA Batching] Splitting ${rawFiles.length} files (${Math.round(totalPayloadBytes / 1024)}KB) into Vercel-safe batches...`);
       const batches: Array<typeof rawFiles> = [];
-      for (let i = 0; i < rawFiles.length; i += MAX_FILES_PER_BATCH) {
-        batches.push(rawFiles.slice(i, i + MAX_FILES_PER_BATCH));
+      let currentBatch: typeof rawFiles = [];
+      let currentBytes = 0;
+
+      for (const fileItem of rawFiles) {
+        const itemBytes = (fileItem.data?.length || 0) + (fileItem.pageText?.length || 0);
+        if (
+          currentBatch.length > 0 &&
+          (currentBatch.length >= MAX_FILES_PER_BATCH || currentBytes + itemBytes > MAX_BATCH_BYTES)
+        ) {
+          batches.push(currentBatch);
+          currentBatch = [];
+          currentBytes = 0;
+        }
+        currentBatch.push(fileItem);
+        currentBytes += itemBytes;
+      }
+      if (currentBatch.length > 0) {
+        batches.push(currentBatch);
       }
 
       const allExtractedProducts: ExtractedProductItem[] = [];

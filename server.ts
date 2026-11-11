@@ -3,7 +3,7 @@ import express from 'express';
 import fs from 'fs';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { createApiApp } from './serverApp';
+import { createApiApp } from './api/_serverApp.js';
 
 async function startServer() {
   const app = createApiApp();
