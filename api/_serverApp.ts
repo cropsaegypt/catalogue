@@ -124,6 +124,7 @@ export function createApiApp() {
 
   // AI Catalog Extraction Route
   app.post('/api/gemini/extract-catalog', async (req, res) => {
+    const modelErrors: string[] = [];
     try {
       const {
         companyName = 'شركة كروپسا للحلول والمخصبات الزراعية',
@@ -220,7 +221,6 @@ export function createApiApp() {
       ];
       let responseText = '';
       let lastError: any = null;
-      const modelErrors: string[] = [];
       const startedAt = Date.now();
       const overallBudgetMs = isVercelEnv ? 46_000 : 110_000;
       const perAttemptMs = isVercelEnv ? 18_000 : 45_000;
@@ -322,62 +322,96 @@ export function createApiApp() {
         },
       };
 
+      const tryInvokeModel = async (
+        modelName: string,
+        thinkingConfig?: { thinkingLevel?: ThinkingLevel; thinkingBudget?: number }
+      ): Promise<boolean> => {
+        const remainingMs = overallBudgetMs - (Date.now() - startedAt);
+        if (remainingMs < 4000) return false;
+
+        const attemptTimeoutMs = Math.min(perAttemptMs, remainingMs - 1000);
+        const controller = new AbortController();
+        const abortTimer = setTimeout(() => controller.abort(), attemptTimeoutMs);
+        let raceTimer: ReturnType<typeof setTimeout> | undefined;
+
+        try {
+          console.log(
+            `[CROPSA Catalog AI] Invoking ${modelName} (timeout ${attemptTimeoutMs}ms)...`
+          );
+          const modelConfig = {
+            ...baseExtractionConfig,
+            abortSignal: controller.signal,
+            ...(thinkingConfig ? { thinkingConfig } : {}),
+          };
+          const response = await Promise.race([
+            ai.models.generateContent({
+              model: modelName,
+              contents: { parts },
+              config: modelConfig,
+            }),
+            new Promise<never>((_, reject) => {
+              raceTimer = setTimeout(
+                () => reject(new Error(`Gemini timeout (${modelName}) after ${attemptTimeoutMs}ms`)),
+                attemptTimeoutMs + 250
+              );
+            }),
+          ]);
+
+          if (response && response.text) {
+            responseText = response.text;
+            console.log(`[CROPSA Catalog AI] Model ${modelName} succeeded in ${Date.now() - startedAt}ms!`);
+            return true;
+          }
+        } catch (err: any) {
+          const errStr = err?.message || String(err);
+          console.warn(`[CROPSA Catalog AI] Model ${modelName} failed:`, errStr);
+          modelErrors.push(`${modelName}: ${errStr}`);
+          lastError = err;
+        } finally {
+          clearTimeout(abortTimer);
+          if (raceTimer) clearTimeout(raceTimer);
+        }
+        return false;
+      };
+
+      const triedModels = new Set<string>();
       for (const candidate of candidateConfigs) {
-        const modelName = candidate.model;
+        triedModels.add(candidate.model);
         for (let attempt = 1; attempt <= maxAttemptsPerModel; attempt++) {
-          const remainingMs = overallBudgetMs - (Date.now() - startedAt);
-          if (remainingMs < 4000) break;
-
-          const attemptTimeoutMs = Math.min(perAttemptMs, remainingMs - 1000);
-          const controller = new AbortController();
-          const abortTimer = setTimeout(() => controller.abort(), attemptTimeoutMs);
-          let raceTimer: ReturnType<typeof setTimeout> | undefined;
-
-          try {
-            console.log(
-              `[CROPSA Catalog AI] Invoking ${modelName} (attempt ${attempt}, timeout ${attemptTimeoutMs}ms)...`
-            );
-            const modelConfig = {
-              ...baseExtractionConfig,
-              abortSignal: controller.signal,
-              ...(candidate.thinkingConfig ? { thinkingConfig: candidate.thinkingConfig } : {}),
-            };
-            const response = await Promise.race([
-              ai.models.generateContent({
-                model: modelName,
-                contents: { parts },
-                config: modelConfig,
-              }),
-              new Promise<never>((_, reject) => {
-                raceTimer = setTimeout(
-                  () => reject(new Error(`Gemini timeout (${modelName}) after ${attemptTimeoutMs}ms`)),
-                  attemptTimeoutMs + 250
-                );
-              }),
-            ]);
-
-            if (response && response.text) {
-              responseText = response.text;
-              console.log(`[CROPSA Catalog AI] Model ${modelName} succeeded in ${Date.now() - startedAt}ms!`);
-              break;
-            }
-          } catch (err: any) {
-            const errStr = err?.message || String(err);
-            console.warn(
-              `[CROPSA Catalog AI] Model ${modelName} attempt ${attempt} failed:`,
-              errStr
-            );
-            modelErrors.push(`${modelName}: ${errStr}`);
-            lastError = err;
-            if (attempt < maxAttemptsPerModel) {
-              await new Promise((r) => setTimeout(r, 800));
-            }
-          } finally {
-            clearTimeout(abortTimer);
-            if (raceTimer) clearTimeout(raceTimer);
+          if (await tryInvokeModel(candidate.model, candidate.thinkingConfig)) break;
+          if (attempt < maxAttemptsPerModel) {
+            await new Promise((r) => setTimeout(r, 800));
           }
         }
         if (responseText) break;
+      }
+
+      // Dynamic discovery fallback: if static aliases failed, query models authorized on the active API key
+      if (!responseText && overallBudgetMs - (Date.now() - startedAt) >= 8000) {
+        try {
+          const pager = await ai.models.list({ config: { pageSize: 50 } });
+          const discovered: string[] = [];
+          for await (const m of pager) {
+            const rawName = (m.name || '').replace(/^models\//, '');
+            if (
+              rawName &&
+              !triedModels.has(rawName) &&
+              rawName.includes('gemini') &&
+              rawName.includes('flash') &&
+              !rawName.includes('tts') &&
+              !rawName.includes('image') &&
+              !rawName.includes('live') &&
+              (!m.supportedActions || m.supportedActions.includes('generateContent'))
+            ) {
+              discovered.push(rawName);
+            }
+          }
+          for (const fallbackModel of discovered.slice(0, 2)) {
+            if (await tryInvokeModel(fallbackModel)) break;
+          }
+        } catch (listErr: any) {
+          modelErrors.push(`models.list: ${listErr?.message || String(listErr)}`);
+        }
       }
 
       if (!responseText) {
@@ -447,6 +481,7 @@ export function createApiApp() {
       res.status(500).json({
         success: false,
         error: errorMsg,
+        details: modelErrors,
       });
     }
   });
