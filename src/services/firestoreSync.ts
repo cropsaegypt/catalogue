@@ -9,7 +9,7 @@ import {
   where,
   limit,
 } from 'firebase/firestore';
-import { db, ensureFirebaseAuthSession } from './firebase';
+import { auth, db, ensureFirebaseAuthSession } from './firebase';
 import { DbData } from './dbStorage';
 import {
   Category,
@@ -71,6 +71,12 @@ async function fetchCollectionList<T>(colName: string): Promise<T[] | null> {
   }
 }
 
+async function ensureAuthorizedWriteSession(): Promise<boolean> {
+  await auth.authStateReady();
+  const user = auth.currentUser || (await ensureFirebaseAuthSession());
+  return Boolean(user);
+}
+
 export const firestoreSync = {
   /**
    * Pulls all public & operational collections from Cloud Firestore.
@@ -82,6 +88,7 @@ export const firestoreSync = {
     error?: string;
   }> {
     try {
+      await auth.authStateReady();
       await ensureFirebaseAuthSession();
 
       const [
@@ -175,7 +182,7 @@ export const firestoreSync = {
    */
   async syncCollection<T extends { id: string }>(colName: string, items: T[]): Promise<boolean> {
     try {
-      await ensureFirebaseAuthSession();
+      if (!(await ensureAuthorizedWriteSession())) return false;
       const targetIds = new Set(items.map((it) => toSafeDocId(it.id)));
 
       let existingIds: string[] = [];
@@ -224,7 +231,7 @@ export const firestoreSync = {
 
   async saveSettings(settings: CatalogSettings): Promise<boolean> {
     try {
-      await ensureFirebaseAuthSession();
+      if (!(await ensureAuthorizedWriteSession())) return false;
       await setDoc(doc(db, 'settings', 'main'), stripUndefined(settings));
       return true;
     } catch (err) {
@@ -246,7 +253,7 @@ export const firestoreSync = {
 
   async updateOrderStatus(orderNumberOrId: string, status: Order['status']): Promise<boolean> {
     try {
-      await ensureFirebaseAuthSession();
+      if (!(await ensureAuthorizedWriteSession())) return false;
       const safeDirectId = toSafeDocId(orderNumberOrId);
       const directRef = doc(db, 'orders', safeDirectId);
       const directSnap = await getDoc(directRef);
@@ -279,6 +286,7 @@ export const firestoreSync = {
 
   async fetchOrderFromCloud(orderParam: string): Promise<Order | null> {
     try {
+      await auth.authStateReady();
       await ensureFirebaseAuthSession();
       const directSnap = await getDoc(doc(db, 'orders', toSafeDocId(orderParam)));
       if (directSnap.exists()) return directSnap.data() as Order;
@@ -294,7 +302,7 @@ export const firestoreSync = {
 
   async saveSharedCatalog(catalog: SharedCustomCatalog): Promise<boolean> {
     try {
-      await ensureFirebaseAuthSession();
+      if (!(await ensureAuthorizedWriteSession())) return false;
       await setDoc(doc(db, 'customCatalogs', toSafeDocId(catalog.id)), stripUndefined(catalog));
       return true;
     } catch (err) {
@@ -318,6 +326,14 @@ export const firestoreSync = {
   async pushFullSnapshot(
     snapshot: DbData & { pdfDividers?: PdfDividerAsset[] }
   ): Promise<{ success: boolean; syncedCollections: number; error?: string }> {
+    if (!(await ensureAuthorizedWriteSession())) {
+      return {
+        success: false,
+        syncedCollections: 0,
+        error: 'يرجى الضغط على "تسجيل Google للسحابة" أولاً لحفظ ومزامنة البيانات.',
+      };
+    }
+
     let syncedCollections = 0;
     let lastError: string | undefined;
 

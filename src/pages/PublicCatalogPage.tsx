@@ -26,7 +26,6 @@ import {
   OnboardingBrowseSelector,
   SelectorViewMode,
 } from '../components/catalog/OnboardingBrowseSelector';
-import { ProductRailSlider } from '../components/catalog/ProductRailSlider';
 import { HomeShowcaseBoxes } from '../components/catalog/HomeShowcaseBoxes';
 import { FloatingOrderBar } from '../components/catalog/FloatingOrderBar';
 
@@ -41,8 +40,11 @@ import {
   CatalogSettings,
   Order,
   TeamMember,
+  HomeShowcaseKey,
+  HomeShowcaseItem,
 } from '../types';
 import { hasDashboardAccess, canBuildCustomCatalog, ROLE_METADATA } from '../utils/permissions';
+import { resolveHomeShowcases } from '../utils/homeShowcases';
 
 interface PublicCatalogPageProps {
   products: Product[];
@@ -85,6 +87,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
   const [selectedCompanyIds, setSelectedCompanyIds] = useState<string[]>([]);
   const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
+  const [selectedShowcaseKey, setSelectedShowcaseKey] = useState<HomeShowcaseKey | null>(null);
 
   const [basketItems, setBasketItems] = useState<OrderItem[]>([]);
   const [isBasketOpen, setIsBasketOpen] = useState(false);
@@ -116,12 +119,14 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     searchQuery.trim() === '' &&
     selectedCategoryIds.length === 0 &&
     selectedCompanyIds.length === 0 &&
-    selectedProductTypes.length === 0;
+    selectedProductTypes.length === 0 &&
+    selectedShowcaseKey === null;
 
   const resetAllFilters = () => {
     setSelectedCategoryIds([]);
     setSelectedCompanyIds([]);
     setSelectedProductTypes([]);
+    setSelectedShowcaseKey(null);
     setSearchQuery('');
   };
 
@@ -189,11 +194,22 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     return matchesSearch && matchesComp && matchesCatOrType;
   });
 
-  // Primary horizontal scrolling rail products (Featured first, then newest active catalog items)
-  const dealsProducts = [
-    ...products.filter((p) => p.active && (p.featured || p.displayOrder <= 6)),
-    ...products.filter((p) => p.active && !(p.featured || p.displayOrder <= 6)),
-  ].slice(0, 18);
+  const resolvedShowcases = resolveHomeShowcases(settings, products);
+  const activeShowcaseSection = selectedShowcaseKey
+    ? resolvedShowcases.find((s) => s.key === selectedShowcaseKey) || null
+    : null;
+  const showcaseItemByProductId = new Map<string, HomeShowcaseItem>();
+  if (activeShowcaseSection) {
+    for (const it of activeShowcaseSection.items) {
+      showcaseItemByProductId.set(it.productId, it);
+    }
+  }
+
+  const displayedProducts = activeShowcaseSection
+    ? activeShowcaseSection.items
+        .map((it) => activeProducts.find((p) => p.id === it.productId))
+        .filter((p): p is Product => Boolean(p))
+    : activeProducts;
 
   // Add to basket handler
   const handleAddToCart = (
@@ -345,7 +361,15 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           onToggleCategory={toggleCategory}
           onToggleProductType={toggleProductType}
           onClearAll={resetAllFilters}
-          matchingProductsCount={activeProducts.length}
+          matchingProductsCount={displayedProducts.length}
+        />
+
+        {/* Standalone 3-Tile Showcase Board Right Under Categories (Latest • Merchant Deals • Season) */}
+        <HomeShowcaseBoxes
+          settings={settings}
+          products={products}
+          selectedShowcaseKey={selectedShowcaseKey}
+          onSelectShowcase={setSelectedShowcaseKey}
         />
 
         {/* Quick Farmer Agricultural Search Tags */}
@@ -377,42 +401,6 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             );
           })}
         </div>
-
-        {/* Primary Horizontal Scrolling Products Slider */}
-        {isHomeDefaultView && dealsProducts.length > 0 && (
-          <ProductRailSlider
-            title="تصفح منتجات كروپسا السريع"
-            subtitle="اسحب يميناً أو شمالاً لاستعراض المخصبات والمبيدات الأساسية بأسعار محدثة"
-            badgeText="الكتالوج السريع"
-            products={dealsProducts}
-            packages={packages}
-            companies={companies}
-            onOpenDetails={handleOpenProductDetails}
-            onQuickAdd={handleAddToCart}
-            onRequestAdd={(prod, pkg) => setQuickAddTarget({ product: prod, pkg })}
-            showProductIds={settings.showProductIds}
-            showPrices={settings.showPrices}
-            whatsAppNumber={settings.whatsApp}
-            onViewAll={() => {
-              const el = document.getElementById('catalog-products-section');
-              if (el) el.scrollIntoView({ behavior: 'smooth' });
-            }}
-          />
-        )}
-
-        {/* 3 Responsive Homepage Showcase Boxes (Latest • Merchant Deals • Season Products) */}
-        {isHomeDefaultView && (
-          <HomeShowcaseBoxes
-            settings={settings}
-            products={products}
-            packages={packages}
-            companies={companies}
-            onOpenDetails={handleOpenProductDetails}
-            onRequestAdd={(prod, pkg, promoDiscountPercent, promoLabel) =>
-              setQuickAddTarget({ product: prod, pkg, promoDiscountPercent, promoLabel })
-            }
-          />
-        )}
 
         {/* Active Multi-Select Filters Banner */}
         {!isHomeDefaultView && (
@@ -467,6 +455,15 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
                 </span>
               ))}
 
+              {activeShowcaseSection && (
+                <span className="inline-flex items-center gap-1 bg-rose-100 text-rose-900 border border-rose-300 font-black px-2.5 py-1 rounded-lg">
+                  <span>{activeShowcaseSection.title}</span>
+                  <button onClick={() => setSelectedShowcaseKey(null)} className="cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </span>
+              )}
+
               {searchQuery && (
                 <span className="inline-flex items-center gap-1 bg-sky-100 text-sky-900 font-black px-2.5 py-1 rounded-lg">
                   <span>بحث: "{searchQuery}"</span>
@@ -496,17 +493,21 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-black text-stone-900">
-                  {isHomeDefaultView ? 'جميع المنتجات الزراعية' : 'المنتجات المطابقة'}
+                  {activeShowcaseSection
+                    ? activeShowcaseSection.title
+                    : isHomeDefaultView
+                      ? 'جميع المنتجات الزراعية'
+                      : 'المنتجات المطابقة'}
                 </h2>
               </div>
             </div>
 
             <span className="text-xs font-black text-[#046A47] bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-              {activeProducts.length} منتج متاح
+              {displayedProducts.length} منتج متاح
             </span>
           </div>
 
-          {activeProducts.length === 0 ? (
+          {displayedProducts.length === 0 ? (
             <div className="bg-white p-10 sm:p-14 rounded-3xl border border-stone-200 text-center space-y-3 my-4">
               <div className="w-16 h-16 bg-emerald-50 text-[#046A47] rounded-full flex items-center justify-center mx-auto">
                 <Sparkles className="w-8 h-8" />
@@ -527,9 +528,15 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {activeProducts.map((product) => {
+              {displayedProducts.map((product) => {
                 const company = companies.find((c) => c.id === product.companyId);
                 const prodPackages = packages.filter((p) => p.productId === product.id && p.active);
+                const showcaseItem = showcaseItemByProductId.get(product.id);
+                const badgeLabel =
+                  showcaseItem?.discountLabel?.trim() ||
+                  (showcaseItem?.discountPercent && showcaseItem.discountPercent > 0
+                    ? `خصم ${showcaseItem.discountPercent}%`
+                    : undefined);
 
                 return (
                   <ProductCard
@@ -539,7 +546,12 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
                     packages={prodPackages}
                     onOpenDetails={handleOpenProductDetails}
                     onQuickAdd={handleAddToCart}
-                    onRequestAdd={(prod, pkg) => setQuickAddTarget({ product: prod, pkg })}
+                    onRequestAdd={(prod, pkg, promoDiscountPercent, promoLabel) =>
+                      setQuickAddTarget({ product: prod, pkg, promoDiscountPercent, promoLabel })
+                    }
+                    promoDiscountPercent={showcaseItem?.discountPercent}
+                    promoBadgeLabel={badgeLabel}
+                    promoNote={showcaseItem?.note}
                     showProductId={settings.showProductIds}
                     showPrices={settings.showPrices}
                     whatsAppNumber={settings.whatsApp}

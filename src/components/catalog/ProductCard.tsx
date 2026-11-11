@@ -19,7 +19,15 @@ interface ProductCardProps {
   packages: Package[];
   onOpenDetails: (product: Product, selectedPackage?: Package) => void;
   onQuickAdd: (product: Product, packageObj: Package, quantity: number, unit?: 'piece' | 'carton') => void;
-  onRequestAdd?: (product: Product, selectedPackage?: Package) => void;
+  onRequestAdd?: (
+    product: Product,
+    selectedPackage?: Package,
+    promoDiscountPercent?: number,
+    promoLabel?: string
+  ) => void;
+  promoDiscountPercent?: number;
+  promoBadgeLabel?: string;
+  promoNote?: string;
   showProductId?: boolean;
   showPrices?: boolean;
   whatsAppNumber?: string;
@@ -32,6 +40,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   onOpenDetails,
   onQuickAdd,
   onRequestAdd,
+  promoDiscountPercent = 0,
+  promoBadgeLabel,
+  promoNote,
   showProductId = true,
   showPrices = true,
   whatsAppNumber = '201000000000',
@@ -51,11 +62,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     ...(product.galleryImageIds || []),
   ].filter(Boolean);
 
+  const pct = Math.max(0, Math.min(95, Number(promoDiscountPercent) || 0));
+  const finalUnitPrice =
+    currentPackage && pct > 0 ? Math.round(currentPackage.price * (1 - pct / 100)) : currentPackage?.price ?? 0;
+
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentPackage) return;
     if (onRequestAdd) {
-      onRequestAdd(product, currentPackage);
+      onRequestAdd(
+        product,
+        currentPackage,
+        pct > 0 ? pct : undefined,
+        promoBadgeLabel || (pct > 0 ? `خصم ${pct}%` : undefined)
+      );
       return;
     }
     onQuickAdd(product, currentPackage, 1, 'piece');
@@ -128,6 +148,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       >
         {/* Top-Right Type Badge */}
         <div className="absolute top-1.5 right-1.5 z-10">{getTag()}</div>
+
+        {/* Top-Left Promo Discount Ribbon when viewed from a showcase offer */}
+        {(promoBadgeLabel || pct > 0) && (
+          <div className="absolute top-1.5 left-1.5 z-10 bg-rose-600 text-white text-[9.5px] font-black px-2 py-0.5 rounded-lg shadow-xs max-w-[55%] truncate">
+            {promoBadgeLabel || `خصم ${pct}%`}
+          </div>
+        )}
 
         {/* Desktop-only Hover Zoom Icon */}
         <button
@@ -238,16 +265,27 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* 3. Price & Fast Actions */}
         <div className="pt-2 border-t border-stone-100 space-y-2">
+          {promoNote && (
+            <div className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg line-clamp-1">
+              {promoNote}
+            </div>
+          )}
+
           {/* Price Row */}
           <div className="flex items-center justify-between gap-1">
             {showPrices && currentPackage ? (
-              <div className="flex items-baseline gap-1">
-                <span className="text-base sm:text-lg font-black text-stone-950">
-                  {Number(currentPackage.price).toLocaleString('en-US')}
+              <div className="flex items-baseline gap-1 flex-wrap">
+                <span className={`text-base sm:text-lg font-black ${pct > 0 ? 'text-rose-700' : 'text-stone-950'}`}>
+                  {Number(finalUnitPrice).toLocaleString('en-US')}
                 </span>
                 <span className="text-[11px] font-bold text-stone-600">
                   {currentPackage.currency || 'ج.م'}
                 </span>
+                {pct > 0 && (
+                  <span className="text-[10.5px] font-bold text-stone-400 line-through">
+                    {Number(currentPackage.price).toLocaleString('en-US')}
+                  </span>
+                )}
               </div>
             ) : (
               <span className="text-xs font-bold text-stone-400">السعر عند الطلب</span>

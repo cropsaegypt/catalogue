@@ -12,7 +12,7 @@ import {
   DbData,
 } from './services/dbStorage';
 import { firestoreSync } from './services/firestoreSync';
-import { signInWithGoogleForCloudSync } from './services/firebase';
+import { auth, signInWithGoogleForCloudSync } from './services/firebase';
 
 import {
   Product,
@@ -207,8 +207,8 @@ export default function App() {
             dbStorage.saveSettings(d.settings);
           }
 
-          // If Cloud Firestore is completely empty on first launch, attempt seeding from local initial data
-          if (!d.products?.length && !d.companies?.length) {
+          // If Cloud Firestore is completely empty on first launch while authenticated, attempt initial seeding
+          if (auth.currentUser && !d.products?.length && !d.companies?.length) {
             void firestoreSync.pushFullSnapshot({
               ...dbStorage.getData(),
               pdfDividers: dbStorage.getPdfDividers(),
