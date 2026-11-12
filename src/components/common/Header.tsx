@@ -15,6 +15,7 @@ import {
 import { motion } from 'motion/react';
 import { TeamMember } from '../../types';
 import { ROLE_METADATA } from '../../utils/permissions';
+import { BrandLogoMark } from './BrandLogoMark';
 
 interface HeaderProps {
   cartItemCount: number;
@@ -33,6 +34,7 @@ interface HeaderProps {
   onSearchChange?: (q: string) => void;
   whatsAppNumber?: string;
   phone?: string;
+  logoUrl?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -52,6 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSearchChange,
   whatsAppNumber = '201000000000',
   phone = '01012345678',
+  logoUrl,
 }) => {
   const cleanWa = whatsAppNumber.replace(/[^0-9]/g, '');
 
@@ -84,9 +87,14 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={onNavigateHome}
           className="flex items-center gap-2 cursor-pointer shrink-0 group"
         >
-          <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-br from-[#046A47] to-[#024A31] rounded-xl sm:rounded-2xl flex items-center justify-center text-white font-black text-lg sm:text-xl shadow-xs group-hover:shadow-md transition-all">
-            🌱
-          </div>
+          <BrandLogoMark
+            logoUrl={logoUrl}
+            alt="CROPSA"
+            sizeClassName="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl"
+            fallbackClassName="bg-gradient-to-br from-[#046A47] to-[#024A31] text-white font-black text-lg sm:text-xl shadow-xs group-hover:shadow-md"
+            imageWrapperClassName="bg-white border border-stone-200/90 p-0.5 shadow-xs group-hover:shadow-md"
+            imgClassName="w-full h-full object-contain rounded-lg sm:rounded-xl"
+          />
           <div>
             <div className="flex items-center gap-1">
               <span className="text-base sm:text-2xl font-black text-[#046A47] tracking-tight leading-none">

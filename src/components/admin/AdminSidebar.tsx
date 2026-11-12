@@ -23,6 +23,7 @@ import {
 import { Badge } from '../ui/badge';
 import { TeamMember } from '../../types';
 import { canAccessAdminTab, ROLE_METADATA } from '../../utils/permissions';
+import { BrandLogoMark } from '../common/BrandLogoMark';
 
 export type AdminTab =
   | 'overview'
@@ -51,6 +52,7 @@ interface AdminSidebarProps {
   pendingOrdersCount: number;
   pendingFinancingCount?: number;
   currentUser?: TeamMember | null;
+  logoUrl?: string;
 }
 
 interface NavGroup {
@@ -72,6 +74,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   pendingOrdersCount,
   pendingFinancingCount = 0,
   currentUser = null,
+  logoUrl,
 }) => {
   const navGroups: NavGroup[] = [
     {
@@ -136,9 +139,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         {/* Brand Header */}
         <div className="pb-4 border-b border-stone-800 space-y-2.5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-emerald-800 rounded-xl flex items-center justify-center font-black text-white text-base shadow-md ring-2 ring-emerald-500/20">
-              CR
-            </div>
+            <BrandLogoMark
+              logoUrl={logoUrl}
+              alt="CROPSA"
+              sizeClassName="w-10 h-10 rounded-xl"
+              fallbackClassName="bg-gradient-to-br from-emerald-600 to-emerald-800 font-black text-white text-base shadow-md ring-2 ring-emerald-500/20"
+              imageWrapperClassName="bg-white p-0.5 shadow-md ring-2 ring-emerald-500/20"
+              fallbackText="CR"
+            />
             <div>
               <div className="flex items-center gap-1.5">
                 <h2 className="font-black text-sm tracking-wide text-white">لوحة تحكم كروپسا</h2>

@@ -336,6 +336,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         pendingOrdersCount={pendingOrdersCount}
         pendingFinancingCount={pendingFinancingCount}
         currentUser={currentUser}
+        logoUrl={settings.logoUrl}
       />
 
       {/* Main Admin Dashboard Body */}

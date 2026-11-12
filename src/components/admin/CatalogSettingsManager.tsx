@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Settings,
   Save,
@@ -50,9 +50,28 @@ export const CatalogSettingsManager: React.FC<CatalogSettingsManagerProps> = ({
   });
 
   const [activeTab, setActiveTab] = useState<string>('identity');
+  const isDirtyRef = useRef(false);
+
+  // Sync form state whenever Firestore hydrates fresh settings (unless user started editing)
+  useEffect(() => {
+    if (!isDirtyRef.current) {
+      setFormData({
+        ...settings,
+        primaryColor: settings.primaryColor || '#046A47',
+        showPrices: settings.showPrices !== undefined ? settings.showPrices : true,
+        showProductIds: settings.showProductIds !== undefined ? settings.showProductIds : true,
+        showCharacteristics: settings.showCharacteristics !== undefined ? settings.showCharacteristics : true,
+        showComposition: settings.showComposition !== undefined ? settings.showComposition : true,
+        showUsage: settings.showUsage !== undefined ? settings.showUsage : true,
+        pdfOrientation: settings.pdfOrientation || 'portrait',
+        productsPerPage: settings.productsPerPage || 8,
+      });
+    }
+  }, [settings]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    isDirtyRef.current = false;
     onSaveSettings(formData);
     onShowToast('تم حفظ إعدادات الكتالوج وتجربة المستخدم بنجاح ✓', 'success');
   };
@@ -158,9 +177,15 @@ export const CatalogSettingsManager: React.FC<CatalogSettingsManagerProps> = ({
                     <ImageFileInput
                       label="شعار المتجر (Logo) — رفع صورة أو وضع رابط"
                       value={formData.logoUrl || ''}
-                      onChange={(url) => setFormData({ ...formData, logoUrl: url })}
+                      onChange={(url) => {
+                        isDirtyRef.current = true;
+                        setFormData({ ...formData, logoUrl: url });
+                      }}
                       placeholder="https://example.com/logo.png"
                     />
+                    <p className="text-[11px] text-emerald-800 font-bold">
+                      بعد اختيار اللوجو اضغط «حفظ التعديلات» بالأعلى ليظهر في الهيدر والفوتر وروابط وملفات الـ PDF فوراً.
+                    </p>
                   </div>
 
                   {/* Top Hero Banner Customization */}

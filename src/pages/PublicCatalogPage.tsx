@@ -385,6 +385,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         onSearchChange={setSearchQuery}
         whatsAppNumber={settings.whatsApp}
         phone={settings.phone}
+        logoUrl={settings.logoUrl}
         onNavigateHome={() => {
           resetAllFilters();
           window.scrollTo({ top: 0, behavior: 'smooth' });

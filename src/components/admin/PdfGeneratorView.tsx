@@ -48,6 +48,7 @@ import { pdfService, RenderedCatalogImage } from '../../services/pdfService';
 import { getMainCategories, getProductMainCategoryId } from '../../utils/categoryHierarchy';
 import { dbStorage } from '../../services/dbStorage';
 import { firestoreSync } from '../../services/firestoreSync';
+import { BrandLogoMark } from '../common/BrandLogoMark';
 import {
   CatalogDetailMode,
   ProductCatalogOverride,
@@ -1520,9 +1521,13 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
         >
           <div className="flex items-center justify-between border-b border-white/20 pb-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white text-[#0A623B] rounded-2xl flex items-center justify-center font-black text-2xl shadow-md">
-                🌱
-              </div>
+              <BrandLogoMark
+                logoUrl={settings.logoUrl}
+                alt={settings.title || 'CROPSA'}
+                sizeClassName="w-12 h-12 rounded-2xl"
+                fallbackClassName="bg-white text-[#0A623B] font-black text-2xl shadow-md"
+                imageWrapperClassName="bg-white p-1 shadow-md"
+              />
               <div>
                 <h2 className="text-2xl font-black tracking-tight">كروپسا CROPSA</h2>
                 <span className="text-xs text-emerald-200 font-bold">
@@ -1648,9 +1653,13 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                 CROPSA
               </div>
             </div>
-            <div className="w-8 h-8 bg-white text-[#0A623B] font-black rounded-xl flex items-center justify-center text-base shadow-xs">
-              🌱
-            </div>
+            <BrandLogoMark
+              logoUrl={settings.logoUrl}
+              alt={settings.title || 'CROPSA'}
+              sizeClassName="w-8 h-8 rounded-xl"
+              fallbackClassName="bg-white text-[#0A623B] font-black text-base shadow-xs"
+              imageWrapperClassName="bg-white p-0.5 shadow-xs"
+            />
           </div>
         </div>
 

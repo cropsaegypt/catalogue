@@ -1,6 +1,7 @@
 import React from 'react';
-import { Phone, Mail, Globe, MapPin, QrCode, ShieldCheck } from 'lucide-react';
+import { Phone, Mail, Globe, ShieldCheck } from 'lucide-react';
 import { CatalogSettings } from '../../types';
+import { BrandLogoMark } from './BrandLogoMark';
 
 interface FooterProps {
   settings: CatalogSettings;
@@ -14,9 +15,14 @@ export const Footer: React.FC<FooterProps> = ({ settings }) => {
           {/* Brand Col */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#5A5A40] text-[#F9F8F6] font-bold text-lg rounded-xl flex items-center justify-center shadow-inner">
-                CR
-              </div>
+              <BrandLogoMark
+                logoUrl={settings.logoUrl}
+                alt={settings.title || 'CROPSA Logo'}
+                sizeClassName="w-11 h-11 rounded-xl"
+                fallbackClassName="bg-[#5A5A40] text-[#F9F8F6] font-bold text-lg shadow-inner"
+                imageWrapperClassName="bg-white p-0.5 shadow-inner"
+                fallbackText="CR"
+              />
               <h3 className="text-xl font-bold text-white tracking-wide">CROPSA - كروپسا</h3>
             </div>
             <p className="text-sm text-[#D4D1C5]/80 leading-relaxed">{settings.subtitle}</p>
