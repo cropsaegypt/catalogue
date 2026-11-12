@@ -219,6 +219,7 @@ export interface CatalogSettings {
   showAdvertisements: boolean;
   showProductIds: boolean;
   pdfOrientation: 'portrait' | 'landscape';
+  showHomeShowcases?: boolean;
   homeShowcases?: Partial<Record<HomeShowcaseKey, HomeShowcaseSection>>;
 }
 

@@ -81,10 +81,10 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
       className={`bg-white dir-rtl ${
         compactModalMode
           ? 'space-y-4'
-          : 'rounded-3xl border border-stone-200/70 px-3.5 py-4 sm:px-6 sm:py-5 shadow-2xs space-y-4'
+          : 'rounded-3xl border border-stone-200/70 px-3.5 py-4 sm:px-6 sm:py-5 shadow-2xs space-y-5'
       }`}
     >
-      {/* 1. COMPANIES CIRCULAR BRAND STORIES STRIP */}
+      {/* 1. COMPANIES FULL-CIRCLE BRAND AVATARS */}
       {showCompaniesSection && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
@@ -158,8 +158,9 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
                     onClick={() => onToggleCompany(company.id)}
                     className="group flex flex-col items-center shrink-0 w-[68px] sm:w-[76px] cursor-pointer focus:outline-none"
                   >
+                    {/* Full-bleed circle avatar (zero inner padding so cropped logo fills 100%) */}
                     <div
-                      className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white flex items-center justify-center p-2 transition-all duration-200 ${
+                      className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-stone-100 overflow-hidden transition-all duration-200 flex items-center justify-center ${
                         isSelected
                           ? 'ring-2 ring-[#046A47] ring-offset-2 ring-offset-white shadow-sm'
                           : 'ring-1 ring-stone-200/90 group-hover:ring-emerald-400 group-hover:shadow-sm'
@@ -169,14 +170,14 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
                         <img
                           src={company.logoUrl}
                           alt={company.name}
-                          className="w-full h-full object-contain rounded-full transition-transform duration-200 group-hover:scale-105"
+                          className="w-full h-full object-cover rounded-full transition-transform duration-200 group-hover:scale-105"
                         />
                       ) : (
                         <Building2 className="w-6 h-6 text-[#046A47]" />
                       )}
 
                       {isSelected && (
-                        <span className="absolute -bottom-0.5 -left-0.5 w-5 h-5 rounded-full bg-[#046A47] text-white flex items-center justify-center shadow-xs border-2 border-white">
+                        <span className="absolute bottom-0 left-0 w-5 h-5 rounded-full bg-[#046A47] text-white flex items-center justify-center shadow-xs border-2 border-white">
                           <Check className="w-3 h-3 stroke-[3]" />
                         </span>
                       )}
@@ -199,21 +200,20 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
         </div>
       )}
 
-      {/* Subtle Hairline Divider */}
       {showCompaniesSection && showCategoriesSection && !compactModalMode && (
         <div className="border-t border-stone-100" />
       )}
 
-      {/* 2. SOFT CATEGORY PILL TABS + SMOOTH SUB-CATEGORY CHIPS */}
+      {/* 2. 4 MAIN CATEGORY CARDS SIDE-BY-SIDE (1 row desktop, 2x2 mobile) + SUB-CATEGORIES BELOW */}
       {showCategoriesSection && (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-baseline gap-2 flex-wrap">
               <h2 className="text-xs sm:text-sm font-black text-stone-800">
-                {hasCompanyRestrictionOnCategories ? 'أقسام الشركات المختارة' : 'الأقسام'}
+                {hasCompanyRestrictionOnCategories ? 'أقسام الشركات المختارة' : 'الأقسام الرئيسية'}
               </h2>
               <span className="text-[11px] font-medium text-stone-400">
-                اختر قسماً أو أكثر
+                اضغط على القسم لاختياره وعرض أقسامه الفرعية
               </span>
             </div>
 
@@ -235,56 +235,71 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
             </p>
           ) : (
             <div
-              className={
-                compactModalMode
-                  ? 'flex flex-wrap gap-2'
-                  : 'flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 scrollbar-none'
-              }
+              className={`grid gap-2.5 sm:gap-3.5 ${
+                compactModalMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+              }`}
             >
               {visibleMainCategories.map(({ category, matchingCount }) => {
                 const isSelected = selectedCategoryIds.includes(category.id);
 
                 return (
-                  <button
+                  <motion.button
                     key={category.id}
                     type="button"
+                    whileTap={{ scale: 0.97 }}
                     onClick={() => onToggleCategory(category.id)}
-                    className={`inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                    className={`group relative h-26 sm:h-32 rounded-2xl overflow-hidden text-right cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-[#046A47] text-white shadow-xs'
-                        : 'bg-stone-100/90 hover:bg-stone-200/70 text-stone-700'
+                        ? 'ring-2 ring-[#046A47] ring-offset-2 shadow-md'
+                        : 'ring-1 ring-stone-200/80 hover:ring-emerald-400 hover:shadow-sm'
                     }`}
                   >
-                    <span className="w-6 h-6 rounded-full bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
-                      {category.imageUrl ? (
-                        <img
-                          src={category.imageUrl}
-                          alt={category.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Sprout className="w-3.5 h-3.5 text-[#046A47]" />
-                      )}
-                    </span>
+                    {category.imageUrl ? (
+                      <img
+                        src={category.imageUrl}
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-emerald-50 to-stone-100 flex items-center justify-center">
+                        <Sprout className="w-9 h-9 text-[#046A47]/70" />
+                      </div>
+                    )}
 
-                    <span className="whitespace-nowrap">{category.name}</span>
-
-                    <span
-                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    {/* Clean Gradient Overlay */}
+                    <div
+                      className={`absolute inset-0 transition-colors ${
                         isSelected
-                          ? 'bg-white/20 text-white'
-                          : 'text-stone-400'
+                          ? 'bg-gradient-to-t from-[#046A47]/95 via-[#046A47]/45 to-black/15'
+                          : 'bg-gradient-to-t from-black/80 via-black/25 to-transparent'
                       }`}
-                    >
-                      {matchingCount}
+                    />
+
+                    {/* Subtle Product Count Top-Right */}
+                    <span className="absolute top-2 right-2 bg-black/45 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {matchingCount} منتج
                     </span>
-                  </button>
+
+                    {/* Selected Check Top-Left */}
+                    {isSelected && (
+                      <span className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white text-[#046A47] flex items-center justify-center shadow-sm">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </span>
+                    )}
+
+                    {/* Category Title Bottom */}
+                    <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3">
+                      <span className="text-xs sm:text-sm font-black text-white leading-snug line-clamp-2 block drop-shadow-xs">
+                        {category.name}
+                      </span>
+                    </div>
+                  </motion.button>
                 );
               })}
             </div>
           )}
 
-          {/* Smooth Floating Sub-Category Chips directly under Category Tabs */}
+          {/* Sub-Categories Row Revealed Smoothly Under the 4 Category Cards */}
           <AnimatePresence initial={false}>
             {visibleSubCategories.length > 0 && (
               <motion.div
@@ -294,8 +309,10 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="pt-2 flex flex-wrap items-center gap-1.5 border-t border-stone-100/80">
-                  <span className="text-[11px] font-bold text-stone-400 pl-1">الأقسام الفرعية:</span>
+                <div className="pt-2.5 flex flex-wrap items-center gap-1.5 border-t border-stone-100">
+                  <span className="text-[11px] font-bold text-stone-400 pl-1">
+                    الأقسام الفرعية:
+                  </span>
                   {visibleSubCategories.map(({ category: sub, parentCategory, matchingCount }) => {
                     const isSubSelected = selectedSubCategoryIds.includes(sub.id);
                     const showParentHint = selectedCategoryIds.length > 1 && parentCategory;
@@ -305,10 +322,10 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
                         key={sub.id}
                         type="button"
                         onClick={() => onToggleSubCategory(sub.id)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer ${
                           isSubSelected
                             ? 'bg-stone-900 text-white shadow-2xs'
-                            : 'bg-white border border-stone-200/90 hover:border-[#046A47]/60 text-stone-700'
+                            : 'bg-stone-100/90 hover:bg-emerald-50 text-stone-700'
                         }`}
                       >
                         {isSubSelected && <Check className="w-3 h-3 stroke-[2.5]" />}

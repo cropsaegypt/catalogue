@@ -227,9 +227,10 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   });
 
   const resolvedShowcases = resolveHomeShowcases(settings, products);
-  const activeShowcaseSection = selectedShowcaseKey
-    ? resolvedShowcases.find((s) => s.key === selectedShowcaseKey) || null
-    : null;
+  const activeShowcaseSection =
+    settings.showHomeShowcases && selectedShowcaseKey
+      ? resolvedShowcases.find((s) => s.key === selectedShowcaseKey) || null
+      : null;
   const showcaseItemByProductId = new Map<string, HomeShowcaseItem>();
   if (activeShowcaseSection) {
     for (const it of activeShowcaseSection.items) {
@@ -391,13 +392,15 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           hasCompanyRestrictionOnCategories={crossFilter.hasCompanyRestrictionOnCategories}
         />
 
-        {/* Standalone 3-Tile Showcase Board Right Under Categories (Latest • Merchant Deals • Season) */}
-        <HomeShowcaseBoxes
-          settings={settings}
-          products={products}
-          selectedShowcaseKey={selectedShowcaseKey}
-          onSelectShowcase={setSelectedShowcaseKey}
-        />
+        {/* Standalone 3-Tile Showcase Board (Hidden by default unless enabled in Dashboard Settings) */}
+        {settings.showHomeShowcases && (
+          <HomeShowcaseBoxes
+            settings={settings}
+            products={products}
+            selectedShowcaseKey={selectedShowcaseKey}
+            onSelectShowcase={setSelectedShowcaseKey}
+          />
+        )}
 
         {/* Quick Farmer Agricultural Search Tags */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">

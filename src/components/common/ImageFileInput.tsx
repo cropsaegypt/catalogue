@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Loader2, Sparkles } from 'lucide-react';
+import { Upload, X, Loader2, Sparkles, Crop } from 'lucide-react';
 import { aiCatalogService } from '../../services/aiCatalogService';
+import { ImageCropModal } from './ImageCropModal';
 
 interface ImageFileInputProps {
   value: string;
@@ -8,6 +9,7 @@ interface ImageFileInputProps {
   label?: string;
   placeholder?: string;
   className?: string;
+  cropShape?: 'none' | 'circle';
 }
 
 export const ImageFileInput: React.FC<ImageFileInputProps> = ({
@@ -16,10 +18,13 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
   label,
   placeholder = 'اختر صورة من جهازك أو أدخل الرابط...',
   className = '',
+  cropShape = 'none',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isCleaningBg, setIsCleaningBg] = useState(false);
+  const [cropSourceSrc, setCropSourceSrc] = useState<string>('');
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
 
   const handleRemoveBg = async () => {
     if (!value || isCleaningBg) return;
@@ -42,11 +47,28 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
     e.target.value = '';
     setIsUploading(true);
     try {
-      const compressedDataUrl = await aiCatalogService.compressImage(file, 1080, 0.78);
+      const compressedDataUrl = await aiCatalogService.compressImage(file, 1080, 0.84);
       if (compressedDataUrl) {
-        const finalUrl = await aiCatalogService.uploadExtractedImage(compressedDataUrl, 'asset');
-        onChange(finalUrl || compressedDataUrl);
+        if (cropShape === 'circle') {
+          setCropSourceSrc(compressedDataUrl);
+          setIsCropModalOpen(true);
+        } else {
+          const finalUrl = await aiCatalogService.uploadExtractedImage(compressedDataUrl, 'asset');
+          onChange(finalUrl || compressedDataUrl);
+        }
       }
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleConfirmCrop = async (croppedDataUrl: string) => {
+    setIsCropModalOpen(false);
+    setCropSourceSrc('');
+    setIsUploading(true);
+    try {
+      const uploaded = await aiCatalogService.uploadExtractedImage(croppedDataUrl, 'logo-circle');
+      onChange(uploaded || croppedDataUrl);
     } finally {
       setIsUploading(false);
     }
@@ -68,7 +90,13 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
           ) : (
             <Upload className="w-4 h-4 text-[#5A5A40]" />
           )}
-          <span>{isUploading ? 'جاري الرفع...' : 'رفع صورة من الجهاز'}</span>
+          <span>
+            {isUploading
+              ? 'جاري المعالجة...'
+              : cropShape === 'circle'
+                ? 'رفع وقص الشعار'
+                : 'رفع صورة من الجهاز'}
+          </span>
         </button>
 
         <input
@@ -100,33 +128,72 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
       </div>
 
       {value && (
-        <div className="flex items-center gap-3 p-2 bg-[#FAF8F5] border border-[#E5E2D9] rounded-xl">
-          <div className="w-12 h-12 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] rounded-lg border border-[#D4D1C5] p-1 flex items-center justify-center overflow-hidden shrink-0">
-            <img src={value} alt="Preview" className="w-full h-full object-contain" />
-          </div>
-          <div className="text-[11px] text-[#5A5A40] font-bold truncate flex-1">
-            {value.startsWith('data:image/png')
-              ? '✅ صورة مفرّغة أو PNG جاهزة'
-              : value.startsWith('data:image')
-              ? '✅ صورة مرفوعة ومضغوطة بنجاح'
-              : '✅ رابط صورة جاهز (سحابي / خارجي)'}
-          </div>
-          <button
-            type="button"
-            disabled={isCleaningBg || isUploading}
-            onClick={handleRemoveBg}
-            className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 text-[11px] font-black flex items-center gap-1 cursor-pointer disabled:opacity-60 shrink-0"
-            title="إزالة الخلفية وإبقاء صورة المنتج فقط"
+        <div className="flex flex-wrap items-center gap-2.5 p-2 bg-[#FAF8F5] border border-[#E5E2D9] rounded-xl">
+          <div
+            className={`w-12 h-12 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] border border-[#D4D1C5] flex items-center justify-center overflow-hidden shrink-0 ${
+              cropShape === 'circle' ? 'rounded-full p-0' : 'rounded-lg p-1'
+            }`}
           >
-            {isCleaningBg ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="w-3.5 h-3.5" />
+            <img
+              src={value}
+              alt="Preview"
+              className={`w-full h-full ${cropShape === 'circle' ? 'object-cover' : 'object-contain'}`}
+            />
+          </div>
+          <div className="text-[11px] text-[#5A5A40] font-bold truncate flex-1 min-w-[140px]">
+            {cropShape === 'circle'
+              ? '✅ معاينة الشعار داخل الدائرة بالكامل'
+              : value.startsWith('data:image/png') || value.startsWith('data:image/webp')
+                ? '✅ صورة مفرّغة أو مضغوطة جاهزة'
+                : value.startsWith('data:image')
+                  ? '✅ صورة مرفوعة ومضغوطة بنجاح'
+                  : '✅ رابط صورة جاهز (سحابي / خارجي)'}
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {cropShape === 'circle' && (
+              <button
+                type="button"
+                disabled={isUploading}
+                onClick={() => {
+                  setCropSourceSrc(value);
+                  setIsCropModalOpen(true);
+                }}
+                className="px-2.5 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-white text-[11px] font-black flex items-center gap-1 cursor-pointer disabled:opacity-60"
+                title="قص وتظبيط الموضع داخل الدائرة"
+              >
+                <Crop className="w-3.5 h-3.5" />
+                <span>قص وتظبيط</span>
+              </button>
             )}
-            <span>{isCleaningBg ? 'جاري التفريغ...' : 'إزالة الخلفية'}</span>
-          </button>
+
+            <button
+              type="button"
+              disabled={isCleaningBg || isUploading}
+              onClick={handleRemoveBg}
+              className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 text-[11px] font-black flex items-center gap-1 cursor-pointer disabled:opacity-60"
+              title="إزالة الخلفية وإبقاء صورة المنتج فقط"
+            >
+              {isCleaningBg ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              <span>{isCleaningBg ? 'جاري التفريغ...' : 'إزالة الخلفية'}</span>
+            </button>
+          </div>
         </div>
       )}
+
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={cropSourceSrc}
+        onCancel={() => {
+          setIsCropModalOpen(false);
+          setCropSourceSrc('');
+        }}
+        onConfirm={handleConfirmCrop}
+      />
     </div>
   );
 };

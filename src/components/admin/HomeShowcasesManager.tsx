@@ -201,14 +201,46 @@ export const HomeShowcasesManager: React.FC<HomeShowcasesManagerProps> = ({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleSaveAll}
-          className="bg-[#046A47] hover:bg-[#035237] text-white font-black text-xs px-5 py-3 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer shrink-0"
-        >
-          <Save className="w-4 h-4" />
-          <span>حفظ ومزامنة مع المتجر</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              const nextShow = !settings.showHomeShowcases;
+              onSaveSettings({
+                ...settings,
+                homeShowcases: sectionsMap,
+                showHomeShowcases: nextShow,
+              });
+              onShowToast(
+                nextShow
+                  ? 'تم تفعيل ظهور بورد العروض والمختارات في الصفحة الرئيسية ✓'
+                  : 'تم إخفاء بورد العروض والمختارات من الصفحة الرئيسية',
+                'success'
+              );
+            }}
+            className={`px-4 py-3 rounded-xl text-xs font-black border flex items-center gap-1.5 cursor-pointer transition-all ${
+              settings.showHomeShowcases
+                ? 'bg-emerald-50 text-[#046A47] border-emerald-300 hover:bg-emerald-100'
+                : 'bg-white text-stone-700 border-stone-300 hover:bg-stone-100'
+            }`}
+          >
+            {settings.showHomeShowcases ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            <span>
+              {settings.showHomeShowcases
+                ? 'ظاهر في الرئيسية (اضغط للإخفاء)'
+                : 'مخفي من الرئيسية (اضغط للإظهار)'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            className="bg-[#046A47] hover:bg-[#035237] text-white font-black text-xs px-5 py-3 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            <span>حفظ ومزامنة مع المتجر</span>
+          </button>
+        </div>
       </div>
 
       {/* 3 Section Switcher Cards */}

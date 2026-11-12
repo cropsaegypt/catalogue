@@ -305,11 +305,12 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                 />
               </div>
 
-              {/* Logo File Upload using ImageFileInput */}
+              {/* Logo File Upload using ImageFileInput with interactive circular cropper */}
               <ImageFileInput
                 value={logoUrl}
                 onChange={setLogoUrl}
-                label="شعار/لوجو الشركة (ارفع ملف الصورة مباشرة):"
+                cropShape="circle"
+                label="شعار/لوجو الشركة (اختر الصورة وقصها داخل الدائرة):"
               />
 
               <div>

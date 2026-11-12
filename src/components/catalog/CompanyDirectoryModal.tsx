@@ -196,12 +196,12 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-12 h-12 rounded-2xl border border-stone-200 overflow-hidden bg-white shrink-0 p-1 shadow-2xs flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full border border-stone-200 overflow-hidden bg-white shrink-0 shadow-2xs flex items-center justify-center">
                         {comp.logoUrl ? (
                           <img
                             src={comp.logoUrl}
                             alt={comp.name}
-                            className="max-h-full max-w-full object-contain"
+                            className="w-full h-full object-cover rounded-full"
                           />
                         ) : (
                           <Building2 className="w-6 h-6 text-[#046A47]" />
