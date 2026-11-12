@@ -28,6 +28,7 @@ import {
   AuditLog,
   TeamMember,
   SharedCustomCatalog,
+  IslamicFinancingRequest,
 } from './types';
 
 export default function App() {
@@ -51,6 +52,7 @@ export default function App() {
   const [images, setImages] = useState<CompanyImage[]>([]);
   const [advertisements, setAdvertisements] = useState<Advertisement[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [financingRequests, setFinancingRequests] = useState<IslamicFinancingRequest[]>([]);
   const [priceHistory, setPriceHistory] = useState<PriceHistory[]>([]);
   const [settings, setSettings] = useState<CatalogSettings>({
     title: 'CROPSA - كروپسا للحلول والمخصبات الزراعية',
@@ -99,6 +101,7 @@ export default function App() {
     setAdvertisements(data.advertisements || []);
     const localOrders = data.orders || [];
     setOrders(localOrders);
+    setFinancingRequests(data.financingRequests || []);
     setPriceHistory(data.priceHistory || []);
     setAuditLogs(data.auditLogs || []);
     if (data.settings) setSettings(data.settings);
@@ -166,6 +169,7 @@ export default function App() {
         if (idbData.advertisements?.length) setAdvertisements(idbData.advertisements);
         if (idbData.images?.length) setImages(idbData.images);
         if (idbData.orders?.length) setOrders(idbData.orders);
+        if (idbData.financingRequests?.length) setFinancingRequests(idbData.financingRequests);
         if (idbData.teamMembers?.length) setTeamMembers(idbData.teamMembers);
         if (idbData.priceHistory?.length) setPriceHistory(idbData.priceHistory);
         if (idbData.settings) setSettings(idbData.settings);
@@ -242,6 +246,10 @@ export default function App() {
           if (d.orders?.length) {
             setOrders(d.orders);
             dbStorage.saveOrders(d.orders);
+          }
+          if (d.financingRequests?.length) {
+            setFinancingRequests(d.financingRequests);
+            dbStorage.saveFinancingRequests(d.financingRequests);
           }
           if (d.teamMembers?.length) {
             setTeamMembers(d.teamMembers);
@@ -380,6 +388,38 @@ export default function App() {
     void firestoreSync.updateOrderStatus(orderId, status);
   };
 
+  const handleSaveFinancingRequests = (updatedRequests: IslamicFinancingRequest[]) => {
+    setFinancingRequests(updatedRequests);
+    dbStorage.saveFinancingRequests(updatedRequests);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
+    void trackCloudWrite(firestoreSync.syncCollection('financingRequests', updatedRequests));
+  };
+
+  const handleSubmitFinancingRequest = async (
+    payload: Omit<IslamicFinancingRequest, 'id' | 'requestNumber' | 'status' | 'createdAt' | 'updatedAt'>
+  ): Promise<IslamicFinancingRequest> => {
+    const now = new Date().toISOString();
+    const newReq: IslamicFinancingRequest = {
+      ...payload,
+      id: 'FIN-' + Date.now(),
+      requestNumber: 'FIN-' + Math.floor(100000 + Math.random() * 900000),
+      status: 'new',
+      createdAt: now,
+      updatedAt: now,
+    };
+    const updated = [newReq, ...financingRequests];
+    setFinancingRequests(updated);
+    dbStorage.saveFinancingRequests(updated);
+    dbStorage.addAuditLog(
+      'طلب تمويل إسلامي جديد',
+      'Order',
+      `طلب تمويل رقم ${newReq.requestNumber} باسم ${newReq.applicantName} بمبلغ ${newReq.requestedAmount} ج.م`
+    );
+    void firestoreSync.saveFinancingRequest(newReq);
+    return newReq;
+  };
+
   const handleBatchUpdatePrices = (
     updates: { productId: string; packageId: string; newPrice: number }[],
     source: 'manual' | 'excel',
@@ -415,6 +455,7 @@ export default function App() {
         images,
         advertisements,
         orders,
+        financingRequests,
         teamMembers,
         priceHistory,
         settings,
@@ -610,6 +651,7 @@ export default function App() {
           onEmployeeLogin={handleDetailedLogin}
           onLogout={handleLogout}
           onSubmitOrder={handleSubmitOrder}
+          onSubmitFinancingRequest={handleSubmitFinancingRequest}
         />
       ) : (
         <AdminPage
@@ -621,6 +663,7 @@ export default function App() {
           images={images}
           advertisements={advertisements}
           orders={orders}
+          financingRequests={financingRequests}
           teamMembers={teamMembers}
           currentUser={currentUser}
           priceHistory={priceHistory}
@@ -635,6 +678,7 @@ export default function App() {
           onSaveAdvertisements={handleSaveAdvertisements}
           onSaveSettings={handleSaveSettings}
           onSaveTeamMembers={handleSaveTeamMembers}
+          onSaveFinancingRequests={handleSaveFinancingRequests}
           onUpdateOrderStatus={handleUpdateOrderStatus}
           onBatchUpdatePrices={handleBatchUpdatePrices}
           onAddPriceHistory={handleAddPriceHistory}

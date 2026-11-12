@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   Users,
   Tag,
+  Banknote,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { TeamMember } from '../../types';
@@ -37,6 +38,7 @@ export type AdminTab =
   | 'layout'
   | 'pdf'
   | 'orders'
+  | 'financing'
   | 'team'
   | 'audit'
   | 'settings';
@@ -47,6 +49,7 @@ interface AdminSidebarProps {
   onLogout: () => void;
   onBackToCatalog: () => void;
   pendingOrdersCount: number;
+  pendingFinancingCount?: number;
   currentUser?: TeamMember | null;
 }
 
@@ -67,6 +70,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onLogout,
   onBackToCatalog,
   pendingOrdersCount,
+  pendingFinancingCount = 0,
   currentUser = null,
 }) => {
   const navGroups: NavGroup[] = [
@@ -90,6 +94,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           label: 'طلبيات العملاء والتقسيط',
           icon: <ShoppingBag className="w-4 h-4 text-amber-400" />,
           badge: pendingOrdersCount,
+        },
+        {
+          id: 'financing',
+          label: 'التمويل الإسلامي والطلبات',
+          icon: <Banknote className="w-4 h-4 text-emerald-400" />,
+          badge: pendingFinancingCount,
+          highlight: true,
         },
       ],
     },

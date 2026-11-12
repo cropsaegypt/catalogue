@@ -14,6 +14,7 @@ import {
   TeamMember,
   PdfDividerAsset,
   SharedCustomCatalog,
+  IslamicFinancingRequest,
 } from '../types';
 
 import {
@@ -39,6 +40,7 @@ export interface DbData {
   images: CompanyImage[];
   advertisements: Advertisement[];
   orders: Order[];
+  financingRequests: IslamicFinancingRequest[];
   teamMembers: TeamMember[];
   priceHistory: PriceHistory[];
   settings: CatalogSettings;
@@ -56,6 +58,7 @@ const STORAGE_KEYS = {
   ADVERTISEMENTS: 'cropsa_advertisements_v1',
   PRICE_HISTORY: 'cropsa_price_history_v1',
   ORDERS: 'cropsa_orders_v1',
+  FINANCING_REQUESTS: 'cropsa_financing_requests_v1',
   TEAM: 'cropsa_team_v1',
   SETTINGS: 'cropsa_settings_v1',
   IMPORT_LOGS: 'cropsa_import_logs_v1',
@@ -120,6 +123,7 @@ export const dbStorage = {
       images,
       advertisements,
       orders,
+      financingRequests,
       teamMembers,
       priceHistory,
       settings,
@@ -132,6 +136,7 @@ export const dbStorage = {
       idbStorage.get<CompanyImage[]>(STORAGE_KEYS.IMAGES),
       idbStorage.get<Advertisement[]>(STORAGE_KEYS.ADVERTISEMENTS),
       idbStorage.get<Order[]>(STORAGE_KEYS.ORDERS),
+      idbStorage.get<IslamicFinancingRequest[]>(STORAGE_KEYS.FINANCING_REQUESTS),
       idbStorage.get<TeamMember[]>(STORAGE_KEYS.TEAM),
       idbStorage.get<PriceHistory[]>(STORAGE_KEYS.PRICE_HISTORY),
       idbStorage.get<CatalogSettings>(STORAGE_KEYS.SETTINGS),
@@ -146,6 +151,7 @@ export const dbStorage = {
     if (images?.length) result.images = images;
     if (advertisements?.length) result.advertisements = advertisements;
     if (orders?.length) result.orders = orders;
+    if (financingRequests?.length) result.financingRequests = financingRequests;
     if (teamMembers?.length) result.teamMembers = teamMembers;
     if (priceHistory?.length) result.priceHistory = priceHistory;
     if (settings) result.settings = settings;
@@ -161,6 +167,7 @@ export const dbStorage = {
       images: this.getCompanyImages(),
       advertisements: this.getAdvertisements(),
       orders: this.getOrders(),
+      financingRequests: this.getFinancingRequests(),
       teamMembers: this.getTeamMembers(),
       priceHistory: this.getPriceHistory(),
       settings: this.getCatalogSettings(),
@@ -359,6 +366,14 @@ export const dbStorage = {
   },
   getSharedCatalogById(id: string): SharedCustomCatalog | null {
     return this.getSharedCatalogs().find((c) => c.id === id) || null;
+  },
+
+  // Islamic Financing Requests
+  getFinancingRequests(): IslamicFinancingRequest[] {
+    return getItem<IslamicFinancingRequest[]>(STORAGE_KEYS.FINANCING_REQUESTS, []);
+  },
+  saveFinancingRequests(requests: IslamicFinancingRequest[]): void {
+    setItem(STORAGE_KEYS.FINANCING_REQUESTS, requests);
   },
 
   // Catalog Settings

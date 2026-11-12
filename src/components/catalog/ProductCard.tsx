@@ -214,26 +214,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             {product.name}
           </h3>
 
-          {/* Company Pill + Subtle Product Code */}
-          <div className="flex items-center justify-between gap-1">
-            <div className="inline-flex items-center gap-1 bg-stone-100/90 border border-stone-200/80 px-2 py-0.5 rounded-lg text-[10px] sm:text-[11px] font-bold text-stone-700 min-w-0">
+          {/* Full-Width Clean Arabic Company Pill (Zero English Codes Cramping It) */}
+          <div className="w-full">
+            <div className="inline-flex items-center gap-1.5 bg-stone-100/90 border border-stone-200/80 px-2 py-1 rounded-lg text-[10px] sm:text-[11px] font-bold text-stone-700 w-full">
               {company?.logoUrl ? (
                 <img
                   src={company.logoUrl}
                   alt={company.name}
-                  className="w-3.5 h-3.5 object-contain rounded-full shrink-0"
+                  className="w-4 h-4 object-cover rounded-full shrink-0"
                 />
               ) : (
-                <Building2 className="w-3 h-3 text-[#046A47] shrink-0" />
+                <Building2 className="w-3.5 h-3.5 text-[#046A47] shrink-0" />
               )}
-              <span className="truncate">{company?.name || 'كروپسا'}</span>
+              <span className="leading-snug">{company?.name || 'كروپسا'}</span>
             </div>
-
-            {showProductId && (
-              <span className="font-mono text-[9px] font-bold text-stone-400 shrink-0">
-                {product.id}
-              </span>
-            )}
           </div>
 
           {/* Compact Package Size Pills */}

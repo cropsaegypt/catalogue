@@ -70,7 +70,8 @@ service cloud.firestore {
     //            heroBannerLink, primaryColor, secondaryColor, footerText, website, phone,
     //            whatsApp, orderWebhookUrl, email, qrCodeUrl, productsPerPage, showPrices,
     //            showCharacteristics, showComposition, showUsage, showAdvertisements,
-    //            showProductIds, pdfOrientation, showHomeShowcases, homeShowcases
+    //            showProductIds, pdfOrientation, showHomeShowcases, homeShowcases,
+    //            islamicFinancingConfig
     //
     // 9. Collection: customCatalogs/{catalogId}
     //    Fields: id (string, req), productIds (list, req), clientName (string, opt),
@@ -110,6 +111,18 @@ service cloud.firestore {
     //             notes (string, opt), items (list, opt), totalItems (number >= 0, opt),
     //             status (string enum: new|contacted|confirmed|cancelled|completed, opt),
     //             createdAt (string, opt), updatedAt (string, opt)
+    //
+    // 14. Collection: financingRequests/{requestId}
+    //     Fields: requestNumber (string, req), applicantName (string, req),
+    //             phone (string, req), id (string, opt), governorate (string, opt),
+    //             city (string, opt), applicantType (string enum: farmer|merchant|company, opt),
+    //             farmAreaOrScale (string, opt), cropsOrActivity (string, opt),
+    //             requestedAmount (number >= 0, opt),
+    //             repaymentPlan (string enum: after_harvest|monthly_3|monthly_6|monthly_12, opt),
+    //             notes (string, opt), customAnswers (map, opt), uploadedDocs (list, opt),
+    //             linkedItems (list, opt),
+    //             status (string enum: new|reviewing|approved|rejected|completed, opt),
+    //             adminNotes (string, opt), createdAt (string, opt), updatedAt (string, opt)
     //
     // ===============================================================
 
@@ -351,7 +364,8 @@ service cloud.firestore {
                'footerText', 'website', 'phone', 'whatsApp', 'orderWebhookUrl', 'email',
                'qrCodeUrl', 'productsPerPage', 'showPrices', 'showCharacteristics',
                'showComposition', 'showUsage', 'showAdvertisements', 'showProductIds',
-               'pdfOrientation', 'showHomeShowcases', 'homeShowcases'
+               'pdfOrientation', 'showHomeShowcases', 'homeShowcases',
+               'islamicFinancingConfig'
              ]) &&
              isValidReqString(data, 'title', 1, 300) &&
              isValidOptString(data, 'subtitle', 0, 1000) &&
@@ -386,7 +400,8 @@ service cloud.firestore {
              (!('pdfOrientation' in data) || data.pdfOrientation == null ||
               data.pdfOrientation in ['portrait', 'landscape']) &&
              isValidOptBool(data, 'showHomeShowcases') &&
-             isValidOptMap(data, 'homeShowcases', 10);
+             isValidOptMap(data, 'homeShowcases', 10) &&
+             isValidOptMap(data, 'islamicFinancingConfig', 20);
     }
 
     function isValidCustomCatalog(data) {
@@ -489,6 +504,38 @@ service cloud.firestore {
              isValidOptString(data, 'updatedAt', 0, 64);
     }
 
+    function isValidFinancingRequest(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'requestNumber', 'applicantName', 'phone', 'governorate',
+               'city', 'applicantType', 'farmAreaOrScale', 'cropsOrActivity',
+               'requestedAmount', 'repaymentPlan', 'notes', 'customAnswers',
+               'uploadedDocs', 'linkedItems', 'status', 'adminNotes',
+               'createdAt', 'updatedAt'
+             ]) &&
+             isValidOptString(data, 'id', 0, 128) &&
+             isValidReqString(data, 'requestNumber', 1, 64) &&
+             isValidReqString(data, 'applicantName', 1, 200) &&
+             isValidReqString(data, 'phone', 4, 40) &&
+             isValidOptString(data, 'governorate', 0, 100) &&
+             isValidOptString(data, 'city', 0, 100) &&
+             (!('applicantType' in data) || data.applicantType == null ||
+              data.applicantType in ['farmer', 'merchant', 'company']) &&
+             isValidOptString(data, 'farmAreaOrScale', 0, 2000) &&
+             isValidOptString(data, 'cropsOrActivity', 0, 2000) &&
+             isValidOptNonNegNumber(data, 'requestedAmount') &&
+             (!('repaymentPlan' in data) || data.repaymentPlan == null ||
+              data.repaymentPlan in ['after_harvest', 'monthly_3', 'monthly_6', 'monthly_12']) &&
+             isValidOptString(data, 'notes', 0, 5000) &&
+             isValidOptMap(data, 'customAnswers', 50) &&
+             isValidOptList(data, 'uploadedDocs', 20) &&
+             isValidOptList(data, 'linkedItems', 200) &&
+             (!('status' in data) || data.status == null ||
+              data.status in ['new', 'reviewing', 'approved', 'rejected', 'completed']) &&
+             isValidOptString(data, 'adminNotes', 0, 5000) &&
+             isValidOptString(data, 'createdAt', 0, 64) &&
+             isValidOptString(data, 'updatedAt', 0, 64);
+    }
+
     // ===============================================================
     // Public Catalog Collections (get + list allowed for all visitors)
     // ===============================================================
@@ -580,6 +627,18 @@ service cloud.firestore {
                         request.resource.data.status == 'new');
       allow update: if isSignedIn() && isValidId(orderId) && isValidOrder(request.resource.data);
       allow delete: if isSignedIn() && isValidId(orderId);
+    }
+
+    // Financing Requests: anyone can submit (create) a new request; authenticated staff can read/update/delete
+    match /financingRequests/{requestId} {
+      allow read: if isSignedIn();
+      allow create: if isValidId(requestId) &&
+                       isValidFinancingRequest(request.resource.data) &&
+                       (isSignedIn() ||
+                        !('status' in request.resource.data) ||
+                        request.resource.data.status == 'new');
+      allow update: if isSignedIn() && isValidId(requestId) && isValidFinancingRequest(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(requestId);
     }
   }
 }

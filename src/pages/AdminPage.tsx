@@ -14,6 +14,7 @@ import { CatalogSettingsManager } from '../components/admin/CatalogSettingsManag
 import { AuditLogViewer } from '../components/admin/AuditLogViewer';
 import { AiCatalogExtractor } from '../components/admin/AiCatalogExtractor';
 import { HomeShowcasesManager } from '../components/admin/HomeShowcasesManager';
+import { IslamicFinancingManager } from '../components/admin/IslamicFinancingManager';
 import { ToastContainer, ToastMessage } from '../components/common/Toast';
 
 
@@ -32,6 +33,7 @@ import {
   AuditLog,
   CompanySubCategory,
   TeamMember,
+  IslamicFinancingRequest,
 } from '../types';
 
 import { ShieldCheck, Lock, User, KeyRound, LogIn, Sparkles, ArrowRight, LogOut, Cloud, RefreshCw, Download, Upload } from 'lucide-react';
@@ -46,6 +48,7 @@ interface AdminPageProps {
   images: CompanyImage[];
   advertisements: Advertisement[];
   orders: Order[];
+  financingRequests?: IslamicFinancingRequest[];
   teamMembers?: TeamMember[];
   currentUser?: TeamMember | null;
   priceHistory: PriceHistory[];
@@ -61,6 +64,7 @@ interface AdminPageProps {
   onSaveAdvertisements: (ads: Advertisement[]) => void;
   onSaveSettings: (settings: CatalogSettings) => void;
   onSaveTeamMembers?: (team: TeamMember[]) => void;
+  onSaveFinancingRequests?: (requests: IslamicFinancingRequest[]) => void;
   onUpdateOrderStatus: (orderId: string, status: Order['status']) => void;
   onBatchUpdatePrices: (
     updates: { productId: string; packageId: string; newPrice: number }[],
@@ -92,6 +96,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   images,
   advertisements,
   orders,
+  financingRequests = [],
   teamMembers = [],
   currentUser = null,
   priceHistory,
@@ -107,6 +112,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   onSaveAdvertisements,
   onSaveSettings,
   onSaveTeamMembers,
+  onSaveFinancingRequests,
   onUpdateOrderStatus,
   onBatchUpdatePrices,
   onAddPriceHistory,
@@ -209,6 +215,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   };
 
   const pendingOrdersCount = orders.filter((o) => o.status === 'new').length;
+  const pendingFinancingCount = financingRequests.filter((r) => r.status === 'new').length;
 
   if (!isAdminLoggedIn) {
     return (
@@ -327,6 +334,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         onLogout={onLogout}
         onBackToCatalog={onBackToCatalog}
         pendingOrdersCount={pendingOrdersCount}
+        pendingFinancingCount={pendingFinancingCount}
         currentUser={currentUser}
       />
 
@@ -520,6 +528,16 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
         {activeTab === 'orders' && (!currentUser || canAccessAdminTab(currentUser, 'orders')) && (
           <OrderManager orders={orders} onUpdateOrderStatus={onUpdateOrderStatus} onShowToast={addToast} />
+        )}
+
+        {activeTab === 'financing' && (!currentUser || canAccessAdminTab(currentUser, 'financing')) && (
+          <IslamicFinancingManager
+            requests={financingRequests}
+            settings={settings}
+            onSaveRequests={onSaveFinancingRequests || (() => {})}
+            onSaveSettings={onSaveSettings}
+            onShowToast={addToast}
+          />
         )}
 
         {activeTab === 'team' && (!currentUser || canAccessAdminTab(currentUser, 'team')) && (

@@ -10,6 +10,7 @@ import {
   UserCheck,
   LogOut,
   FileText,
+  Banknote,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { TeamMember } from '../../types';
@@ -19,6 +20,7 @@ interface HeaderProps {
   cartItemCount: number;
   onOpenBasket: () => void;
   onOpenAdmin: () => void;
+  onOpenIslamicFinancing?: () => void;
   isAdminLoggedIn: boolean;
   currentUser?: TeamMember | null;
   hasDashboardAccess?: boolean;
@@ -37,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   cartItemCount,
   onOpenBasket,
   onOpenAdmin,
+  onOpenIslamicFinancing,
   isAdminLoggedIn,
   currentUser = null,
   hasDashboardAccess = false,
@@ -127,17 +130,29 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Left: Actions (WhatsApp, Admin, Cart) */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Quick WhatsApp */}
+          {/* Quick WhatsApp (Ask Us - Clear & Visible Everywhere) */}
           <a
             href={`https://wa.me/${cleanWa}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="h-9 sm:h-10 flex items-center justify-center gap-1.5 bg-[#25D366]/10 hover:bg-[#25D366]/20 text-[#075E54] px-2.5 sm:px-3 rounded-xl text-xs font-black border border-[#25D366]/30 transition-colors"
-            title="تواصل مع مهندس زراعي عبر الواتساب"
+            className="h-9 sm:h-10 flex items-center justify-center gap-1.5 bg-[#25D366]/15 hover:bg-[#25D366]/25 text-[#046A47] px-2.5 sm:px-3.5 rounded-xl text-xs font-black border border-[#25D366]/45 shadow-2xs transition-colors shrink-0"
+            title="اسأل مهندساً زراعياً عبر الواتساب"
           >
-            <MessageCircle className="w-4 h-4 text-[#25D366] fill-[#25D366]/20" />
-            <span className="hidden sm:inline">استشارة وطلب</span>
+            <MessageCircle className="w-4 h-4 text-[#25D366] fill-[#25D366]/20 shrink-0" />
+            <span>اسألنا</span>
           </a>
+
+          {onOpenIslamicFinancing && (
+            <button
+              type="button"
+              onClick={onOpenIslamicFinancing}
+              className="hidden sm:flex h-9 sm:h-10 items-center justify-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#046A47] px-3 rounded-xl text-xs font-black border border-emerald-200 transition-colors cursor-pointer shrink-0"
+              title="تقديم طلب تمويل إسلامي والاطلاع على الأسئلة والأوراق المطلوبة"
+            >
+              <Banknote className="w-4 h-4 shrink-0" />
+              <span>تمويل إسلامي</span>
+            </button>
+          )}
 
           {/* Employee Auth & Dashboard Access */}
           {currentUser ? (

@@ -26,6 +26,7 @@ import {
   TeamMember,
   PdfDividerAsset,
   SharedCustomCatalog,
+  IslamicFinancingRequest,
 } from '../types';
 
 export interface CloudSyncStatus {
@@ -147,6 +148,7 @@ export const firestoreSync = {
         images,
         pdfDividers,
         orders,
+        financingRequests,
         teamMembers,
         priceHistory,
       ] = await Promise.all([
@@ -159,6 +161,7 @@ export const firestoreSync = {
         fetchCollectionList<CompanyImage>('images'),
         fetchCollectionList<PdfDividerAsset>('pdfDividers'),
         fetchCollectionList<Order>('orders'),
+        fetchCollectionList<IslamicFinancingRequest>('financingRequests'),
         fetchCollectionList<TeamMember>('team'),
         fetchCollectionList<PriceHistory>('priceHistory'),
       ]);
@@ -200,6 +203,11 @@ export const firestoreSync = {
       if (pdfDividers && pdfDividers.length > 0) data.pdfDividers = pdfDividers;
       if (orders && orders.length > 0) {
         data.orders = orders.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      }
+      if (financingRequests && financingRequests.length > 0) {
+        data.financingRequests = financingRequests.sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
       }
@@ -328,6 +336,26 @@ export const firestoreSync = {
     }
   },
 
+  async saveFinancingRequest(request: IslamicFinancingRequest): Promise<boolean> {
+    try {
+      const safeId = toSafeDocId(request.id || request.requestNumber);
+      const sanitizedDocs = await Promise.all(
+        (request.uploadedDocs || []).map(async (d) => ({
+          ...d,
+          imageUrl: (await ensureFirestoreSafeImageUrl(d.imageUrl, 180_000)) || d.imageUrl,
+        }))
+      );
+      await setDoc(
+        doc(db, 'financingRequests', safeId),
+        stripUndefined({ ...request, uploadedDocs: sanitizedDocs })
+      );
+      return true;
+    } catch (err) {
+      console.warn('[Firestore Sync] Failed saving financing request:', err);
+      return false;
+    }
+  },
+
   async updateOrderStatus(orderNumberOrId: string, status: Order['status']): Promise<boolean> {
     try {
       const authCheck = await ensureAuthorizedWriteSession();
@@ -424,6 +452,7 @@ export const firestoreSync = {
       this.syncCollection('images', snapshot.images || []),
       this.syncCollection('pdfDividers', snapshot.pdfDividers || []),
       this.syncCollection('orders', snapshot.orders || []),
+      this.syncCollection('financingRequests', snapshot.financingRequests || []),
       this.syncCollection('team', snapshot.teamMembers || []),
       this.syncCollection('priceHistory', snapshot.priceHistory || []),
       this.saveSettings(snapshot.settings),

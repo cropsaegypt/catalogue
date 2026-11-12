@@ -190,6 +190,62 @@ export interface HomeShowcaseSection {
   items: HomeShowcaseItem[];
 }
 
+export interface IslamicFinancingFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface IslamicFinancingDocRequirement {
+  id: string;
+  label: string;
+  description?: string;
+  required: boolean;
+}
+
+export interface IslamicFinancingCustomQuestion {
+  id: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+}
+
+export interface IslamicFinancingConfig {
+  headline?: string;
+  subheadline?: string;
+  faqs: IslamicFinancingFaqItem[];
+  requiredDocs: IslamicFinancingDocRequirement[];
+  customQuestions?: IslamicFinancingCustomQuestion[];
+}
+
+export interface IslamicFinancingUploadedDoc {
+  docId: string;
+  label: string;
+  imageUrl: string;
+}
+
+export interface IslamicFinancingRequest {
+  id: string;
+  requestNumber: string;
+  applicantName: string;
+  phone: string;
+  governorate: string;
+  city: string;
+  applicantType: 'farmer' | 'merchant' | 'company';
+  farmAreaOrScale: string;
+  cropsOrActivity: string;
+  requestedAmount: number;
+  repaymentPlan: 'after_harvest' | 'monthly_3' | 'monthly_6' | 'monthly_12';
+  notes?: string;
+  customAnswers?: Record<string, string>;
+  uploadedDocs: IslamicFinancingUploadedDoc[];
+  linkedItems?: OrderItem[];
+  status: 'new' | 'reviewing' | 'approved' | 'rejected' | 'completed';
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface CatalogSettings {
   title: string;
   subtitle: string;
@@ -221,6 +277,7 @@ export interface CatalogSettings {
   pdfOrientation: 'portrait' | 'landscape';
   showHomeShowcases?: boolean;
   homeShowcases?: Partial<Record<HomeShowcaseKey, HomeShowcaseSection>>;
+  islamicFinancingConfig?: IslamicFinancingConfig;
 }
 
 export interface ImportLogError {

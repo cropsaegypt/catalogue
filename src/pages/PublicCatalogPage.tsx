@@ -10,6 +10,7 @@ import {
   MessageCircle,
   CheckCircle2,
   ArrowLeft,
+  Banknote,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from '../components/common/Header';
@@ -49,7 +50,9 @@ import {
   TeamMember,
   HomeShowcaseKey,
   HomeShowcaseItem,
+  IslamicFinancingRequest,
 } from '../types';
+import { IslamicFinancingPage } from './IslamicFinancingPage';
 import { hasDashboardAccess, canBuildCustomCatalog, ROLE_METADATA } from '../utils/permissions';
 import { resolveHomeShowcases } from '../utils/homeShowcases';
 
@@ -71,6 +74,9 @@ interface PublicCatalogPageProps {
   ) => { success: boolean; user?: TeamMember; error?: string };
   onLogout?: () => void;
   onSubmitOrder: (customerData: any) => Promise<Order | any>;
+  onSubmitFinancingRequest?: (
+    payload: Omit<IslamicFinancingRequest, 'id' | 'requestNumber' | 'status' | 'createdAt' | 'updatedAt'>
+  ) => Promise<IslamicFinancingRequest>;
 }
 
 export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
@@ -88,6 +94,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   onEmployeeLogin,
   onLogout,
   onSubmitOrder,
+  onSubmitFinancingRequest,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -108,6 +115,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     promoLabel?: string;
   } | null>(null);
   const [isEmployeeLoginOpen, setIsEmployeeLoginOpen] = useState(false);
+  const [isFinancingPageOpen, setIsFinancingPageOpen] = useState(false);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -328,6 +336,30 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     setSelectedPackageModal(selectedPackage);
   };
 
+  if (isFinancingPageOpen) {
+    return (
+      <IslamicFinancingPage
+        settings={settings}
+        basketItems={basketItems}
+        onBackToCatalog={() => setIsFinancingPageOpen(false)}
+        onSubmitFinancingRequest={async (payload) => {
+          if (onSubmitFinancingRequest) {
+            return onSubmitFinancingRequest(payload);
+          }
+          const now = new Date().toISOString();
+          return {
+            ...payload,
+            id: 'FIN-' + Date.now(),
+            requestNumber: 'FIN-' + Math.floor(100000 + Math.random() * 900000),
+            status: 'new',
+            createdAt: now,
+            updatedAt: now,
+          };
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col justify-between font-sans dir-rtl text-stone-900">
       {/* 1. Noon / Amazon Style Sticky Header with Integrated Search */}
@@ -335,6 +367,10 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         cartItemCount={basketItems.length}
         onOpenBasket={() => setIsBasketOpen(true)}
         onOpenAdmin={onOpenAdmin}
+        onOpenIslamicFinancing={() => {
+          setIsFinancingPageOpen(true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
         isAdminLoggedIn={isAdminLoggedIn}
         currentUser={currentUser}
         hasDashboardAccess={hasDashboardAccess(currentUser)}
@@ -884,15 +920,18 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             <span className="text-[10px] font-bold text-[#046A47]">السلة</span>
           </button>
 
-          <a
-            href={`https://wa.me/${settings.whatsApp.replace(/[^0-9]/g, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center gap-0.5 text-emerald-700 hover:text-emerald-900 cursor-pointer px-2 py-0.5"
+          <button
+            type="button"
+            onClick={() => {
+              setMobileSheetMode('closed');
+              setIsFinancingPageOpen(true);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex flex-col items-center gap-0.5 text-[#046A47] hover:text-emerald-900 cursor-pointer px-1.5 py-0.5"
           >
-            <MessageCircle className="w-5 h-5 text-[#25D366]" />
-            <span className="text-[10px] font-black">اسألنا</span>
-          </a>
+            <Banknote className="w-5 h-5 text-[#046A47]" />
+            <span className="text-[10px] font-black whitespace-nowrap">تمويل إسلامي</span>
+          </button>
         </div>
       </div>
 
