@@ -29,6 +29,7 @@ import {
   ArrowRight,
   ExternalLink,
   Images,
+  Phone,
 } from 'lucide-react';
 import {
   Product,
@@ -693,6 +694,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
   const [activeStep, setActiveStep] = useState<'products' | 'layout' | 'preview'>('products');
   const [showAdvancedDividers, setShowAdvancedDividers] = useState<boolean>(false);
   const [customClientName, setCustomClientName] = useState<string>('');
+  const [clientPhone, setClientPhone] = useState<string>('');
   const [productsPerPage, setProductsPerPage] = useState<number>(() =>
     PDF_PAGE_LAYOUTS[settings.productsPerPage] ? settings.productsPerPage : 4
   );
@@ -746,6 +748,11 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     catalog: SharedCustomCatalog;
   } | null>(null);
   const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [postDownloadAction, setPostDownloadAction] = useState<{
+    kind: 'pdf' | 'images';
+    fileName?: string;
+    count?: number;
+  } | null>(null);
 
   const pageContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1131,6 +1138,22 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     onShowToast('تم إلغاء تحديد المنتجات المعروضة', 'success');
   };
 
+  const buildClientWhatsAppUrl = (message: string) => {
+    const digits = clientPhone.replace(/[^0-9]/g, '');
+    const formattedPhone =
+      digits.length === 11 && digits.startsWith('01')
+        ? `2${digits}`
+        : digits.length >= 10
+          ? digits
+          : '';
+    return formattedPhone
+      ? `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+  };
+
+  const buildShareLinkWhatsAppMessage = (url: string, count: number) =>
+    `أهلاً بك${customClientName.trim() ? ` يا ${customClientName.trim()}` : ''} 🌱\nجهزنا لك كتالوج خاص بالمنتجات والأسعار المطلوبة من كروپسا (${count} منتج):\n${url}`;
+
   const handleDownloadPdf = async () => {
     if (!pageContainerRef.current) return;
     const pageNodes = Array.from(
@@ -1155,8 +1178,9 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
         setGenerationProgress(pct);
       });
 
-      onShowToast('تم إنشاء وتنزيل كتالوج PDF المخصص بنجاح!', 'success');
+      onShowToast('تم تنزيل ملف PDF بنجاح — الخطوة التالية: أرسله للعميل على واتساب ✓', 'success');
       setIsPreviewModalOpen(false);
+      setPostDownloadAction({ kind: 'pdf', fileName });
     } catch (err: any) {
       onShowToast(err.message || 'حدث خطأ أثناء تصدير PDF.', 'error');
     } finally {
@@ -1188,7 +1212,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       );
       setGeneratedImages(imgs);
       setIsImagesModalOpen(true);
-      onShowToast(`تم تجهيز ${imgs.length} صورة عالية الجودة جاهزة للتحميل والمشاركة ✓`, 'success');
+      onShowToast(`تم تجهيز ${imgs.length} صورة جاهزة للتحميل والإرسال على واتساب ✓`, 'success');
     } catch (err: any) {
       onShowToast(err.message || 'حدث خطأ أثناء تجهيز الصور.', 'error');
     } finally {
@@ -1196,18 +1220,22 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     }
   };
 
-  const handleDownloadAllImagesSequentially = async () => {
+  const handleDownloadAllImagesSequentially = async (andOpenWhatsApp = false) => {
     for (let i = 0; i < generatedImages.length; i++) {
       const img = generatedImages[i];
       pdfService.downloadImageDataUrl(img.dataUrl, img.filename);
       await new Promise((r) => setTimeout(r, 260));
     }
     onShowToast(`تم تنزيل ${generatedImages.length} صورة إلى جهازك`, 'success');
+    if (andOpenWhatsApp) {
+      const msg = `أهلاً بك${customClientName.trim() ? ` يا ${customClientName.trim()}` : ''} 🌱\nمرفق لحضرتك كتالوج المنتجات من كروپسا (${generatedImages.length} صفحات بالأسعار).`;
+      window.open(buildClientWhatsAppUrl(msg), '_blank', 'noopener,noreferrer');
+    }
   };
 
-  const handleCreateShareLink = async () => {
+  const handleCreateShareLink = async (openWhatsAppDirectly = false) => {
     if (pdfProducts.length === 0) {
-      onShowToast('اختر منتجاً واحداً على الأقل لإنشاء رابط الكتالوج', 'error');
+      onShowToast('اختر منتجاً واحداً على الأقل لإرسال الكتالوج', 'error');
       return;
     }
 
@@ -1275,7 +1303,14 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       }
 
       setShareLinkData({ url: finalUrl, catalog: catalogObj });
-      onShowToast('تم إنشاء رابط الكتالوج المخصص بنجاح!', 'success');
+      onShowToast('تم تجهيز الكتالوج — اضغط إرسال واتساب أو تحميل!', 'success');
+
+      if (openWhatsAppDirectly) {
+        const waUrl = buildClientWhatsAppUrl(
+          buildShareLinkWhatsAppMessage(finalUrl, catalogObj.productsSnapshot.length)
+        );
+        window.open(waUrl, '_blank', 'noopener,noreferrer');
+      }
     } finally {
       setIsCreatingShareLink(false);
     }
@@ -1659,20 +1694,34 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
             </div>
           </div>
 
-          {/* Client Name Field */}
-          <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-2 shrink-0">
-            <UserCheck className="w-4 h-4 text-[#046A47] shrink-0" />
-            <input
-              type="text"
-              value={customClientName}
-              onChange={(e) => setCustomClientName(e.target.value)}
-              placeholder="اكتب اسم العميل (اختياري)..."
-              className="bg-transparent text-xs font-black text-stone-900 w-44 sm:w-52 focus:outline-none"
-            />
+          {/* Client Name & Optional WhatsApp Phone */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-2">
+              <UserCheck className="w-4 h-4 text-[#046A47] shrink-0" />
+              <input
+                type="text"
+                value={customClientName}
+                onChange={(e) => setCustomClientName(e.target.value)}
+                placeholder="اسم العميل (اختياري)..."
+                className="bg-transparent text-xs font-black text-stone-900 w-36 sm:w-44 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-2xl px-3 py-2">
+              <Phone className="w-4 h-4 text-[#25D366] shrink-0" />
+              <input
+                type="tel"
+                value={clientPhone}
+                onChange={(e) => setClientPhone(e.target.value)}
+                placeholder="رقم واتساب العميل..."
+                dir="ltr"
+                className="bg-transparent text-xs font-black text-stone-900 w-36 sm:w-40 text-right focus:outline-none"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Always-Ready Multi-Format Export Strip */}
+        {/* Always-Ready Multi-Format Export & Instant WhatsApp Send Strip */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-stone-100">
           <div className="flex flex-wrap items-center gap-1.5 text-xs font-black">
             <span className="bg-emerald-50 text-[#046A47] border border-emerald-200 px-3 py-1 rounded-full">
@@ -1684,31 +1733,18 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* 1. Share Link */}
+            {/* PRIMARY 1-CLICK: Send Directly on WhatsApp */}
             <button
               type="button"
-              onClick={handleCreateShareLink}
+              onClick={() => handleCreateShareLink(true)}
               disabled={isCreatingShareLink || pdfProducts.length === 0}
-              className="h-10 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-stone-950 font-black text-xs px-4 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              className="h-10 bg-[#25D366] hover:bg-[#1fb857] disabled:opacity-50 text-white font-black text-xs px-4 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
-              <Link2 className="w-4 h-4" />
-              <span>{isCreatingShareLink ? 'جاري إنشاء الرابط...' : 'رابط مباشر للعميل'}</span>
+              <MessageCircle className="w-4 h-4 fill-white/20" />
+              <span>{isCreatingShareLink ? 'جاري التجهيز...' : 'إرسال للعميل واتساب'}</span>
             </button>
 
-            {/* 2. Export Images */}
-            <button
-              type="button"
-              onClick={handleGenerateImages}
-              disabled={isGeneratingImages || isGeneratingPdf || catalogSequence.length === 0}
-              className="h-10 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-black text-xs px-4 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
-            >
-              <Images className="w-4 h-4" />
-              <span>
-                {isGeneratingImages ? `جاري التحويل (${generationProgress}%)` : 'تنزيل كصور'}
-              </span>
-            </button>
-
-            {/* 3. Export PDF */}
+            {/* 2. Export PDF */}
             <button
               type="button"
               onClick={handleDownloadPdf}
@@ -1717,7 +1753,20 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
             >
               <Download className="w-4 h-4" />
               <span>
-                {isGeneratingPdf ? `جاري التصدير (${generationProgress}%)` : 'تنزيل PDF'}
+                {isGeneratingPdf ? `جاري التصدير (${generationProgress}%)` : 'حمل PDF'}
+              </span>
+            </button>
+
+            {/* 3. Export Images */}
+            <button
+              type="button"
+              onClick={handleGenerateImages}
+              disabled={isGeneratingImages || isGeneratingPdf || catalogSequence.length === 0}
+              className="h-10 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white font-black text-xs px-4 rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Images className="w-4 h-4" />
+              <span>
+                {isGeneratingImages ? `جاري التحويل (${generationProgress}%)` : 'حمل كصور'}
               </span>
             </button>
 
@@ -1739,7 +1788,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
           {[
             { id: 'products' as const, num: '١', label: 'اختيار المنتجات', sub: `${pdfProducts.length} منتج` },
             { id: 'layout' as const, num: '٢', label: 'الشكل والمحتوى', sub: `${productsPerPage} / صفحة` },
-            { id: 'preview' as const, num: '٣', label: 'المعاينة والتصدير', sub: `${catalogSequence.length} صفحة` },
+            { id: 'preview' as const, num: '٣', label: 'إرسال واتساب أو تحميل', sub: `${catalogSequence.length} صفحة` },
           ].map((tab) => {
             const isActive = activeStep === tab.id;
             return (
@@ -2530,13 +2579,31 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setActiveStep('layout')}
                 className="text-xs font-bold text-stone-600 bg-stone-100 hover:bg-stone-200 px-3 py-2 rounded-xl cursor-pointer"
               >
                 → تعديل الشكل
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCreateShareLink(true)}
+                disabled={isCreatingShareLink || pdfProducts.length === 0}
+                className="text-xs font-black text-white bg-[#25D366] hover:bg-[#1fb857] disabled:opacity-50 px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>إرسال للعميل واتساب</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleDownloadPdf}
+                disabled={isGeneratingPdf || catalogSequence.length === 0}
+                className="text-xs font-black text-white bg-[#046A47] hover:bg-[#035237] disabled:opacity-50 px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>تحميل PDF</span>
               </button>
               <button
                 type="button"
@@ -2646,28 +2713,93 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <a
-                  href={`https://wa.me/?text=${encodeURIComponent(
-                    `أهلاً بك${
-                      shareLinkData.catalog.clientName ? ` يا ${shareLinkData.catalog.clientName}` : ''
-                    } 🌱\nجهزنا لك كتالوج خاص بالمنتجات والأسعار المطلوبة من كروپسا (${shareLinkData.catalog.productsSnapshot.length} منتج):\n${shareLinkData.url}`
-                  )}`}
+                  href={buildClientWhatsAppUrl(
+                    buildShareLinkWhatsAppMessage(
+                      shareLinkData.url,
+                      shareLinkData.catalog.productsSnapshot.length
+                    )
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="h-11 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-sm"
                 >
                   <MessageCircle className="w-4 h-4 fill-white/20" />
-                  <span>إرسال عبر واتساب</span>
+                  <span>فتح الواتساب وإرسال الكتالوج</span>
                 </a>
 
-                <a
-                  href={shareLinkData.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="h-11 bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 rounded-xl text-xs font-black flex items-center justify-center gap-1.5"
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShareLinkData(null);
+                    void handleDownloadPdf();
+                  }}
+                  className="h-11 bg-[#046A47] hover:bg-[#035237] text-white rounded-xl text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <ExternalLink className="w-4 h-4" />
-                  <span>فتح ومعاينة الرابط</span>
-                </a>
+                  <Download className="w-4 h-4" />
+                  <span>حمل الكتالوج PDF</span>
+                </button>
+              </div>
+
+              <a
+                href={shareLinkData.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full h-10 bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 rounded-xl text-xs font-black flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>معاينة رابط العميل الآن</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Post-Download PDF Action Modal -> Next Step: Open WhatsApp Directly or Re-download */}
+      {postDownloadAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs dir-rtl">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden p-6 text-center space-y-4">
+            <div className="w-14 h-14 bg-emerald-100 text-[#046A47] rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-stone-900">تم تحميل الكتالوج بنجاح!</h3>
+              <p className="text-xs text-stone-500 font-medium leading-relaxed">
+                الملف <span className="font-mono text-stone-700">{postDownloadAction.fileName}</span> اتحفظ على جهازك. افتح الواتساب الآن وأرفق الملف للعميل مباشرة.
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <a
+                href={buildClientWhatsAppUrl(
+                  `أهلاً بك${customClientName.trim() ? ` يا ${customClientName.trim()}` : ''} 🌱\nمرفق لحضرتك كتالوج المنتجات والأسعار من كروپسا (${pdfProducts.length} منتج).`
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full h-12 bg-[#25D366] hover:bg-[#1fb857] text-white rounded-2xl text-sm font-black flex items-center justify-center gap-2 shadow-sm"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <span>فتح الواتساب وإرسال للعميل الآن</span>
+              </a>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPostDownloadAction(null);
+                    void handleCreateShareLink(true);
+                  }}
+                  className="h-10 bg-amber-100 hover:bg-amber-200 text-amber-950 rounded-xl text-xs font-black flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  <span>إرسال رابط أيضاً</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPostDownloadAction(null)}
+                  className="h-10 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-bold cursor-pointer"
+                >
+                  إغلاق
+                </button>
               </div>
             </div>
           </div>
@@ -2693,14 +2825,22 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={handleDownloadAllImagesSequentially}
-                  className="h-9 px-4 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  onClick={() => handleDownloadAllImagesSequentially(true)}
+                  className="h-9 px-4 bg-[#25D366] hover:bg-[#1fb857] text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>حمل الكل وافتح الواتساب</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadAllImagesSequentially(false)}
+                  className="h-9 px-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs"
                 >
                   <Download className="w-4 h-4" />
-                  <span>تحميل جميع الصور</span>
+                  <span>تحميل الصور فقط</span>
                 </button>
                 <button
                   type="button"
