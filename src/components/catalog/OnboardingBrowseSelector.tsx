@@ -2,14 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Building2,
-  Layers,
   Sprout,
-  CheckCircle2,
-  ArrowDown,
-  RotateCcw,
-  CornerDownLeft,
+  Check,
   Search,
+  RotateCcw,
   ChevronLeft,
+  ArrowDown,
 } from 'lucide-react';
 import {
   CompanyAvailabilityItem,
@@ -78,84 +76,50 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const selectedMainCategoryNames = visibleMainCategories
-    .filter((item) => selectedCategoryIds.includes(item.category.id))
-    .map((item) => item.category.name);
-
   return (
     <section
       className={`bg-white dir-rtl ${
         compactModalMode
           ? 'space-y-4'
-          : 'rounded-3xl border border-stone-200/90 p-3.5 sm:p-5 shadow-xs space-y-4'
+          : 'rounded-3xl border border-stone-200/70 px-3.5 py-4 sm:px-6 sm:py-5 shadow-2xs space-y-4'
       }`}
     >
-      {/* Top Friendly Header */}
-      {!compactModalMode && (
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-stone-100">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm sm:text-base font-black text-stone-900">
-              تصفّح حسب الشركة والقسم
-            </h2>
-            <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-[#046A47] border border-emerald-200/80 px-2.5 py-0.5 rounded-full">
-              ✓ يمكنك اختيار أكثر من شركة أو قسم معاً
-            </span>
-          </div>
-
-          {totalSelected > 0 && (
-            <button
-              type="button"
-              onClick={onClearAll}
-              className="text-[11px] font-black text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>مسح الكل ({totalSelected})</span>
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* 1. COMPANIES STRIP (Compact horizontal strip + Searchable View-All Button) */}
+      {/* 1. COMPANIES CIRCULAR BRAND STORIES STRIP */}
       {showCompaniesSection && (
-        <div className="space-y-2.5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-black text-stone-800 flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-[#046A47]" />
-                <span>الشركات المصنعة</span>
-                <span className="text-[11px] font-bold text-stone-500">
-                  (
-                  {hasCategoryRestrictionOnCompanies
-                    ? `${companiesMeta.length} من ${totalActiveCompaniesCount}`
-                    : totalActiveCompaniesCount}
-                  )
-                </span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h2 className="text-xs sm:text-sm font-black text-stone-800">الشركات</h2>
+              <span className="text-[11px] font-medium text-stone-400">
+                {hasCategoryRestrictionOnCompanies
+                  ? `متوفر في ${companiesMeta.length} شركة للأقسام المختارة`
+                  : 'اختر شركة أو أكثر'}
               </span>
-
-              {hasCategoryRestrictionOnCompanies && (
-                <span className="text-[10px] font-bold bg-emerald-50 text-[#046A47] px-2 py-0.5 rounded-full border border-emerald-200">
-                  الشركات المتوفر لديها الأقسام المختارة فقط
-                </span>
-              )}
-
-              {selectedCompanyIds.length > 0 && (
-                <span className="text-[10px] font-black bg-[#046A47] text-white px-2 py-0.5 rounded-full">
-                  مختار {selectedCompanyIds.length}
-                </span>
-              )}
             </div>
 
-            {!compactModalMode && totalActiveCompaniesCount > 0 && (
-              <button
-                type="button"
-                onClick={onOpenAllCompanies}
-                className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-black text-[#046A47] hover:text-white bg-emerald-50 hover:bg-[#046A47] border border-emerald-200 hover:border-[#046A47] px-3 py-1 rounded-xl transition-colors cursor-pointer shrink-0"
-              >
-                <Search className="w-3.5 h-3.5" />
-                <span>عرض الكل وبحث ({totalActiveCompaniesCount})</span>
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <div className="flex items-center gap-3 shrink-0">
+              {!compactModalMode && totalSelected > 0 && (
+                <button
+                  type="button"
+                  onClick={onClearAll}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>مسح ({totalSelected})</span>
+                </button>
+              )}
+
+              {!compactModalMode && totalActiveCompaniesCount > 0 && (
+                <button
+                  type="button"
+                  onClick={onOpenAllCompanies}
+                  className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-[#046A47] hover:underline cursor-pointer"
+                >
+                  <span>عرض الكل ({totalActiveCompaniesCount})</span>
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {compactModalMode && (
@@ -172,65 +136,61 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
           )}
 
           {displayedCompanies.length === 0 ? (
-            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 text-center text-xs font-bold text-stone-500">
-              لا توجد شركات مطابقة للأقسام المحددة حالياً
-            </div>
+            <p className="text-xs text-stone-400 font-medium py-2">
+              لا توجد شركات متاحة للأقسام المختارة حالياً.
+            </p>
           ) : (
             <div
               className={
                 compactModalMode
-                  ? 'grid grid-cols-2 sm:grid-cols-3 gap-2.5'
-                  : 'flex items-stretch gap-2.5 overflow-x-auto pb-1.5 scrollbar-thin'
+                  ? 'grid grid-cols-3 sm:grid-cols-4 gap-3 py-1'
+                  : 'flex items-start gap-3.5 sm:gap-5 overflow-x-auto pb-1.5 pt-1 scrollbar-none'
               }
             >
-              {displayedCompanies.map(({ company, matchingCount, totalCount }) => {
+              {displayedCompanies.map(({ company }) => {
                 const isSelected = selectedCompanyIds.includes(company.id);
-                const countToShow = hasCategoryRestrictionOnCompanies ? matchingCount : totalCount;
 
                 return (
                   <motion.button
                     key={company.id}
                     type="button"
-                    whileTap={{ scale: 0.96 }}
+                    whileTap={{ scale: 0.94 }}
                     onClick={() => onToggleCompany(company.id)}
-                    className={`group relative rounded-2xl p-2 transition-all border-2 flex flex-col items-center justify-between text-center cursor-pointer ${
-                      compactModalMode ? 'w-full' : 'w-[104px] sm:w-[116px] shrink-0'
-                    } ${
-                      isSelected
-                        ? 'border-[#046A47] bg-emerald-50/70 ring-2 ring-emerald-500/20 shadow-xs'
-                        : 'border-stone-200/80 bg-white hover:border-emerald-400 hover:bg-stone-50/60'
-                    }`}
+                    className="group flex flex-col items-center shrink-0 w-[68px] sm:w-[76px] cursor-pointer focus:outline-none"
                   >
-                    {isSelected && (
-                      <div className="absolute top-1.5 left-1.5 bg-[#046A47] text-white rounded-full p-0.5 shadow-xs">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-
-                    <div className="w-full h-12 sm:h-14 rounded-xl bg-white border border-stone-100 flex items-center justify-center p-1 overflow-hidden mb-1.5">
+                    <div
+                      className={`relative w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white flex items-center justify-center p-2 transition-all duration-200 ${
+                        isSelected
+                          ? 'ring-2 ring-[#046A47] ring-offset-2 ring-offset-white shadow-sm'
+                          : 'ring-1 ring-stone-200/90 group-hover:ring-emerald-400 group-hover:shadow-sm'
+                      }`}
+                    >
                       {company.logoUrl ? (
                         <img
                           src={company.logoUrl}
                           alt={company.name}
-                          className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-200"
+                          className="w-full h-full object-contain rounded-full transition-transform duration-200 group-hover:scale-105"
                         />
                       ) : (
-                        <Building2 className="w-6 h-6 text-emerald-700" />
+                        <Building2 className="w-6 h-6 text-[#046A47]" />
+                      )}
+
+                      {isSelected && (
+                        <span className="absolute -bottom-0.5 -left-0.5 w-5 h-5 rounded-full bg-[#046A47] text-white flex items-center justify-center shadow-xs border-2 border-white">
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
                       )}
                     </div>
 
-                    <div className="w-full space-y-0.5">
-                      <span className="text-[11px] font-black text-stone-900 line-clamp-1 block">
-                        {company.name}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold block ${
-                          isSelected ? 'text-[#046A47]' : 'text-stone-400'
-                        }`}
-                      >
-                        {countToShow} منتج
-                      </span>
-                    </div>
+                    <span
+                      className={`mt-1.5 text-[11px] leading-tight text-center line-clamp-1 w-full transition-colors ${
+                        isSelected
+                          ? 'font-black text-[#046A47]'
+                          : 'font-semibold text-stone-600 group-hover:text-stone-900'
+                      }`}
+                    >
+                      {company.name}
+                    </span>
                   </motion.button>
                 );
               })}
@@ -239,63 +199,63 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
         </div>
       )}
 
-      {/* 2. MAIN CATEGORIES ROW (Filtered dynamically when companies are chosen!) */}
-      {showCategoriesSection && (
-        <div
-          className={`space-y-2.5 ${
-            showCompaniesSection && !compactModalMode ? 'pt-2 border-t border-stone-100' : ''
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-black text-stone-800 flex items-center gap-1.5">
-                <Layers className="w-4 h-4 text-amber-600" />
-                <span>
-                  {hasCompanyRestrictionOnCategories
-                    ? 'الأقسام المتاحة للشركات المختارة'
-                    : 'الأقسام الرئيسية'}
-                </span>
-                <span className="text-[11px] font-bold text-stone-500">
-                  ({visibleMainCategories.length})
-                </span>
-              </span>
+      {/* Subtle Hairline Divider */}
+      {showCompaniesSection && showCategoriesSection && !compactModalMode && (
+        <div className="border-t border-stone-100" />
+      )}
 
-              {selectedCategoryIds.length > 0 && (
-                <span className="text-[10px] font-black bg-amber-500 text-stone-950 px-2 py-0.5 rounded-full">
-                  مختار {selectedCategoryIds.length}
-                </span>
-              )}
+      {/* 2. SOFT CATEGORY PILL TABS + SMOOTH SUB-CATEGORY CHIPS */}
+      {showCategoriesSection && (
+        <div className="space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h2 className="text-xs sm:text-sm font-black text-stone-800">
+                {hasCompanyRestrictionOnCategories ? 'أقسام الشركات المختارة' : 'الأقسام'}
+              </h2>
+              <span className="text-[11px] font-medium text-stone-400">
+                اختر قسماً أو أكثر
+              </span>
             </div>
+
+            {!compactModalMode && totalSelected > 0 && (
+              <button
+                type="button"
+                onClick={scrollToProducts}
+                className="text-[11px] font-bold text-[#046A47] bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full inline-flex items-center gap-1 cursor-pointer transition-colors"
+              >
+                <span>عرض {matchingProductsCount} منتج</span>
+                <ArrowDown className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
           {visibleMainCategories.length === 0 ? (
-            <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3 text-center text-xs font-bold text-stone-500">
-              لا توجد أقسام نشطة متاحة في الشركات المختارة حالياً
-            </div>
+            <p className="text-xs text-stone-400 font-medium py-1">
+              لا توجد أقسام متاحة لهذه الشركة حالياً.
+            </p>
           ) : (
             <div
               className={
                 compactModalMode
                   ? 'flex flex-wrap gap-2'
-                  : 'flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 scrollbar-thin'
+                  : 'flex items-center gap-2 overflow-x-auto sm:flex-wrap pb-1 scrollbar-none'
               }
             >
-              {visibleMainCategories.map(({ category, matchingCount, subCategoriesCount }) => {
+              {visibleMainCategories.map(({ category, matchingCount }) => {
                 const isSelected = selectedCategoryIds.includes(category.id);
 
                 return (
-                  <motion.button
+                  <button
                     key={category.id}
                     type="button"
-                    whileTap={{ scale: 0.96 }}
                     onClick={() => onToggleCategory(category.id)}
-                    className={`flex items-center gap-2 px-2.5 py-1.5 rounded-2xl border-2 transition-all cursor-pointer shrink-0 ${
+                    className={`inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shrink-0 ${
                       isSelected
-                        ? 'bg-amber-500 border-amber-600 text-stone-950 shadow-xs'
-                        : 'bg-stone-50 hover:bg-amber-50/70 border-stone-200 text-stone-800 hover:border-amber-400'
+                        ? 'bg-[#046A47] text-white shadow-xs'
+                        : 'bg-stone-100/90 hover:bg-stone-200/70 text-stone-700'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-xl overflow-hidden bg-white border border-black/10 shrink-0 flex items-center justify-center">
+                    <span className="w-6 h-6 rounded-full bg-white overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
                       {category.imageUrl ? (
                         <img
                           src={category.imageUrl}
@@ -303,127 +263,75 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <Sprout className="w-4 h-4 text-[#046A47]" />
+                        <Sprout className="w-3.5 h-3.5 text-[#046A47]" />
                       )}
-                    </div>
+                    </span>
 
-                    <div className="text-right leading-tight">
-                      <span className="text-xs font-black block whitespace-nowrap">
-                        {category.name}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold block ${
-                          isSelected ? 'text-stone-900/80' : 'text-stone-400'
-                        }`}
-                      >
-                        {matchingCount} منتج
-                        {subCategoriesCount > 0 ? ` • ${subCategoriesCount} فرعي` : ''}
-                      </span>
-                    </div>
+                    <span className="whitespace-nowrap">{category.name}</span>
 
-                    {isSelected && (
-                      <CheckCircle2 className="w-4 h-4 text-stone-950 shrink-0 mr-0.5" />
-                    )}
-                  </motion.button>
+                    <span
+                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                        isSelected
+                          ? 'bg-white/20 text-white'
+                          : 'text-stone-400'
+                      }`}
+                    >
+                      {matchingCount}
+                    </span>
+                  </button>
                 );
               })}
             </div>
           )}
 
-          {/* 3. SUB-CATEGORIES ROW (Appears smoothly under main categories when a main category has children!) */}
+          {/* Smooth Floating Sub-Category Chips directly under Category Tabs */}
           <AnimatePresence initial={false}>
             {visibleSubCategories.length > 0 && (
               <motion.div
-                key="subcategories-drawer"
+                key="subcategories-row"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-2.5 sm:p-3 space-y-2 mt-1">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-[11px] font-black text-[#046A47] flex items-center gap-1.5">
-                      <CornerDownLeft className="w-3.5 h-3.5 shrink-0" />
-                      <span>
-                        {selectedMainCategoryNames.length === 1
-                          ? `الأقسام الفرعية داخل «${selectedMainCategoryNames[0]}» (اختر واحداً أو أكثر):`
-                          : 'الأقسام الفرعية المتاحة (اختر واحداً أو أكثر):'}
-                      </span>
-                    </span>
-                    {selectedSubCategoryIds.length > 0 && (
-                      <span className="text-[10px] font-black text-white bg-[#046A47] px-2 py-0.5 rounded-full">
-                        مختار {selectedSubCategoryIds.length} فرعي
-                      </span>
-                    )}
-                  </div>
+                <div className="pt-2 flex flex-wrap items-center gap-1.5 border-t border-stone-100/80">
+                  <span className="text-[11px] font-bold text-stone-400 pl-1">الأقسام الفرعية:</span>
+                  {visibleSubCategories.map(({ category: sub, parentCategory, matchingCount }) => {
+                    const isSubSelected = selectedSubCategoryIds.includes(sub.id);
+                    const showParentHint = selectedCategoryIds.length > 1 && parentCategory;
 
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {visibleSubCategories.map(({ category: sub, parentCategory, matchingCount }) => {
-                      const isSubSelected = selectedSubCategoryIds.includes(sub.id);
-                      const showParentPrefix = selectedCategoryIds.length > 1 && parentCategory;
-
-                      return (
-                        <button
-                          key={sub.id}
-                          type="button"
-                          onClick={() => onToggleSubCategory(sub.id)}
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
-                            isSubSelected
-                              ? 'bg-[#046A47] text-white border-[#046A47] shadow-xs'
-                              : 'bg-white hover:bg-emerald-100/60 text-stone-800 border-emerald-200'
+                    return (
+                      <button
+                        key={sub.id}
+                        type="button"
+                        onClick={() => onToggleSubCategory(sub.id)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer ${
+                          isSubSelected
+                            ? 'bg-stone-900 text-white shadow-2xs'
+                            : 'bg-white border border-stone-200/90 hover:border-[#046A47]/60 text-stone-700'
+                        }`}
+                      >
+                        {isSubSelected && <Check className="w-3 h-3 stroke-[2.5]" />}
+                        <span>{sub.name}</span>
+                        {showParentHint && (
+                          <span className={isSubSelected ? 'text-stone-300' : 'text-stone-400'}>
+                            · {parentCategory.name}
+                          </span>
+                        )}
+                        <span
+                          className={`text-[10px] ${
+                            isSubSelected ? 'text-stone-300' : 'text-stone-400'
                           }`}
                         >
-                          {isSubSelected && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
-                          <span>{sub.name}</span>
-                          {showParentPrefix && (
-                            <span
-                              className={`text-[10px] font-bold ${
-                                isSubSelected ? 'text-emerald-100' : 'text-stone-400'
-                              }`}
-                            >
-                              ({parentCategory.name})
-                            </span>
-                          )}
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                              isSubSelected
-                                ? 'bg-white/20 text-white'
-                                : 'bg-stone-100 text-stone-500'
-                            }`}
-                          >
-                            {matchingCount}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                          ({matchingCount})
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-      )}
-
-      {/* Multi-Select Bottom Bar */}
-      {!compactModalMode && totalSelected > 0 && (
-        <div className="pt-2 border-t border-stone-100 flex flex-wrap items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={scrollToProducts}
-            className="flex-1 sm:flex-initial bg-[#046A47] hover:bg-[#035237] text-white font-black text-xs sm:text-sm px-5 py-2 rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
-          >
-            <span>عرض المنتجات المطابقة ({matchingProductsCount})</span>
-            <ArrowDown className="w-4 h-4 animate-bounce" />
-          </button>
-
-          <button
-            type="button"
-            onClick={onClearAll}
-            className="text-xs font-black text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>مسح التحديد ({totalSelected})</span>
-          </button>
         </div>
       )}
     </section>

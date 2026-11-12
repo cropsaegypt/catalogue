@@ -34,7 +34,7 @@ import {
   TeamMember,
 } from '../types';
 
-import { ShieldCheck, Lock, User, KeyRound, LogIn, Sparkles, ArrowRight, LogOut } from 'lucide-react';
+import { ShieldCheck, Lock, User, KeyRound, LogIn, Sparkles, ArrowRight, LogOut, Cloud, RefreshCw, Download, Upload } from 'lucide-react';
 import { canAccessAdminTab, getFirstAllowedTab, hasDashboardAccess } from '../utils/permissions';
 
 interface AdminPageProps {
@@ -75,6 +75,7 @@ interface AdminPageProps {
   onLogin: (email: string, pass: string) => boolean;
   onLogout: () => void;
   cloudConnected?: boolean;
+  hasUnsyncedChanges?: boolean;
   isCloudSyncing?: boolean;
   lastCloudSyncAt?: string;
   cloudError?: string;
@@ -116,6 +117,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   onLogin,
   onLogout,
   cloudConnected = false,
+  hasUnsyncedChanges = false,
   isCloudSyncing = false,
   lastCloudSyncAt,
   cloudError,
@@ -154,6 +156,56 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       setLoginError('');
       addToast('تم تسجيل الدخول بنجاح إلى لوحة الأدمن', 'success');
     }
+  };
+
+  const handleExportBackupJson = () => {
+    try {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        categories,
+        companies,
+        subCategories,
+        products,
+        packages,
+        advertisements,
+        images,
+        settings,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cropsa-catalog-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      addToast('تم تصدير نسخة احتياطية كاملة (JSON)', 'success');
+    } catch {
+      addToast('تعذر تصدير النسخة الاحتياطية', 'error');
+    }
+  };
+
+  const handleImportBackupJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(String(reader.result || '{}'));
+        if (Array.isArray(parsed.categories)) onSaveCategories(parsed.categories);
+        if (Array.isArray(parsed.companies)) onSaveCompanies(parsed.companies);
+        if (Array.isArray(parsed.subCategories) && onSaveSubCategories) onSaveSubCategories(parsed.subCategories);
+        if (Array.isArray(parsed.products)) onSaveProducts(parsed.products);
+        if (Array.isArray(parsed.packages)) onSavePackages(parsed.packages);
+        if (Array.isArray(parsed.advertisements)) onSaveAdvertisements(parsed.advertisements);
+        if (Array.isArray(parsed.images)) onSaveImages(parsed.images);
+        if (parsed.settings) onSaveSettings(parsed.settings);
+        addToast('تم استيراد النسخة الاحتياطية بنجاح ✓', 'success');
+      } catch {
+        addToast('ملف النسخة الاحتياطية غير صالح', 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   const pendingOrdersCount = orders.filter((o) => o.status === 'new').length;
@@ -280,6 +332,70 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
       {/* Main Admin Dashboard Body */}
       <main className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto">
+        {(!cloudConnected || hasUnsyncedChanges || Boolean(cloudError)) && (
+          <div className="mb-6 bg-amber-50 border border-amber-300 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center shrink-0">
+                <Cloud className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-black text-amber-950 block">
+                  {hasUnsyncedChanges
+                    ? 'تنبيه: توجد تعديلات محفوظة في المتصفح (أو IndexedDB) لم تُرفع للسحابة بعد'
+                    : 'تنبيه: الوضع محلي حالياً — لم يكتمل الاتصال بـ Cloud Firestore'}
+                </span>
+                <span className="text-[11px] font-medium text-amber-900/80 block">
+                  {cloudError || 'لحفظ المنتجات لجميع الأجهزة، سجل عبر Google للسحابة أو فعّل Anonymous Auth في Firebase وانشر firestore.rules.'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleExportBackupJson}
+                className="px-3 py-1.5 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                title="تنزيل نسخة احتياطية كاملة"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>تصدير</span>
+              </button>
+
+              <label className="px-3 py-1.5 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer">
+                <Upload className="w-3.5 h-3.5" />
+                <span>استيراد</span>
+                <input
+                  type="file"
+                  accept="application/json"
+                  onChange={handleImportBackupJson}
+                  className="hidden"
+                />
+              </label>
+
+              {onConnectGoogleCloud && (
+                <button
+                  type="button"
+                  onClick={onConnectGoogleCloud}
+                  className="px-3 py-1.5 bg-white hover:bg-stone-100 text-stone-900 border border-amber-400 rounded-xl text-[11px] font-black cursor-pointer"
+                >
+                  ربط Google للسحابة
+                </button>
+              )}
+              {onSyncToCloud && (
+                <button
+                  type="button"
+                  disabled={isCloudSyncing}
+                  onClick={onSyncToCloud}
+                  className="px-3.5 py-1.5 bg-[#046A47] hover:bg-[#035237] disabled:opacity-60 text-white rounded-xl text-[11px] font-black flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isCloudSyncing ? 'جاري الرفع...' : 'رفع للسحابة الآن'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {activeTab === 'overview' && (!currentUser || canAccessAdminTab(currentUser, 'overview')) && (
           <AdminOverview
             products={products}

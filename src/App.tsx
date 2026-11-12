@@ -74,13 +74,16 @@ export default function App() {
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
   const [lastCloudSyncAt, setLastCloudSyncAt] = useState<string | undefined>(undefined);
   const [cloudError, setCloudError] = useState<string | undefined>(undefined);
+  const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState<boolean>(() =>
+    dbStorage.hasPendingCloudSync()
+  );
 
   const addBuilderToast = (message: string, type: 'success' | 'error') => {
     const id = Date.now().toString();
-    setBuilderToasts((prev) => [...prev.slice(-1), { id, message, type }]);
+    setBuilderToasts((prev) => [...prev.slice(-2), { id, message, type }]);
     setTimeout(() => {
       setBuilderToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 3000);
+    }, 4500);
   };
 
   // Initialize DB Data & Check URL Deep Links (?order=... or ?catalog=...)
@@ -151,14 +154,59 @@ export default function App() {
       }
     }
 
-    // 3. Pull live catalog snapshot from Cloud Firestore (syncs across devices/Vercel)
-    firestoreSync
-      .pullAllFromCloud()
-      .then((cloudRes) => {
+    // 2.5 Hydrate from high-capacity IndexedDB if it holds saved collections
+    let idbHydratedPromise = dbStorage
+      .loadFromIndexedDb()
+      .then((idbData) => {
+        if (idbData.categories?.length) setCategories(idbData.categories);
+        if (idbData.companies?.length) setCompanies(idbData.companies);
+        if (idbData.subCategories?.length) setSubCategories(idbData.subCategories);
+        if (idbData.products?.length) setProducts(idbData.products);
+        if (idbData.packages?.length) setPackages(idbData.packages);
+        if (idbData.advertisements?.length) setAdvertisements(idbData.advertisements);
+        if (idbData.images?.length) setImages(idbData.images);
+        if (idbData.orders?.length) setOrders(idbData.orders);
+        if (idbData.teamMembers?.length) setTeamMembers(idbData.teamMembers);
+        if (idbData.priceHistory?.length) setPriceHistory(idbData.priceHistory);
+        if (idbData.settings) setSettings(idbData.settings);
+      })
+      .catch(() => {});
+
+    // 3. Pull live catalog snapshot from Cloud Firestore (NEVER overwrite unsynced local edits!)
+    Promise.all([idbHydratedPromise, firestoreSync.pullAllFromCloud()])
+      .then(([, cloudRes]) => {
         setCloudConnected(cloudRes.connected);
         if (cloudRes.error) setCloudError(cloudRes.error);
+
+        const pendingLocal = dbStorage.hasPendingCloudSync();
         if (cloudRes.connected) {
           setLastCloudSyncAt(new Date().toISOString());
+
+          if (pendingLocal) {
+            if (auth.currentUser) {
+              void firestoreSync
+                .pushFullSnapshot({
+                  ...dbStorage.getData(),
+                  pdfDividers: dbStorage.getPdfDividers(),
+                })
+                .then((pushRes) => {
+                  if (pushRes.success) {
+                    dbStorage.setPendingCloudSync(false);
+                    setHasUnsyncedChanges(false);
+                    setCloudError(undefined);
+                    setLastCloudSyncAt(new Date().toISOString());
+                  } else if (pushRes.error) {
+                    setCloudError(pushRes.error);
+                  }
+                });
+            } else {
+              setCloudError(
+                'توجد تعديلات محفوظة محلياً لم تُرفع للسحابة بعد — اضغط «رفع ومزامنة للسحابة» أو سجل Google للحفظ الدائم.'
+              );
+            }
+            return;
+          }
+
           const d = cloudRes.data;
           if (d.categories?.length) {
             setCategories(d.categories);
@@ -219,25 +267,49 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  // Save Handlers with DB Storage Persistence + Live Cloud Firestore Sync
+  const trackCloudWrite = async (promise: Promise<{ ok: boolean; error?: string }>) => {
+    const res = await promise;
+    if (res.ok) {
+      setCloudConnected(true);
+      setCloudError(undefined);
+      setLastCloudSyncAt(new Date().toISOString());
+      dbStorage.setPendingCloudSync(false);
+      setHasUnsyncedChanges(false);
+    } else {
+      dbStorage.setPendingCloudSync(true);
+      setHasUnsyncedChanges(true);
+      if (res.error) {
+        setCloudError(res.error);
+        addBuilderToast(res.error, 'error');
+      }
+    }
+  };
+
+  // Save Handlers with IndexedDB + localStorage Persistence & Live Cloud Firestore Tracking
   const handleSaveProducts = (updatedProducts: Product[]) => {
     setProducts(updatedProducts);
     dbStorage.saveProducts(updatedProducts);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
     dbStorage.addAuditLog('تحديث المنتجات', 'Product', 'تم حفظ تعديلات قائمة المنتجات');
-    void firestoreSync.syncCollection('products', updatedProducts);
+    void trackCloudWrite(firestoreSync.syncCollection('products', updatedProducts));
   };
 
   const handleSaveSubCategories = (updatedSubs: CompanySubCategory[]) => {
     setSubCategories(updatedSubs);
     dbStorage.saveSubCategories(updatedSubs);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
     dbStorage.addAuditLog('تحديث الأقسام الفرعية', 'SubCategory', 'تم حفظ تعديلات أقسام الشركات الفرعية');
-    void firestoreSync.syncCollection('subCategories', updatedSubs);
+    void trackCloudWrite(firestoreSync.syncCollection('subCategories', updatedSubs));
   };
 
   const handleSaveTeamMembers = (updatedTeam: TeamMember[]) => {
     setTeamMembers(updatedTeam);
     dbStorage.saveTeamMembers(updatedTeam);
-    void firestoreSync.syncCollection('team', updatedTeam);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
+    void trackCloudWrite(firestoreSync.syncCollection('team', updatedTeam));
     if (currentUser) {
       const updatedSelf = updatedTeam.find((m) => m.id === currentUser.id);
       if (!updatedSelf || !updatedSelf.active) {
@@ -254,39 +326,51 @@ export default function App() {
   const handleSavePackages = (updatedPackages: Package[]) => {
     setPackages(updatedPackages);
     dbStorage.savePackages(updatedPackages);
-    void firestoreSync.syncCollection('packages', updatedPackages);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
+    void trackCloudWrite(firestoreSync.syncCollection('packages', updatedPackages));
   };
 
   const handleSaveCategories = (updatedCategories: Category[]) => {
     setCategories(updatedCategories);
     dbStorage.saveCategories(updatedCategories);
-    dbStorage.addAuditLog('تحديث الأقسام', 'Category', 'تم حفظ تعديلات الأقسام الرئيسية');
-    void firestoreSync.syncCollection('categories', updatedCategories);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
+    dbStorage.addAuditLog('تحديث الأقسام', 'Category', 'تم حفظ تعديلات الأقسام الرئيسية والفرعية');
+    void trackCloudWrite(firestoreSync.syncCollection('categories', updatedCategories));
   };
 
   const handleSaveCompanies = (updatedCompanies: Company[]) => {
     setCompanies(updatedCompanies);
     dbStorage.saveCompanies(updatedCompanies);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
     dbStorage.addAuditLog('تحديث الشركات', 'Company', 'تم حفظ تعديلات أسماء ومعلومات الشركات المصنعة');
-    void firestoreSync.syncCollection('companies', updatedCompanies);
+    void trackCloudWrite(firestoreSync.syncCollection('companies', updatedCompanies));
   };
 
   const handleSaveImages = (updatedImages: CompanyImage[]) => {
     setImages(updatedImages);
     dbStorage.saveImages(updatedImages);
-    void firestoreSync.syncCollection('images', updatedImages);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
+    void trackCloudWrite(firestoreSync.syncCollection('images', updatedImages));
   };
 
   const handleSaveAdvertisements = (updatedAds: Advertisement[]) => {
     setAdvertisements(updatedAds);
     dbStorage.saveAdvertisements(updatedAds);
-    void firestoreSync.syncCollection('advertisements', updatedAds);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
+    void trackCloudWrite(firestoreSync.syncCollection('advertisements', updatedAds));
   };
 
   const handleSaveSettings = (updatedSettings: CatalogSettings) => {
     setSettings(updatedSettings);
     dbStorage.saveSettings(updatedSettings);
-    void firestoreSync.saveSettings(updatedSettings);
+    dbStorage.setPendingCloudSync(true);
+    setHasUnsyncedChanges(true);
+    void trackCloudWrite(firestoreSync.saveSettings(updatedSettings));
   };
 
   const handleUpdateOrderStatus = (orderId: string, status: Order['status']) => {
@@ -323,13 +407,28 @@ export default function App() {
     try {
       const res = await firestoreSync.pushFullSnapshot({
         ...dbStorage.getData(),
+        products,
+        packages,
+        categories,
+        companies,
+        subCategories,
+        images,
+        advertisements,
+        orders,
+        teamMembers,
+        priceHistory,
+        settings,
         pdfDividers: dbStorage.getPdfDividers(),
       });
       setCloudConnected(res.success);
       if (res.success) {
         setLastCloudSyncAt(new Date().toISOString());
+        dbStorage.setPendingCloudSync(false);
+        setHasUnsyncedChanges(false);
+        addBuilderToast('تم رفع ومزامنة جميع البيانات مع Cloud Firestore بنجاح ✓', 'success');
       } else {
         setCloudError(res.error);
+        addBuilderToast(res.error || 'تعذر المزامنة مع السحابة', 'error');
       }
     } finally {
       setIsCloudSyncing(false);
@@ -545,11 +644,18 @@ export default function App() {
           onLogin={handleLogin}
           onLogout={handleLogout}
           cloudConnected={cloudConnected}
+          hasUnsyncedChanges={hasUnsyncedChanges}
           isCloudSyncing={isCloudSyncing}
           lastCloudSyncAt={lastCloudSyncAt}
           cloudError={cloudError}
           onSyncToCloud={handleSyncToCloud}
           onConnectGoogleCloud={handleConnectGoogleCloud}
+        />
+      )}
+      {currentView === 'admin' && (
+        <ToastContainer
+          toasts={builderToasts}
+          onDismiss={(id) => setBuilderToasts((prev) => prev.filter((t) => t.id !== id))}
         />
       )}
     </div>

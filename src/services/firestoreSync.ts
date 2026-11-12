@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { auth, db, ensureFirebaseAuthSession } from './firebase';
 import { DbData } from './dbStorage';
+import { ensureFirestoreSafeImageUrl } from '../utils/imageCompression';
 import {
   Category,
   Company,
@@ -39,6 +40,12 @@ export interface CloudSyncStatus {
   };
 }
 
+export interface CloudWriteResult {
+  ok: boolean;
+  error?: string;
+  writtenCount?: number;
+}
+
 function toSafeDocId(rawId: string): string {
   const cleaned = String(rawId || 'DOC')
     .trim()
@@ -62,6 +69,39 @@ function stripUndefined<T>(value: T): T {
   return value;
 }
 
+async function sanitizeImagesForFirestore(item: Record<string, any>): Promise<Record<string, any>> {
+  const copy: Record<string, any> = { ...item };
+  const imageKeys = [
+    'mainImageUrl',
+    'logoUrl',
+    'imageUrl',
+    'url',
+    'thumbnailUrl',
+    'desktopImageUrl',
+    'mobileImageUrl',
+    'heroBannerImageUrl',
+    'heroBannerImageMobileUrl',
+  ];
+
+  for (const key of imageKeys) {
+    if (typeof copy[key] === 'string' && copy[key].startsWith('data:image/')) {
+      copy[key] = await ensureFirestoreSafeImageUrl(copy[key], 260_000);
+    }
+  }
+
+  if (Array.isArray(copy.galleryImageIds) && copy.galleryImageIds.length > 0) {
+    copy.galleryImageIds = await Promise.all(
+      copy.galleryImageIds.map(async (entry: string) =>
+        typeof entry === 'string' && entry.startsWith('data:image/')
+          ? (await ensureFirestoreSafeImageUrl(entry, 220_000)) || entry
+          : entry
+      )
+    );
+  }
+
+  return copy;
+}
+
 async function fetchCollectionList<T>(colName: string): Promise<T[] | null> {
   try {
     const snap = await getDocs(collection(db, colName));
@@ -71,16 +111,22 @@ async function fetchCollectionList<T>(colName: string): Promise<T[] | null> {
   }
 }
 
-async function ensureAuthorizedWriteSession(): Promise<boolean> {
+async function ensureAuthorizedWriteSession(): Promise<{ ok: boolean; error?: string }> {
   await auth.authStateReady();
-  const user = auth.currentUser || (await ensureFirebaseAuthSession());
-  return Boolean(user);
+  if (auth.currentUser) return { ok: true };
+  const anon = await ensureFirebaseAuthSession();
+  if (anon) return { ok: true };
+  return {
+    ok: false,
+    error:
+      'تم الحفظ محلياً في متصفحك فقط: السحابة تتطلب تسجيل الدخول (Google للسحابة) أو تفعيل Anonymous Auth في Firebase.',
+  };
 }
 
 export const firestoreSync = {
   /**
    * Pulls all public & operational collections from Cloud Firestore.
-   * Collections that fail (e.g. auth rules before Google login) return null gracefully.
+   * Requires core public catalog collections to be readable to mark connected=true.
    */
   async pullAllFromCloud(): Promise<{
     connected: boolean;
@@ -118,20 +164,18 @@ export const firestoreSync = {
       ]);
 
       let settings: CatalogSettings | undefined;
-      let settingsReadOk = false;
       try {
         const settingsSnap = await getDoc(doc(db, 'settings', 'main'));
-        settingsReadOk = true;
         if (settingsSnap.exists()) {
           settings = settingsSnap.data() as CatalogSettings;
         }
       } catch {
-        settingsReadOk = false;
+        // Ignore single settings failure
       }
 
-      const anyReadSucceeded =
-        settingsReadOk ||
-        [categories, companies, products, packages].some((arr) => arr !== null);
+      const coreReadsSucceeded = [categories, companies, products, packages].every(
+        (arr) => arr !== null
+      );
 
       const data: Partial<DbData> & { pdfDividers?: PdfDividerAsset[] } = {};
       if (categories && categories.length > 0) {
@@ -164,8 +208,11 @@ export const firestoreSync = {
       if (settings) data.settings = settings;
 
       return {
-        connected: anyReadSucceeded,
+        connected: coreReadsSucceeded,
         data,
+        error: coreReadsSucceeded
+          ? undefined
+          : 'السحابة تمنع قراءة الكتالوج (403) — يرجى نشر قواعد firestore.rules المحدّثة في Firebase Console.',
       };
     } catch (err: any) {
       return {
@@ -177,12 +224,19 @@ export const firestoreSync = {
   },
 
   /**
-   * Synchronizes an array of ID-keyed items to Cloud Firestore using batches,
-   * deleting removed docs if they exist remotely.
+   * Synchronizes an array of ID-keyed items to Cloud Firestore using byte-aware chunked batches,
+   * automatically compressing any oversized inline images so documents never exceed Firestore's 1 MiB limit.
    */
-  async syncCollection<T extends { id: string }>(colName: string, items: T[]): Promise<boolean> {
+  async syncCollection<T extends { id: string }>(
+    colName: string,
+    items: T[]
+  ): Promise<CloudWriteResult> {
     try {
-      if (!(await ensureAuthorizedWriteSession())) return false;
+      const authCheck = await ensureAuthorizedWriteSession();
+      if (!authCheck.ok) {
+        return { ok: false, error: authCheck.error };
+      }
+
       const targetIds = new Set(items.map((it) => toSafeDocId(it.id)));
 
       let existingIds: string[] = [];
@@ -190,53 +244,76 @@ export const firestoreSync = {
         const snap = await getDocs(collection(db, colName));
         existingIds = snap.docs.map((d) => d.id);
       } catch {
-        // Proceed with upsert even if read failed
+        // Proceed with upsert even if listing existing docs failed
       }
 
-      const ops: Array<{ type: 'set' | 'delete'; id: string; payload?: any }> = [];
+      const ops: Array<{ type: 'set' | 'delete'; id: string; payload?: any; bytes: number }> = [];
       for (const item of items) {
         const safeId = toSafeDocId(item.id);
+        const sanitized = await sanitizeImagesForFirestore(item as Record<string, any>);
+        const payload = stripUndefined(sanitized);
+        const bytes = JSON.stringify(payload).length;
         ops.push({
           type: 'set',
           id: safeId,
-          payload: stripUndefined(item),
+          payload,
+          bytes,
         });
       }
       for (const oldId of existingIds) {
         if (!targetIds.has(oldId)) {
-          ops.push({ type: 'delete', id: oldId });
+          ops.push({ type: 'delete', id: oldId, bytes: 64 });
         }
       }
 
-      // Firestore batch limit is 500 writes -> chunk cleanly by 400
-      for (let i = 0; i < ops.length; i += 400) {
-        const slice = ops.slice(i, i + 400);
+      // Commit in safe chunks: <= 40 ops AND <= 3.5MB per Firestore batch commit
+      let idx = 0;
+      while (idx < ops.length) {
         const batch = writeBatch(db);
-        for (const op of slice) {
-          const ref = doc(db, colName, op.id);
-          if (op.type === 'set') {
-            batch.set(ref, op.payload);
+        let batchBytes = 0;
+        let batchCount = 0;
+
+        while (idx < ops.length && batchCount < 40) {
+          const next = ops[idx];
+          if (batchCount > 0 && batchBytes + next.bytes > 3_500_000) {
+            break;
+          }
+          const ref = doc(db, colName, next.id);
+          if (next.type === 'set') {
+            batch.set(ref, next.payload);
           } else {
             batch.delete(ref);
           }
+          batchBytes += next.bytes;
+          batchCount++;
+          idx++;
         }
+
         await batch.commit();
       }
-      return true;
-    } catch (err) {
-      console.warn(`[Firestore Sync] Failed syncing "${colName}":`, err);
-      return false;
+
+      return { ok: true, writtenCount: items.length };
+    } catch (err: any) {
+      const msg = err?.message || String(err || 'خطأ في الحفظ');
+      console.warn(`[Firestore Sync] Failed syncing "${colName}":`, msg);
+      return {
+        ok: false,
+        error: `تعذر مزامنة (${colName}) مع Firestore: ${msg}`,
+      };
     }
   },
 
-  async saveSettings(settings: CatalogSettings): Promise<boolean> {
+  async saveSettings(settings: CatalogSettings): Promise<CloudWriteResult> {
     try {
-      if (!(await ensureAuthorizedWriteSession())) return false;
-      await setDoc(doc(db, 'settings', 'main'), stripUndefined(settings));
-      return true;
-    } catch (err) {
-      console.warn('[Firestore Sync] Failed saving settings:', err);
-      return false;
+      const authCheck = await ensureAuthorizedWriteSession();
+      if (!authCheck.ok) return { ok: false, error: authCheck.error };
+      const sanitized = await sanitizeImagesForFirestore(settings as Record<string, any>);
+      await setDoc(doc(db, 'settings', 'main'), stripUndefined(sanitized));
+      return { ok: true };
+    } catch (err: any) {
+      const msg = err?.message || 'فشل حفظ الإعدادات';
+      console.warn('[Firestore Sync] Failed saving settings:', msg);
+      return { ok: false, error: msg };
     }
   },
 
@@ -253,7 +330,8 @@ export const firestoreSync = {
 
   async updateOrderStatus(orderNumberOrId: string, status: Order['status']): Promise<boolean> {
     try {
-      if (!(await ensureAuthorizedWriteSession())) return false;
+      const authCheck = await ensureAuthorizedWriteSession();
+      if (!authCheck.ok) return false;
       const safeDirectId = toSafeDocId(orderNumberOrId);
       const directRef = doc(db, 'orders', safeDirectId);
       const directSnap = await getDoc(directRef);
@@ -302,7 +380,8 @@ export const firestoreSync = {
 
   async saveSharedCatalog(catalog: SharedCustomCatalog): Promise<boolean> {
     try {
-      if (!(await ensureAuthorizedWriteSession())) return false;
+      const authCheck = await ensureAuthorizedWriteSession();
+      if (!authCheck.ok) return false;
       await setDoc(doc(db, 'customCatalogs', toSafeDocId(catalog.id)), stripUndefined(catalog));
       return true;
     } catch (err) {
@@ -326,18 +405,16 @@ export const firestoreSync = {
   async pushFullSnapshot(
     snapshot: DbData & { pdfDividers?: PdfDividerAsset[] }
   ): Promise<{ success: boolean; syncedCollections: number; error?: string }> {
-    if (!(await ensureAuthorizedWriteSession())) {
+    const authCheck = await ensureAuthorizedWriteSession();
+    if (!authCheck.ok) {
       return {
         success: false,
         syncedCollections: 0,
-        error: 'يرجى الضغط على "تسجيل Google للسحابة" أولاً لحفظ ومزامنة البيانات.',
+        error: authCheck.error || 'يرجى الضغط على "تسجيل Google للسحابة" أولاً لحفظ ومزامنة البيانات.',
       };
     }
 
-    let syncedCollections = 0;
-    let lastError: string | undefined;
-
-    const tasks: Array<Promise<boolean>> = [
+    const tasks: Array<Promise<CloudWriteResult>> = [
       this.syncCollection('categories', snapshot.categories || []),
       this.syncCollection('companies', snapshot.companies || []),
       this.syncCollection('subCategories', snapshot.subCategories || []),
@@ -354,16 +431,18 @@ export const firestoreSync = {
 
     try {
       const results = await Promise.all(tasks);
-      syncedCollections = results.filter(Boolean).length;
-      if (syncedCollections === 0) {
-        lastError =
-          'لم يتم السماح بالكتابة على Firestore — تأكد من نشر firestore.rules أو تسجيل الدخول بحساب Google.';
-      }
-      return { success: syncedCollections > 0, syncedCollections, error: lastError };
+      const syncedCollections = results.filter((r) => r.ok).length;
+      const firstFailed = results.find((r) => !r.ok);
+      const lastError = firstFailed?.error
+        ? firstFailed.error
+        : syncedCollections === 0
+          ? 'لم يتم السماح بالكتابة على Firestore — تأكد من نشر firestore.rules أو تسجيل الدخول بحساب Google.'
+          : undefined;
+      return { success: syncedCollections === tasks.length, syncedCollections, error: lastError };
     } catch (err: any) {
       return {
         success: false,
-        syncedCollections,
+        syncedCollections: 0,
         error: err?.message || 'فشل المزامنة السحابية',
       };
     }

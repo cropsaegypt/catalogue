@@ -28,6 +28,7 @@ import {
   INITIAL_ORDERS,
   INITIAL_TEAM,
 } from '../data/seedData';
+import { idbStorage } from './idbStorage';
 
 export interface DbData {
   categories: Category[];
@@ -61,6 +62,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'cropsa_audit_logs_v1',
   PDF_DIVIDERS: 'cropsa_pdf_dividers_v1',
   CUSTOM_CATALOGS: 'cropsa_custom_catalogs_v1',
+  PENDING_CLOUD_SYNC: 'cropsa_pending_cloud_sync_v1',
 };
 
 // Safe JSON Parse helper
@@ -78,15 +80,77 @@ function getItem<T>(key: string, defaultValue: T): T {
   }
 }
 
-function setItem<T>(key: string, value: T): void {
+function setItem<T>(key: string, value: T): boolean {
+  void idbStorage.set(key, value);
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch (err) {
-    console.error(`Error writing ${key} to storage:`, err);
+    console.warn(`LocalStorage quota/write warning for ${key} (saved to IndexedDB instead):`, err);
+    return false;
   }
 }
 
 export const dbStorage = {
+  hasPendingCloudSync(): boolean {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.PENDING_CLOUD_SYNC) === '1';
+    } catch {
+      return false;
+    }
+  },
+  setPendingCloudSync(pending: boolean): void {
+    try {
+      if (pending) {
+        localStorage.setItem(STORAGE_KEYS.PENDING_CLOUD_SYNC, '1');
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.PENDING_CLOUD_SYNC);
+      }
+    } catch {
+      // ignore
+    }
+  },
+  async loadFromIndexedDb(): Promise<Partial<DbData>> {
+    const [
+      categories,
+      companies,
+      subCategories,
+      products,
+      packages,
+      images,
+      advertisements,
+      orders,
+      teamMembers,
+      priceHistory,
+      settings,
+    ] = await Promise.all([
+      idbStorage.get<Category[]>(STORAGE_KEYS.CATEGORIES),
+      idbStorage.get<Company[]>(STORAGE_KEYS.COMPANIES),
+      idbStorage.get<CompanySubCategory[]>(STORAGE_KEYS.SUBCATEGORIES),
+      idbStorage.get<Product[]>(STORAGE_KEYS.PRODUCTS),
+      idbStorage.get<Package[]>(STORAGE_KEYS.PACKAGES),
+      idbStorage.get<CompanyImage[]>(STORAGE_KEYS.IMAGES),
+      idbStorage.get<Advertisement[]>(STORAGE_KEYS.ADVERTISEMENTS),
+      idbStorage.get<Order[]>(STORAGE_KEYS.ORDERS),
+      idbStorage.get<TeamMember[]>(STORAGE_KEYS.TEAM),
+      idbStorage.get<PriceHistory[]>(STORAGE_KEYS.PRICE_HISTORY),
+      idbStorage.get<CatalogSettings>(STORAGE_KEYS.SETTINGS),
+    ]);
+
+    const result: Partial<DbData> = {};
+    if (categories?.length) result.categories = categories;
+    if (companies?.length) result.companies = companies;
+    if (subCategories?.length) result.subCategories = subCategories;
+    if (products?.length) result.products = products;
+    if (packages?.length) result.packages = packages;
+    if (images?.length) result.images = images;
+    if (advertisements?.length) result.advertisements = advertisements;
+    if (orders?.length) result.orders = orders;
+    if (teamMembers?.length) result.teamMembers = teamMembers;
+    if (priceHistory?.length) result.priceHistory = priceHistory;
+    if (settings) result.settings = settings;
+    return result;
+  },
   getData(): DbData {
     return {
       categories: this.getCategories(),

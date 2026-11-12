@@ -1,91 +1,584 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Database: ai-studio-cropsadynamicagr-1794466f-f2bd-4fa3-876f-32661d867edf
+    //
+    // Public Catalog Collections (public get + list via allow read: if true;
+    // authenticated writes validated by isSignedIn(), isValidId(), and domain validators):
+    //
+    // 1. Collection: companies/{companyId}
+    //    Fields: id (string, req), name (string, req), slug (string, opt),
+    //            logoUrl (string, opt), description (string, opt), website (string, opt),
+    //            contactInfo (string, opt), categoryIds (list, opt),
+    //            displayOrder (number, opt), active (bool, opt),
+    //            createdAt (string, opt), updatedAt (string, opt)
+    //
+    // 2. Collection: categories/{categoryId}
+    //    Fields: id (string, req), name (string, req), slug (string, opt),
+    //            description (string, opt), imageUrl (string, opt), parentId (string, opt),
+    //            displayOrder (number, opt), active (bool, opt),
+    //            createdAt (string, opt), updatedAt (string, opt)
+    //
+    // 3. Collection: subCategories/{subCategoryId}
+    //    Fields: id (string, req), companyId (string, req), name (string, req),
+    //            type (string enum: fertilizer|stimulant|pesticide|seeds|other, req),
+    //            description (string, opt), displayOrder (number, opt), active (bool, opt)
+    //
+    // 4. Collection: products/{productId}
+    //    Fields: id (string, req), companyId (string, req), name (string, req),
+    //            categoryId (string, opt), subCategoryId (string, opt),
+    //            productType (string enum, opt), secondaryCategoryIds (list, opt),
+    //            shortDescription (string, opt), description (string, opt),
+    //            characteristics (list, opt), composition (list, opt), usage (list, opt),
+    //            applicationRate (string, opt), mainImageId (string, opt),
+    //            mainImageUrl (string, opt), searchTags (list, opt),
+    //            costPrice (number, opt), stockQuantity (number, opt), minStockAlert (number, opt),
+    //            galleryImageIds (list, opt), displayOrder (number, opt),
+    //            active (bool, opt), featured (bool, opt), allowPieceOrder (bool, opt),
+    //            allowCartonOrder (bool, opt), piecesPerCarton (number, opt),
+    //            createdAt (string, opt), updatedAt (string, opt)
+    //
+    // 5. Collection: packages/{packageId}
+    //    Fields: id (string, req), productId (string, req), unit (string, req),
+    //            price (number >= 0, req), quantity (number, opt), displayName (string, opt),
+    //            costPrice (number, opt), stockQuantity (number, opt), minStockAlert (number, opt),
+    //            currency (string, opt), allowPieceOrder (bool, opt), allowCartonOrder (bool, opt),
+    //            piecesPerCarton (number, opt), active (bool, opt), displayOrder (number, opt)
+    //
+    // 6. Collection: advertisements/{adId}
+    //    Fields: id (string, req), title (string, req), desktopImageUrl (string, req),
+    //            description (string, opt), mobileImageUrl (string, opt), link (string, opt),
+    //            active (bool, opt), showOnline (bool, opt), showPdf (bool, opt),
+    //            placementType (string enum, opt), placementValue (number|string, opt),
+    //            categoryId (string, opt), companyId (string, opt), displayOrder (number, opt)
+    //
+    // 7. Collection: images/{imageId}
+    //    Fields: id (string, req), companyId (string, req), url (string, req),
+    //            fileName (string, opt), thumbnailUrl (string, opt),
+    //            altText (string, opt), createdAt (string, opt)
+    //
+    // 8. Collection: settings/{settingId}
+    //    Fields: title (string, req), subtitle, logoUrl, heroBannerMode, heroBannerUrl,
+    //            heroBannerMobileUrl, heroBannerImageUrl, heroBannerImageMobileUrl,
+    //            heroBannerTitle, heroBannerSubtitle, heroBannerBadge, heroBannerCtaText,
+    //            heroBannerLink, primaryColor, secondaryColor, footerText, website, phone,
+    //            whatsApp, orderWebhookUrl, email, qrCodeUrl, productsPerPage, showPrices,
+    //            showCharacteristics, showComposition, showUsage, showAdvertisements,
+    //            showProductIds, pdfOrientation, homeShowcases
+    //
+    // 9. Collection: customCatalogs/{catalogId}
+    //    Fields: id (string, req), productIds (list, req), clientName (string, opt),
+    //            createdByName (string, opt), createdByUsername (string, opt),
+    //            createdAt (string, opt), productsSnapshot (list, opt),
+    //            packagesSnapshot (list, opt), companiesSnapshot (list, opt),
+    //            categoriesSnapshot (list, opt), settingsSnapshot (map, opt),
+    //            displayOptions (map, opt)
+    //
+    // Authenticated Operational Collections:
+    //
+    // 10. Collection: pdfDividers/{dividerId}
+    //     Fields: id (string, req), title (string, req), imageUrl (string, req),
+    //             kind (string enum: cover|generic|company, req),
+    //             companyId (string, opt), createdAt (string, opt)
+    //
+    // 11. Collection: priceHistory/{entryId}
+    //     Fields: id (string, req), productId (string, req), packageId (string, req),
+    //             oldPrice (number >= 0, req), newPrice (number >= 0, req),
+    //             productName (string, opt), packageDisplayName (string, opt),
+    //             currency (string, opt), source (string enum: manual|excel, opt),
+    //             updatedBy (string, opt), createdAt (string, opt)
+    //
+    // 12. Collection: team/{memberId}
+    //     Fields: id (string, req), name (string, req), email (string, req),
+    //             role (string enum, req), username (string, opt), password (string, opt),
+    //             phone (string, opt), active (bool, opt), permissions (list, opt),
+    //             createdAt (string, opt), lastLogin (string, opt)
+    //
+    // 13. Collection: orders/{orderId}
+    //     Fields: orderNumber (string, req), customerName (string, req),
+    //             phone (string, req), totalAmount (number >= 0, req),
+    //             id (string, opt), companyName (string, opt), governorate (string, opt),
+    //             city (string, opt), addressDetails (string, opt),
+    //             paymentMethod (string enum: cash|installment, opt),
+    //             installmentDetails (map, opt), shippingAddress (map, opt),
+    //             notes (string, opt), items (list, opt), totalItems (number >= 0, opt),
+    //             status (string enum: new|contacted|confirmed|cancelled|completed, opt),
+    //             createdAt (string, opt), updatedAt (string, opt)
+    //
+    // ===============================================================
 
     // Default deny catch-all
     match /{document=**} {
       allow read, write: if false;
     }
 
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // IMPORTANT: Use isValidId() ONLY on single-document write/create/update/delete/get
+    // rules where doc ID is known — NEVER on collection-wide allow read / allow list,
+    // otherwise Firestore's static query analyzer rejects getDocs(collection(...)) with 403.
     function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string &&
+             id.size() > 0 &&
+             id.size() <= 128 &&
+             id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Public catalog read: anyone can browse companies, categories, products, packages, ads, images & settings
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function isValidReqString(data, field, minLen, maxLen) {
+      return (field in data) &&
+             data[field] is string &&
+             data[field].size() >= minLen &&
+             data[field].size() <= maxLen;
+    }
+
+    function isValidOptString(data, field, minLen, maxLen) {
+      return !(field in data) ||
+             data[field] == null ||
+             (data[field] is string &&
+              data[field].size() >= minLen &&
+              data[field].size() <= maxLen);
+    }
+
+    function isValidOptBool(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             data[field] is bool;
+    }
+
+    function isValidOptNumber(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             data[field] is number;
+    }
+
+    function isValidOptNonNegNumber(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             (data[field] is number && data[field] >= 0);
+    }
+
+    function isValidOptList(data, field, maxSize) {
+      return !(field in data) ||
+             data[field] == null ||
+             (data[field] is list && data[field].size() <= maxSize);
+    }
+
+    function isValidOptMap(data, field, maxSize) {
+      return !(field in data) ||
+             data[field] == null ||
+             (data[field] is map && data[field].size() <= maxSize);
+    }
+
+    // ===============================================================
+    // Domain Validators (invoked on BOTH create and update)
+    // ===============================================================
+
+    function isValidCompany(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'name', 'slug', 'logoUrl', 'description', 'website',
+               'contactInfo', 'categoryIds', 'displayOrder', 'active',
+               'createdAt', 'updatedAt'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'name', 1, 300) &&
+             isValidOptString(data, 'slug', 0, 300) &&
+             isValidOptString(data, 'logoUrl', 0, 950000) &&
+             isValidOptString(data, 'description', 0, 10000) &&
+             isValidOptString(data, 'website', 0, 500) &&
+             isValidOptString(data, 'contactInfo', 0, 500) &&
+             isValidOptList(data, 'categoryIds', 200) &&
+             isValidOptNumber(data, 'displayOrder') &&
+             isValidOptBool(data, 'active') &&
+             isValidOptString(data, 'createdAt', 0, 64) &&
+             isValidOptString(data, 'updatedAt', 0, 64);
+    }
+
+    function isValidCategory(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'name', 'slug', 'description', 'imageUrl', 'parentId',
+               'displayOrder', 'active', 'createdAt', 'updatedAt'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'name', 1, 300) &&
+             isValidOptString(data, 'slug', 0, 300) &&
+             isValidOptString(data, 'description', 0, 10000) &&
+             isValidOptString(data, 'imageUrl', 0, 950000) &&
+             isValidOptString(data, 'parentId', 0, 128) &&
+             isValidOptNumber(data, 'displayOrder') &&
+             isValidOptBool(data, 'active') &&
+             isValidOptString(data, 'createdAt', 0, 64) &&
+             isValidOptString(data, 'updatedAt', 0, 64);
+    }
+
+    function isValidSubCategory(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'companyId', 'name', 'type', 'description', 'displayOrder', 'active'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'companyId', 1, 128) &&
+             isValidReqString(data, 'name', 1, 300) &&
+             ('type' in data) && data.type in ['fertilizer', 'stimulant', 'pesticide', 'seeds', 'other'] &&
+             isValidOptString(data, 'description', 0, 5000) &&
+             isValidOptNumber(data, 'displayOrder') &&
+             isValidOptBool(data, 'active');
+    }
+
+    function isValidProduct(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'companyId', 'categoryId', 'subCategoryId', 'productType',
+               'secondaryCategoryIds', 'name', 'shortDescription', 'description',
+               'characteristics', 'composition', 'usage', 'applicationRate',
+               'mainImageId', 'mainImageUrl', 'searchTags', 'costPrice',
+               'stockQuantity', 'minStockAlert', 'galleryImageIds', 'displayOrder',
+               'active', 'featured', 'allowPieceOrder', 'allowCartonOrder',
+               'piecesPerCarton', 'createdAt', 'updatedAt'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'companyId', 1, 128) &&
+             isValidReqString(data, 'name', 1, 300) &&
+             isValidOptString(data, 'categoryId', 0, 128) &&
+             isValidOptString(data, 'subCategoryId', 0, 128) &&
+             (!('productType' in data) || data.productType == null ||
+              data.productType in ['fertilizer', 'stimulant', 'pesticide', 'seeds', 'other']) &&
+             isValidOptList(data, 'secondaryCategoryIds', 50) &&
+             isValidOptString(data, 'shortDescription', 0, 5000) &&
+             isValidOptString(data, 'description', 0, 20000) &&
+             isValidOptList(data, 'characteristics', 100) &&
+             isValidOptList(data, 'composition', 100) &&
+             isValidOptList(data, 'usage', 100) &&
+             isValidOptString(data, 'applicationRate', 0, 2000) &&
+             isValidOptString(data, 'mainImageId', 0, 128) &&
+             isValidOptString(data, 'mainImageUrl', 0, 950000) &&
+             isValidOptList(data, 'searchTags', 200) &&
+             isValidOptNonNegNumber(data, 'costPrice') &&
+             isValidOptNonNegNumber(data, 'stockQuantity') &&
+             isValidOptNonNegNumber(data, 'minStockAlert') &&
+             isValidOptList(data, 'galleryImageIds', 50) &&
+             isValidOptNumber(data, 'displayOrder') &&
+             isValidOptBool(data, 'active') &&
+             isValidOptBool(data, 'featured') &&
+             isValidOptBool(data, 'allowPieceOrder') &&
+             isValidOptBool(data, 'allowCartonOrder') &&
+             isValidOptNonNegNumber(data, 'piecesPerCarton') &&
+             isValidOptString(data, 'createdAt', 0, 64) &&
+             isValidOptString(data, 'updatedAt', 0, 64);
+    }
+
+    function isValidPackage(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'productId', 'quantity', 'unit', 'displayName', 'price',
+               'costPrice', 'stockQuantity', 'minStockAlert', 'currency',
+               'allowPieceOrder', 'allowCartonOrder', 'piecesPerCarton',
+               'active', 'displayOrder'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'productId', 1, 128) &&
+             isValidReqString(data, 'unit', 0, 100) &&
+             ('price' in data) && data.price is number && data.price >= 0 &&
+             isValidOptNonNegNumber(data, 'quantity') &&
+             isValidOptString(data, 'displayName', 0, 200) &&
+             isValidOptNonNegNumber(data, 'costPrice') &&
+             isValidOptNonNegNumber(data, 'stockQuantity') &&
+             isValidOptNonNegNumber(data, 'minStockAlert') &&
+             isValidOptString(data, 'currency', 0, 20) &&
+             isValidOptBool(data, 'allowPieceOrder') &&
+             isValidOptBool(data, 'allowCartonOrder') &&
+             isValidOptNonNegNumber(data, 'piecesPerCarton') &&
+             isValidOptBool(data, 'active') &&
+             isValidOptNumber(data, 'displayOrder');
+    }
+
+    function isValidAdvertisement(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'title', 'description', 'desktopImageUrl', 'mobileImageUrl',
+               'link', 'active', 'showOnline', 'showPdf', 'placementType',
+               'placementValue', 'categoryId', 'companyId', 'displayOrder'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'title', 1, 300) &&
+             isValidReqString(data, 'desktopImageUrl', 0, 950000) &&
+             isValidOptString(data, 'description', 0, 5000) &&
+             isValidOptString(data, 'mobileImageUrl', 0, 950000) &&
+             isValidOptString(data, 'link', 0, 2000) &&
+             isValidOptBool(data, 'active') &&
+             isValidOptBool(data, 'showOnline') &&
+             isValidOptBool(data, 'showPdf') &&
+             (!('placementType' in data) || data.placementType == null ||
+              data.placementType in ['after_product_count', 'after_category', 'full_page']) &&
+             (!('placementValue' in data) || data.placementValue == null ||
+              data.placementValue is number ||
+              (data.placementValue is string && data.placementValue.size() <= 200)) &&
+             isValidOptString(data, 'categoryId', 0, 128) &&
+             isValidOptString(data, 'companyId', 0, 128) &&
+             isValidOptNumber(data, 'displayOrder');
+    }
+
+    function isValidImage(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'companyId', 'fileName', 'url', 'thumbnailUrl', 'altText', 'createdAt'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'companyId', 1, 128) &&
+             isValidReqString(data, 'url', 1, 950000) &&
+             isValidOptString(data, 'fileName', 0, 300) &&
+             isValidOptString(data, 'thumbnailUrl', 0, 950000) &&
+             isValidOptString(data, 'altText', 0, 500) &&
+             isValidOptString(data, 'createdAt', 0, 64);
+    }
+
+    function isValidSettings(data) {
+      return hasOnlyAllowedFields(data, [
+               'title', 'subtitle', 'logoUrl', 'heroBannerMode', 'heroBannerUrl',
+               'heroBannerMobileUrl', 'heroBannerImageUrl', 'heroBannerImageMobileUrl',
+               'heroBannerTitle', 'heroBannerSubtitle', 'heroBannerBadge',
+               'heroBannerCtaText', 'heroBannerLink', 'primaryColor', 'secondaryColor',
+               'footerText', 'website', 'phone', 'whatsApp', 'orderWebhookUrl', 'email',
+               'qrCodeUrl', 'productsPerPage', 'showPrices', 'showCharacteristics',
+               'showComposition', 'showUsage', 'showAdvertisements', 'showProductIds',
+               'pdfOrientation', 'homeShowcases'
+             ]) &&
+             isValidReqString(data, 'title', 1, 300) &&
+             isValidOptString(data, 'subtitle', 0, 1000) &&
+             isValidOptString(data, 'logoUrl', 0, 950000) &&
+             (!('heroBannerMode' in data) || data.heroBannerMode == null ||
+              data.heroBannerMode in ['default_carousel', 'text_and_image', 'full_image']) &&
+             isValidOptString(data, 'heroBannerUrl', 0, 950000) &&
+             isValidOptString(data, 'heroBannerMobileUrl', 0, 950000) &&
+             isValidOptString(data, 'heroBannerImageUrl', 0, 950000) &&
+             isValidOptString(data, 'heroBannerImageMobileUrl', 0, 950000) &&
+             isValidOptString(data, 'heroBannerTitle', 0, 300) &&
+             isValidOptString(data, 'heroBannerSubtitle', 0, 1000) &&
+             isValidOptString(data, 'heroBannerBadge', 0, 200) &&
+             isValidOptString(data, 'heroBannerCtaText', 0, 200) &&
+             isValidOptString(data, 'heroBannerLink', 0, 2000) &&
+             isValidOptString(data, 'primaryColor', 0, 40) &&
+             isValidOptString(data, 'secondaryColor', 0, 40) &&
+             isValidOptString(data, 'footerText', 0, 1000) &&
+             isValidOptString(data, 'website', 0, 500) &&
+             isValidOptString(data, 'phone', 0, 40) &&
+             isValidOptString(data, 'whatsApp', 0, 40) &&
+             isValidOptString(data, 'orderWebhookUrl', 0, 2000) &&
+             isValidOptString(data, 'email', 0, 254) &&
+             isValidOptString(data, 'qrCodeUrl', 0, 950000) &&
+             isValidOptNonNegNumber(data, 'productsPerPage') &&
+             isValidOptBool(data, 'showPrices') &&
+             isValidOptBool(data, 'showCharacteristics') &&
+             isValidOptBool(data, 'showComposition') &&
+             isValidOptBool(data, 'showUsage') &&
+             isValidOptBool(data, 'showAdvertisements') &&
+             isValidOptBool(data, 'showProductIds') &&
+             (!('pdfOrientation' in data) || data.pdfOrientation == null ||
+              data.pdfOrientation in ['portrait', 'landscape']) &&
+             isValidOptMap(data, 'homeShowcases', 10);
+    }
+
+    function isValidCustomCatalog(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'clientName', 'createdByName', 'createdByUsername', 'createdAt',
+               'productIds', 'productsSnapshot', 'packagesSnapshot',
+               'companiesSnapshot', 'categoriesSnapshot', 'settingsSnapshot', 'displayOptions'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             ('productIds' in data) && data.productIds is list && data.productIds.size() <= 500 &&
+             isValidOptString(data, 'clientName', 0, 300) &&
+             isValidOptString(data, 'createdByName', 0, 200) &&
+             isValidOptString(data, 'createdByUsername', 0, 200) &&
+             isValidOptString(data, 'createdAt', 0, 64) &&
+             isValidOptList(data, 'productsSnapshot', 500) &&
+             isValidOptList(data, 'packagesSnapshot', 1000) &&
+             isValidOptList(data, 'companiesSnapshot', 200) &&
+             isValidOptList(data, 'categoriesSnapshot', 200) &&
+             isValidOptMap(data, 'settingsSnapshot', 20) &&
+             isValidOptMap(data, 'displayOptions', 20);
+    }
+
+    function isValidPdfDivider(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'title', 'imageUrl', 'kind', 'companyId', 'createdAt'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'title', 1, 300) &&
+             isValidReqString(data, 'imageUrl', 1, 950000) &&
+             ('kind' in data) && data.kind in ['cover', 'generic', 'company'] &&
+             isValidOptString(data, 'companyId', 0, 128) &&
+             isValidOptString(data, 'createdAt', 0, 64);
+    }
+
+    function isValidPriceHistory(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'productId', 'productName', 'packageId', 'packageDisplayName',
+               'oldPrice', 'newPrice', 'currency', 'source', 'updatedBy', 'createdAt'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'productId', 1, 128) &&
+             isValidReqString(data, 'packageId', 1, 128) &&
+             ('oldPrice' in data) && data.oldPrice is number && data.oldPrice >= 0 &&
+             ('newPrice' in data) && data.newPrice is number && data.newPrice >= 0 &&
+             isValidOptString(data, 'productName', 0, 300) &&
+             isValidOptString(data, 'packageDisplayName', 0, 200) &&
+             isValidOptString(data, 'currency', 0, 20) &&
+             (!('source' in data) || data.source == null || data.source in ['manual', 'excel']) &&
+             isValidOptString(data, 'updatedBy', 0, 200) &&
+             isValidOptString(data, 'createdAt', 0, 64);
+    }
+
+    function isValidTeamMember(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'name', 'username', 'email', 'password', 'role',
+               'phone', 'active', 'permissions', 'createdAt', 'lastLogin'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             isValidReqString(data, 'name', 1, 200) &&
+             isValidReqString(data, 'email', 1, 254) &&
+             ('role' in data) && data.role in [
+               'super_admin', 'catalog_manager', 'orders_manager',
+               'installment_officer', 'sales_rep'
+             ] &&
+             isValidOptString(data, 'username', 0, 100) &&
+             isValidOptString(data, 'password', 0, 200) &&
+             isValidOptString(data, 'phone', 0, 40) &&
+             isValidOptBool(data, 'active') &&
+             isValidOptList(data, 'permissions', 50) &&
+             isValidOptString(data, 'createdAt', 0, 64) &&
+             isValidOptString(data, 'lastLogin', 0, 64);
+    }
+
+    function isValidOrder(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'orderNumber', 'customerName', 'phone', 'companyName',
+               'governorate', 'city', 'addressDetails', 'paymentMethod',
+               'installmentDetails', 'shippingAddress', 'notes', 'items',
+               'totalItems', 'totalAmount', 'status', 'createdAt', 'updatedAt'
+             ]) &&
+             isValidReqString(data, 'orderNumber', 1, 64) &&
+             isValidReqString(data, 'customerName', 0, 200) &&
+             isValidReqString(data, 'phone', 0, 40) &&
+             ('totalAmount' in data) && data.totalAmount is number && data.totalAmount >= 0 &&
+             isValidOptString(data, 'id', 0, 128) &&
+             isValidOptString(data, 'companyName', 0, 200) &&
+             isValidOptString(data, 'governorate', 0, 100) &&
+             isValidOptString(data, 'city', 0, 100) &&
+             isValidOptString(data, 'addressDetails', 0, 1000) &&
+             (!('paymentMethod' in data) || data.paymentMethod == null ||
+              data.paymentMethod in ['cash', 'installment']) &&
+             isValidOptMap(data, 'installmentDetails', 20) &&
+             isValidOptMap(data, 'shippingAddress', 10) &&
+             isValidOptString(data, 'notes', 0, 2000) &&
+             isValidOptList(data, 'items', 200) &&
+             isValidOptNonNegNumber(data, 'totalItems') &&
+             (!('status' in data) || data.status == null ||
+              data.status in ['new', 'contacted', 'confirmed', 'cancelled', 'completed']) &&
+             isValidOptString(data, 'createdAt', 0, 64) &&
+             isValidOptString(data, 'updatedAt', 0, 64);
+    }
+
+    // ===============================================================
+    // Public Catalog Collections (get + list allowed for all visitors)
+    // ===============================================================
+
     match /companies/{companyId} {
-      allow read: if isValidId(companyId);
-      allow write: if isSignedIn() && isValidId(companyId);
-    }
-
-    match /subCategories/{subCategoryId} {
-      allow read: if isValidId(subCategoryId);
-      allow write: if isSignedIn() && isValidId(subCategoryId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(companyId) && isValidCompany(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(companyId);
     }
 
     match /categories/{categoryId} {
-      allow read: if isValidId(categoryId);
-      allow write: if isSignedIn() && isValidId(categoryId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(categoryId) && isValidCategory(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(categoryId);
+    }
+
+    match /subCategories/{subCategoryId} {
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(subCategoryId) && isValidSubCategory(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(subCategoryId);
     }
 
     match /products/{productId} {
-      allow read: if isValidId(productId);
-      allow write: if isSignedIn() && isValidId(productId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(productId) && isValidProduct(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(productId);
     }
 
     match /packages/{packageId} {
-      allow read: if isValidId(packageId);
-      allow write: if isSignedIn() && isValidId(packageId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(packageId) && isValidPackage(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(packageId);
     }
 
     match /advertisements/{adId} {
-      allow read: if isValidId(adId);
-      allow write: if isSignedIn() && isValidId(adId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(adId) && isValidAdvertisement(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(adId);
     }
 
     match /images/{imageId} {
-      allow read: if isValidId(imageId);
-      allow write: if isSignedIn() && isValidId(imageId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(imageId) && isValidImage(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(imageId);
     }
 
     match /settings/{settingId} {
-      allow read: if isValidId(settingId);
-      allow write: if isSignedIn() && isValidId(settingId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(settingId) && isValidSettings(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(settingId);
     }
 
-    // Custom shareable client catalogs: readable by any customer opening the link
+    // Custom shareable client catalogs: readable by any customer opening the share link
     match /customCatalogs/{catalogId} {
-      allow read: if isValidId(catalogId);
-      allow write: if isSignedIn() && isValidId(catalogId);
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidId(catalogId) && isValidCustomCatalog(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(catalogId);
     }
 
-    // PDF Dividers & Price History
+    // ===============================================================
+    // Authenticated Operational Collections
+    // ===============================================================
+
     match /pdfDividers/{dividerId} {
-      allow read: if isSignedIn() && isValidId(dividerId);
-      allow write: if isSignedIn() && isValidId(dividerId);
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(dividerId) && isValidPdfDivider(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(dividerId);
     }
 
     match /priceHistory/{entryId} {
-      allow read: if isSignedIn() && isValidId(entryId);
-      allow write: if isSignedIn() && isValidId(entryId);
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(entryId) && isValidPriceHistory(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(entryId);
     }
 
-    // Orders: anyone can submit (create) an order with required fields; authenticated staff can read/update
-    match /orders/{orderId} {
-      allow create: if isValidId(orderId)
-        && request.resource.data.orderNumber is string
-        && request.resource.data.customerName is string
-        && request.resource.data.phone is string
-        && request.resource.data.totalAmount is number;
-      allow read, update, delete: if isSignedIn();
-    }
-
-    // Team members: managed by authenticated staff
     match /team/{memberId} {
-      allow read, write: if isSignedIn() && isValidId(memberId);
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && isValidId(memberId) && isValidTeamMember(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(memberId);
+    }
+
+    // Orders: anyone can submit (create) a new order; authenticated staff can read/update/delete
+    match /orders/{orderId} {
+      allow read: if isSignedIn();
+      allow create: if isValidId(orderId) &&
+                       isValidOrder(request.resource.data) &&
+                       (isSignedIn() ||
+                        !('status' in request.resource.data) ||
+                        request.resource.data.status == 'new');
+      allow update: if isSignedIn() && isValidId(orderId) && isValidOrder(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(orderId);
     }
   }
 }
