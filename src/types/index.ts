@@ -413,6 +413,7 @@ export interface SharedCustomCatalog {
     showUsage: boolean;
     productsPerPage: number;
     mergeCompaniesOnPages: boolean;
+    detailMode?: 'full' | 'concise';
   };
 }
 

@@ -512,6 +512,144 @@ export function createApiApp() {
     }
   });
 
+  // Concise Product Details Summarizer for Custom Client Catalogs
+  app.post('/api/gemini/summarize-catalog-products', async (req, res) => {
+    try {
+      const { products = [], customApiKey = '' } = req.body || {};
+      if (!Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ success: false, error: 'لا توجد منتجات للاختصار.' });
+      }
+
+      const ai = getGeminiClient(customApiKey);
+      const batch = products.slice(0, 24).map((p: any) => ({
+        id: String(p.id || ''),
+        name: String(p.name || ''),
+        shortDescription: String(p.shortDescription || ''),
+        description: String(p.description || ''),
+        characteristics: Array.isArray(p.characteristics) ? p.characteristics : [],
+        composition: Array.isArray(p.composition) ? p.composition : [],
+        usage: Array.isArray(p.usage) ? p.usage : [],
+        applicationRate: String(p.applicationRate || ''),
+      }));
+
+      const prompt = [
+        'أنت خبير تسويق وزراعة في السوق المصري. المطلوب اختصار تفاصيل هذه المنتجات الزراعية لوضعها داخل كتالوج عميل أنيق وسهل القراءة.',
+        'القواعد الصارمة:',
+        '1. أوصل المعلومة بأفضل شكل وأقصر عبارة واضحة بدون حشو أو تكرار.',
+        '2. حافظ تماماً على الأرقام والنسب المئوية للمواد الفعالة ومعدلات الاستخدام والآفات/المحاصيل المستهدفة.',
+        '3. لكل منتج أرجع:',
+        '   - shortSummary: جملة واحدة تسويقية مركزة (حد أقصى 120 حرف) تشرح وظيفة المنتج وأهم ميزته.',
+        '   - characteristics: مصفوفة من 2 إلى 3 نقاط قصيرة (كل نقطة 4 إلى 9 كلمات) لأهم الفوائد.',
+        '   - composition: مصفوفة من 1 إلى 2 عنصر مختصر للمادة الفعالة والنسب.',
+        '   - usage: مصفوفة من 1 إلى 2 عنصر لمعدل الاستخدام وطريقة التطبيق بدقة.',
+        '',
+        'بيانات المنتجات (JSON):',
+        JSON.stringify(batch),
+      ].join('\n');
+
+      const candidates = [
+        cachedWorkingModel,
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.6-flash',
+        'gemini-flash-latest',
+      ].filter((m): m is string => Boolean(m));
+
+      const uniqueModels = Array.from(new Set(candidates));
+      let responseText = '';
+      let modelUsed = '';
+
+      for (const modelName of uniqueModels) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 18000);
+        try {
+          const resp = await ai.models.generateContent({
+            model: modelName,
+            contents: { parts: [{ text: prompt }] },
+            config: {
+              temperature: 0.2,
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  items: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        shortSummary: { type: Type.STRING },
+                        characteristics: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        composition: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        usage: { type: Type.ARRAY, items: { type: Type.STRING } },
+                      },
+                      required: ['id', 'shortSummary', 'characteristics', 'composition', 'usage'],
+                    },
+                  },
+                },
+                required: ['items'],
+              },
+              abortSignal: controller.signal,
+            },
+          });
+          if (resp?.text) {
+            responseText = resp.text;
+            modelUsed = modelName;
+            cachedWorkingModel = modelName;
+            break;
+          }
+        } catch (err: any) {
+          console.warn(`[CROPSA Summarize AI] ${modelName} failed:`, err?.message || err);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      if (!responseText) {
+        throw new Error('تعذر الاتصال بخدمة الذكاء الاصطناعي حالياً.');
+      }
+
+      let cleanJson = responseText
+        .trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/, '')
+        .replace(/```$/g, '')
+        .trim();
+      const firstBrace = cleanJson.indexOf('{');
+      const lastBrace = cleanJson.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        cleanJson = cleanJson.slice(firstBrace, lastBrace + 1);
+      }
+      const parsed = JSON.parse(cleanJson);
+      const summaries: Record<string, any> = {};
+      if (Array.isArray(parsed?.items)) {
+        for (const item of parsed.items) {
+          if (item?.id) {
+            summaries[String(item.id)] = {
+              shortSummary: String(item.shortSummary || '').trim(),
+              characteristics: Array.isArray(item.characteristics)
+                ? item.characteristics.map((x: any) => String(x).trim()).filter(Boolean)
+                : [],
+              composition: Array.isArray(item.composition)
+                ? item.composition.map((x: any) => String(x).trim()).filter(Boolean)
+                : [],
+              usage: Array.isArray(item.usage)
+                ? item.usage.map((x: any) => String(x).trim()).filter(Boolean)
+                : [],
+            };
+          }
+        }
+      }
+
+      return res.json({ success: true, modelUsed, summaries });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        error: error?.message || 'تعذر اختصار تفاصيل المنتجات بالذكاء الاصطناعي',
+      });
+    }
+  });
+
   // Orders Persistence & Webhook Dispatch
   const ordersStorePath = getStoreFilePath('orders-store.json');
 

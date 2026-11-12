@@ -30,6 +30,8 @@ import {
   ExternalLink,
   Images,
   Phone,
+  Edit3,
+  Wand2,
 } from 'lucide-react';
 import {
   Product,
@@ -46,6 +48,14 @@ import { pdfService, RenderedCatalogImage } from '../../services/pdfService';
 import { getMainCategories, getProductMainCategoryId } from '../../utils/categoryHierarchy';
 import { dbStorage } from '../../services/dbStorage';
 import { firestoreSync } from '../../services/firestoreSync';
+import {
+  CatalogDetailMode,
+  ProductCatalogOverride,
+  ProductCatalogSummary,
+  buildSmartProductSummary,
+  isProductTextDense,
+  resolveProductForCatalog,
+} from '../../utils/catalogSummary';
 import { aiCatalogService } from '../../services/aiCatalogService';
 import { FALLBACK_BOTTLE_SVG_DATA_URL } from '../../utils/agriculturalImages';
 import { ImageFileInput } from '../common/ImageFileInput';
@@ -705,6 +715,17 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
   const [showCharacteristics, setShowCharacteristics] = useState<boolean>(true);
   const [showComposition, setShowComposition] = useState<boolean>(true);
   const [showUsage, setShowUsage] = useState<boolean>(true);
+  const [detailMode, setDetailMode] = useState<CatalogDetailMode>('full');
+  const [productOverrides, setProductOverrides] = useState<Record<string, ProductCatalogOverride>>({});
+  const [isSummarizingWithAi, setIsSummarizingWithAi] = useState<boolean>(false);
+  const [summaryEditorProductId, setSummaryEditorProductId] = useState<string | null>(null);
+  const [summaryDraft, setSummaryDraft] = useState<{
+    mode: 'inherit' | CatalogDetailMode;
+    shortSummary: string;
+    characteristicsText: string;
+    compositionText: string;
+    usageText: string;
+  } | null>(null);
 
   // Multi-select Filters (Companies + Categories + Types + Search)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -810,11 +831,152 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     });
   }, [products, searchQuery, selectedCompanyIds, selectedCategoryIds, selectedProductTypes]);
 
-  // 2. Final selected products included in PDF
+  // 2. Final selected products included in PDF (with resolved concise/full details)
   const pdfProducts = useMemo(
     () => matchingProducts.filter((p) => selectedProductIds.includes(p.id)),
     [matchingProducts, selectedProductIds]
   );
+
+  const resolvedPdfProducts = useMemo(
+    () => pdfProducts.map((p) => resolveProductForCatalog(p, detailMode, productOverrides[p.id])),
+    [pdfProducts, detailMode, productOverrides]
+  );
+
+  const resolvedProductsMap = useMemo(
+    () => new Map(resolvedPdfProducts.map((p) => [p.id, p])),
+    [resolvedPdfProducts]
+  );
+
+  const getEffectiveProductMode = (productId: string): CatalogDetailMode =>
+    productOverrides[productId]?.mode ?? detailMode;
+
+  const toggleSingleProductDetailMode = (productId: string) => {
+    const currentEffective = getEffectiveProductMode(productId);
+    const nextMode: CatalogDetailMode = currentEffective === 'concise' ? 'full' : 'concise';
+    setProductOverrides((prev) => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        mode: nextMode === detailMode && !prev[productId]?.customSummary ? undefined : nextMode,
+      },
+    }));
+  };
+
+  const openProductSummaryEditor = (product: Product) => {
+    const ov = productOverrides[product.id];
+    const autoSum = buildSmartProductSummary(product);
+    const merged: ProductCatalogSummary = {
+      shortSummary: ov?.customSummary?.shortSummary || autoSum.shortSummary,
+      characteristics:
+        ov?.customSummary?.characteristics && ov.customSummary.characteristics.length > 0
+          ? ov.customSummary.characteristics
+          : autoSum.characteristics,
+      composition:
+        ov?.customSummary?.composition && ov.customSummary.composition.length > 0
+          ? ov.customSummary.composition
+          : autoSum.composition,
+      usage:
+        ov?.customSummary?.usage && ov.customSummary.usage.length > 0
+          ? ov.customSummary.usage
+          : autoSum.usage,
+    };
+    setSummaryEditorProductId(product.id);
+    setSummaryDraft({
+      mode: ov?.mode ?? 'inherit',
+      shortSummary: merged.shortSummary,
+      characteristicsText: merged.characteristics.join('\n'),
+      compositionText: merged.composition.join('\n'),
+      usageText: merged.usage.join('\n'),
+    });
+  };
+
+  const saveProductSummaryDraft = () => {
+    if (!summaryEditorProductId || !summaryDraft) return;
+    const parseLines = (text: string) =>
+      text
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    setProductOverrides((prev) => ({
+      ...prev,
+      [summaryEditorProductId]: {
+        mode: summaryDraft.mode === 'inherit' ? undefined : summaryDraft.mode,
+        customSummary: {
+          shortSummary: summaryDraft.shortSummary.trim(),
+          characteristics: parseLines(summaryDraft.characteristicsText),
+          composition: parseLines(summaryDraft.compositionText),
+          usage: parseLines(summaryDraft.usageText),
+        },
+      },
+    }));
+    setSummaryEditorProductId(null);
+    setSummaryDraft(null);
+    onShowToast('تم حفظ تفاصيل هذا المنتج في الكتالوج ✓', 'success');
+  };
+
+  const handlePolishSummariesWithAi = async (targetProducts?: Product[]) => {
+    const sourceList =
+      targetProducts && targetProducts.length > 0
+        ? targetProducts
+        : pdfProducts.filter((p) => getEffectiveProductMode(p.id) === 'concise');
+    const candidates = sourceList.length > 0 ? sourceList : pdfProducts;
+    if (candidates.length === 0) {
+      onShowToast('اختر منتجاً واحداً على الأقل أولاً', 'error');
+      return;
+    }
+
+    setIsSummarizingWithAi(true);
+    try {
+      const mergedSummaries: Record<string, Partial<ProductCatalogSummary>> = {};
+      for (let i = 0; i < candidates.length; i += 20) {
+        const chunk = candidates.slice(i, i + 20);
+        const res = await fetch('/api/gemini/summarize-catalog-products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            products: chunk.map((p) => ({
+              id: p.id,
+              name: p.name,
+              shortDescription: p.shortDescription,
+              description: p.description,
+              characteristics: p.characteristics,
+              composition: p.composition,
+              usage: p.usage,
+              applicationRate: p.applicationRate,
+            })),
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data?.success) {
+          throw new Error(data?.error || 'تعذر اختصار التفاصيل بالذكاء الاصطناعي');
+        }
+        Object.assign(mergedSummaries, data.summaries || {});
+      }
+
+      if (!targetProducts) {
+        setDetailMode('concise');
+      }
+      setProductOverrides((prev) => {
+        const next = { ...prev };
+        for (const [pid, sum] of Object.entries(mergedSummaries)) {
+          next[pid] = {
+            ...next[pid],
+            mode: targetProducts ? 'concise' : next[pid]?.mode,
+            customSummary: sum,
+          };
+        }
+        return next;
+      });
+      onShowToast('تم اختصار وصياغة التفاصيل بأفضل شكل بالذكاء الاصطناعي ✨', 'success');
+    } catch (err: any) {
+      onShowToast(
+        err?.message || 'تم تطبيق الاختصار التلقائي الذكي (الذكاء الاصطناعي غير متاح حالياً)',
+        'error'
+      );
+    } finally {
+      setIsSummarizingWithAi(false);
+    }
+  };
 
   // 3. Smart Company-Grouped Sequence Builder with Anti-Consecutive-Duplicate Divider Rule
   const buildStructuredSequence = useMemo(() => {
@@ -838,11 +1000,11 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
         lastDividerImage = cov.imageUrl;
       });
 
-      if (pdfProducts.length === 0) return seq;
+      if (resolvedPdfProducts.length === 0) return seq;
 
       // B) Group products cleanly by Company
       const companyMap = new Map<string, Product[]>();
-      pdfProducts.forEach((p) => {
+      resolvedPdfProducts.forEach((p) => {
         const cid = p.companyId || 'UNKNOWN';
         if (!companyMap.has(cid)) companyMap.set(cid, []);
         companyMap.get(cid)!.push(p);
@@ -980,7 +1142,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
 
       return seq;
     };
-  }, [pdfProducts, companies, dividerLibrary, autoInsertCompanyDividers, mergeCompaniesOnPages, productsPerPage]);
+  }, [resolvedPdfProducts, companies, dividerLibrary, autoInsertCompanyDividers, mergeCompaniesOnPages, productsPerPage]);
 
   // Auto-sync catalogSequence whenever underlying selections change (unless locked by manual edit)
   useEffect(() => {
@@ -1259,8 +1421,8 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
         createdByName: currentUser?.name,
         createdByUsername: currentUser?.username,
         createdAt: new Date().toISOString(),
-        productIds: pdfProducts.map((p) => p.id),
-        productsSnapshot: pdfProducts,
+        productIds: resolvedPdfProducts.map((p) => p.id),
+        productsSnapshot: resolvedPdfProducts,
         packagesSnapshot: packages.filter((pkg) => selectedSet.has(pkg.productId) && pkg.active),
         companiesSnapshot: companies.filter((c) => relatedCompanyIds.has(c.id)),
         categoriesSnapshot: categories.filter((c) => relatedCategoryIds.has(c.id)),
@@ -1278,6 +1440,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
           showUsage,
           productsPerPage,
           mergeCompaniesOnPages,
+          detailMode,
         },
       };
 
@@ -1409,7 +1572,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     }
 
     // 2. Product Grid Page — Canva Botanical Brochure Design + Fixed Layout Geometry
-    const pageProducts = item.products;
+    const pageProducts = item.products.map((p) => resolvedProductsMap.get(p.id) || p);
     const layout = PDF_PAGE_LAYOUTS[productsPerPage] || PDF_PAGE_LAYOUTS[4];
 
     const pageCompanyObj = companies.find((c) => c.id === item.companyId);
@@ -1723,13 +1886,56 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
 
         {/* Always-Ready Multi-Format Export & Instant WhatsApp Send Strip */}
         <div className="flex flex-wrap items-center justify-between gap-2.5 pt-3 border-t border-stone-100">
-          <div className="flex flex-wrap items-center gap-1.5 text-xs font-black">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-black">
             <span className="bg-emerald-50 text-[#046A47] border border-emerald-200 px-3 py-1 rounded-full">
               {pdfProducts.length} منتج مختار
             </span>
             <span className="bg-stone-100 text-stone-700 px-3 py-1 rounded-full">
               {catalogSequence.length} صفحة ({productsPerPage} / صفحة)
             </span>
+
+            {/* Global Detail Mode Quick Switch */}
+            <div
+              className="inline-flex items-center bg-stone-100 border border-stone-200 p-0.5 rounded-xl"
+              title="اختر هل تظهر تفاصيل المنتجات مختصرة ومنسقة أم كاملة كما هي"
+            >
+              <button
+                type="button"
+                onClick={() => setDetailMode('full')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-black transition-all cursor-pointer ${
+                  detailMode === 'full'
+                    ? 'bg-white text-stone-900 shadow-2xs'
+                    : 'text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                كامل زي ما هو
+              </button>
+              <button
+                type="button"
+                onClick={() => setDetailMode('concise')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1 transition-all cursor-pointer ${
+                  detailMode === 'concise'
+                    ? 'bg-[#046A47] text-white shadow-2xs'
+                    : 'text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                <span>مختصر ومنسّق</span>
+              </button>
+            </div>
+
+            {detailMode === 'concise' && pdfProducts.length > 0 && (
+              <button
+                type="button"
+                onClick={() => handlePolishSummariesWithAi()}
+                disabled={isSummarizingWithAi}
+                className="px-2.5 py-1 rounded-xl text-[11px] font-black bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                title="تجميل وصياغة الاختصارات بالذكاء الاصطناعي مع الحفاظ على النسب والجرعات"
+              >
+                <Wand2 className="w-3.5 h-3.5 text-amber-600" />
+                <span>{isSummarizingWithAi ? 'جاري الاختصار...' : 'صياغة بالذكاء الاصطناعي'}</span>
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -2019,36 +2225,76 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
               const isChecked = selectedProductIds.includes(p.id);
               const comp = companies.find((c) => c.id === p.companyId);
               const firstPkg = packages.find((pkg) => pkg.productId === p.id);
+              const effMode = getEffectiveProductMode(p.id);
+              const hasDenseText = isProductTextDense(p);
+              const hasCustomOverride = Boolean(productOverrides[p.id]?.mode || productOverrides[p.id]?.customSummary);
 
               return (
-                <label
+                <div
                   key={p.id}
-                  className={`p-2 rounded-xl border flex items-center gap-2.5 cursor-pointer transition-all ${
+                  className={`p-2 rounded-xl border transition-all space-y-1.5 ${
                     isChecked
                       ? 'bg-emerald-50/80 border-[#046A47] shadow-2xs'
-                      : 'bg-white border-stone-200 opacity-60 hover:opacity-100'
+                      : 'bg-white border-stone-200 opacity-65 hover:opacity-100'
                   }`}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => toggleProductSelect(p.id)}
-                    className="rounded text-[#046A47] focus:ring-[#046A47] w-4 h-4 shrink-0"
-                  />
-                  <div className="w-9 h-9 rounded-lg bg-white border border-stone-200 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
-                    <img
-                      src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=100&auto=format&fit=crop&q=80'}
-                      alt={p.name}
-                      className="max-h-full max-w-full object-contain"
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleProductSelect(p.id)}
+                      className="rounded text-[#046A47] focus:ring-[#046A47] w-4 h-4 shrink-0"
                     />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-black text-xs text-stone-900 truncate">{p.name}</div>
-                    <div className="text-[10px] text-stone-500 truncate">
-                      {comp?.name} {firstPkg ? `• ${firstPkg.price} ج` : ''}
+                    <div className="w-9 h-9 rounded-lg bg-white border border-stone-200 p-0.5 flex items-center justify-center shrink-0 overflow-hidden">
+                      <img
+                        src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=100&auto=format&fit=crop&q=80'}
+                        alt={p.name}
+                        className="max-h-full max-w-full object-contain"
+                      />
                     </div>
-                  </div>
-                </label>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1">
+                        <span className="font-black text-xs text-stone-900 truncate">{p.name}</span>
+                        {hasDenseText && (
+                          <span className="bg-amber-100 text-amber-900 text-[9px] font-black px-1.5 py-0.5 rounded shrink-0">
+                            تفاصيل طويلة
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-stone-500 truncate">
+                        {comp?.name} {firstPkg ? `• ${firstPkg.price} ج` : ''}
+                      </div>
+                    </div>
+                  </label>
+
+                  {isChecked && (
+                    <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-emerald-200/70">
+                      <button
+                        type="button"
+                        onClick={() => toggleSingleProductDetailMode(p.id)}
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-lg border transition-colors cursor-pointer ${
+                          effMode === 'concise'
+                            ? 'bg-[#046A47] text-white border-[#046A47]'
+                            : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                        }`}
+                        title="اضغط للتبديل لهذا المنتج بين المختصر والكامل"
+                      >
+                        {effMode === 'concise' ? 'مختصر ✨' : 'كامل زي ما هو'}
+                        {hasCustomOverride ? ' •' : ''}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => openProductSummaryEditor(p)}
+                        className="text-[10px] font-bold text-stone-700 hover:text-[#046A47] bg-white border border-stone-200 px-2 py-0.5 rounded-lg flex items-center gap-1 cursor-pointer"
+                        title="معاينة أو تعديل الملخص لهذا المنتج"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>معاينة / تعديل</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -2157,6 +2403,67 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Product Details Style Chooser: Full vs Concise Summary */}
+          <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <span className="text-xs font-black text-stone-900 block">
+                  مستوى تفاصيل المنتجات في هذا الكتالوج:
+                </span>
+                <span className="text-[10px] text-stone-600 font-medium">
+                  لو المنتجات فيها شرح طويل، اختصرها لأهم النقاط (المادة الفعالة، الاستخدام، الجرعة) أو خليه زي ما هو
+                </span>
+              </div>
+
+              {pdfProducts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => handlePolishSummariesWithAi()}
+                  disabled={isSummarizingWithAi}
+                  className="px-3 py-1.5 rounded-xl text-[11px] font-black bg-stone-900 hover:bg-stone-800 text-amber-300 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-2xs"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>{isSummarizingWithAi ? 'جاري الاختصار بالذكاء...' : 'اختصار وتنسيق بالذكاء الاصطناعي ✨'}</span>
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setDetailMode('full')}
+                className={`p-3 rounded-2xl border-2 text-right transition-all cursor-pointer ${
+                  detailMode === 'full'
+                    ? 'bg-white border-[#046A47] ring-2 ring-emerald-500/15 shadow-xs'
+                    : 'bg-white/70 border-stone-200 hover:border-stone-300'
+                }`}
+              >
+                <div className="text-xs font-black text-stone-900">التفاصيل كاملة كما هي</div>
+                <div className="text-[10px] text-stone-500 font-medium mt-0.5">
+                  يعرض النص الكامل للخصائص والتركيب والاستخدام بدون اختصار
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDetailMode('concise')}
+                className={`p-3 rounded-2xl border-2 text-right transition-all cursor-pointer ${
+                  detailMode === 'concise'
+                    ? 'bg-[#046A47] text-white border-[#046A47] shadow-xs'
+                    : 'bg-white/70 border-stone-200 hover:border-emerald-300 text-stone-900'
+                }`}
+              >
+                <div className="text-xs font-black flex items-center gap-1.5">
+                  <Sparkles className={`w-3.5 h-3.5 ${detailMode === 'concise' ? 'text-amber-300' : 'text-[#046A47]'}`} />
+                  <span>مختصر ومنسّق (توصيل المعلومة بوضوح)</span>
+                </div>
+                <div className={`text-[10px] font-medium mt-0.5 ${detailMode === 'concise' ? 'text-emerald-100' : 'text-stone-500'}`}>
+                  يلخّص الشرح الطويل في نقاط مركزة واضحة وسريعة القراءة في PDF والصور والرابط
+                </div>
+              </button>
             </div>
           </div>
 
@@ -2957,6 +3264,177 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Per-Product Summary Override & Editor Modal */}
+      {summaryEditorProductId && summaryDraft && (() => {
+        const targetProd = products.find((p) => p.id === summaryEditorProductId);
+        if (!targetProd) return null;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs dir-rtl">
+            <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl border border-stone-200 space-y-4 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-3">
+                <div>
+                  <h3 className="text-sm sm:text-base font-black text-stone-900">
+                    تخصيص تفاصيل: {targetProd.name}
+                  </h3>
+                  <p className="text-[11px] text-stone-500 font-medium">
+                    اختَر لهذا المنتج إما يظهر مختصر ومنسق أو كامل زي ما هو، أو عدّل النقاط المختصرة
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSummaryEditorProductId(null);
+                    setSummaryDraft(null);
+                  }}
+                  className="p-1.5 bg-stone-100 hover:bg-stone-200 rounded-full text-stone-600 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'inherit' as const, label: `حسب الكتالوج (${detailMode === 'concise' ? 'مختصر' : 'كامل'})` },
+                  { id: 'concise' as const, label: 'مختصر ✨' },
+                  { id: 'full' as const, label: 'كامل زي ما هو' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setSummaryDraft((d) => (d ? { ...d, mode: opt.id } : d))}
+                    className={`p-2 rounded-xl border text-[11px] font-black cursor-pointer transition-all ${
+                      summaryDraft.mode === opt.id
+                        ? 'bg-[#046A47] text-white border-[#046A47]'
+                        : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-stone-50 border border-stone-200 rounded-2xl p-2.5">
+                <span className="text-[11px] font-bold text-stone-600">
+                  النص المختصر التلقائي (يمكنك تعديله بالسطور):
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const auto = buildSmartProductSummary(targetProd);
+                      setSummaryDraft((d) =>
+                        d
+                          ? {
+                              ...d,
+                              shortSummary: auto.shortSummary,
+                              characteristicsText: auto.characteristics.join('\n'),
+                              compositionText: auto.composition.join('\n'),
+                              usageText: auto.usage.join('\n'),
+                            }
+                          : d
+                      );
+                    }}
+                    className="text-[10px] font-bold bg-white border border-stone-200 px-2.5 py-1 rounded-lg hover:bg-stone-100 cursor-pointer"
+                  >
+                    إعادة الاختصار التلقائي
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handlePolishSummariesWithAi([targetProd]);
+                      setSummaryEditorProductId(null);
+                      setSummaryDraft(null);
+                    }}
+                    disabled={isSummarizingWithAi}
+                    className="text-[10px] font-black bg-amber-100 text-amber-950 border border-amber-300 px-2.5 py-1 rounded-lg flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  >
+                    <Wand2 className="w-3 h-3" />
+                    <span>{isSummarizingWithAi ? 'جاري...' : 'اختصار بالذكاء ✨'}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-right">
+                <div>
+                  <label className="text-[11px] font-black text-stone-700 block mb-1">
+                    النبذة المختصرة (تظهر للعميل في الرابط التفاعلي):
+                  </label>
+                  <input
+                    type="text"
+                    value={summaryDraft.shortSummary}
+                    onChange={(e) =>
+                      setSummaryDraft((d) => (d ? { ...d, shortSummary: e.target.value } : d))
+                    }
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#046A47]"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-black text-stone-700 block mb-1">
+                    الخصائص المختصرة (كل نقطة في سطر):
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={summaryDraft.characteristicsText}
+                    onChange={(e) =>
+                      setSummaryDraft((d) => (d ? { ...d, characteristicsText: e.target.value } : d))
+                    }
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#046A47]"
+                  />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] font-black text-stone-700 block mb-1">
+                      التركيب المختصر:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={summaryDraft.compositionText}
+                      onChange={(e) =>
+                        setSummaryDraft((d) => (d ? { ...d, compositionText: e.target.value } : d))
+                      }
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#046A47]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-black text-stone-700 block mb-1">
+                      معدل الاستخدام المختصر:
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={summaryDraft.usageText}
+                      onChange={(e) =>
+                        setSummaryDraft((d) => (d ? { ...d, usageText: e.target.value } : d))
+                      }
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-[#046A47]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSummaryEditorProductId(null);
+                    setSummaryDraft(null);
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-stone-100 hover:bg-stone-200 text-stone-700 cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={saveProductSummaryDraft}
+                  className="px-5 py-2 rounded-xl text-xs font-black bg-[#046A47] hover:bg-[#035237] text-white cursor-pointer"
+                >
+                  حفظ واعتماد لهذا المنتج ✓
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
