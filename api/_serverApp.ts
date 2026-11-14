@@ -203,7 +203,7 @@ export function createApiApp() {
         `4. التركيب الكيميائي: استخرج المواد الفعالة والنسب المئوية بالتفصيل (مثل: N 20% + P2O5 20% + K2O 20% أو نحاس أو ديازينون أو حمض فوسفوريك).`,
         `5. المميزات: قائمة بأهم فوائد ومميزات المركب.`,
         `6. التوصيات ومعدلات الاستخدام: جرعة الرش الورقي أو التسميد الأرضي للمحاصيل (مثل 200 سم / 100 لتر ماء).`,
-        `7. العبوات والأسعار: استخرج كل حجم عبوة مع سعرها الرسمي بالجنيه المصري (مثلا عبوة 1 لتر بسعر 350، وعبوة 5 لتر بسعر 1600). إذا كانت أسعار الكراتين مذكورة استخرج عدد العبوات في الكرتونة. إذا لم يذكر عدد العبوات في الكرتونة ضع القيمة الافتراضية المناسبة (اللتر 12 عبوة، الـ 250 سم 24 عبوة، الـ 5 لتر 4 عبوات، الشيكارة 25 كجم 1).`,
+        `7. العبوات والأسعار: استخرج كل حجم عبوة مع سعرها الرسمي بالجنيه المصري (مثلا عبوة 1 لتر بسعر 350، وعبوة 5 لتر بسعر 1600). إذا كانت أسعار الكراتين مذكورة استخرج عدد العبوات في الكرتونة. إذا لم يذكر عدد العبوات في الكرتونة ضع القيمة الافتراضية المناسبة (اللتر 12 عبوة، الـ 250 سم 24 عبوة، الـ 5 لتر 4 عبوات، الشيكارة 25 كجم 1). [قاعدة صارمة للأسعار]: إذا لم يكن هناك سعر صريح ومكتوب للمنتج أو العبوة في الكتالوج، إياك أن تؤلف أو تخمن أو تفترض سعراً من عندك على الإطلاق! ضع السعر 0 (صفر) لكي يتم تمييزه كمنتج بدون سعر ومراجعته باللون الأحمر.`,
         `8. سحب وقص صورة المنتج الفعلية من الكتالوج (هام جداً): لكل منتج توجد له صورة/عبوة/زجاجة/شيكارة في الملف/الصفحة المرفقة، حدد رقم الملف أو الصفحة (sourceImageIndex بدءاً من 0 حسب الترقيم [ملف/صفحة رقم X]) وحدد الإحداثيات الدقيقة لمربع صورة العبوة نفسها فقط (imageBox: ymin, xmin, ymax, xmax بنظام 0 إلى 1000) لكي نقوم بقص الصورة الحقيقية للمنتج من الكتالوج دون ضياعها. إذا كانت الصفحة تحوي عدة منتجات حدد مربع صورة كل منتج على حدة بدقة.`,
         `9. وسوم البحث المخفية للآفات والمحاصيل (searchTags - هام للبحث السريع): اقرأ وصف المركب ومادته الفعالة واستخدامه، واستنتج جميع الآفات والحشرات والأمراض والمحاصيل والأغراض الزراعية التي يخدمها المنتج ككلمات مفتاحية شائعة باللغة العربية الدارجة (مثل: دودة، ديدان، يرقات، حشرات، توتا أبسلوتا، ذبابة بيضاء، من، تربس، أكاروس، نيماتودا، عفن، أعفان، فطريات، بياض، ندوة، حشائش، تجذير، جذور، تحجيم، تزهير، عقد، هيوميك، ملوحة، طماطم، بطاطس، عنب، موالح، خضر، فاكهة، قمح، ذرة) لتسريع ظهور المنتج للعميل في شريط البحث السريع.`,
       ];
@@ -242,7 +242,7 @@ export function createApiApp() {
 
       const baseExtractionConfig = {
         systemInstruction:
-          'You are an expert agronomist and catalog digitizer with vision localization. Strict rule: powder/granules=fertilizer, liquid/volume=stimulant, pest/weed/fungus targeting=pesticide. Extract agricultural chemical, fertilizer, and pesticide product catalogs with absolute precision into clean JSON. Always capture prices, package sizes, and for every visible product bottle/bag/packaging on any image/page, return sourceImageIndex (0-based) and exact normalized bounding box imageBox { ymin, xmin, ymax, xmax } in 0..1000 coordinates.',
+          'You are an expert agronomist and catalog digitizer with vision localization. Strict rule: powder/granules=fertilizer, liquid/volume=stimulant, pest/weed/fungus targeting=pesticide. Strict pricing rule: Never invent or hallucinate prices. If a product or package has no explicitly stated price in the catalog, set price to 0. Extract agricultural chemical, fertilizer, and pesticide product catalogs with absolute precision into clean JSON. For every visible product bottle/bag/packaging on any image/page, return sourceImageIndex (0-based) and exact normalized bounding box imageBox { ymin, xmin, ymax, xmax } in 0..1000 coordinates.',
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -324,7 +324,11 @@ export function createApiApp() {
                           type: Type.STRING,
                           description: 'الوحدة (لتر، كجم، مل، سم، جرام)',
                         },
-                        price: { type: Type.NUMBER, description: 'السعر بالجنيه المصري' },
+                        price: {
+                          type: Type.NUMBER,
+                          description:
+                            'السعر بالجنيه المصري (ضع 0 بالضبط إذا لم يذكر سعر في الكتالوج صراحة ولا تخمن سعراً من عندك أبداً)',
+                        },
                         piecesPerCarton: {
                           type: Type.NUMBER,
                           description: 'عدد العبوات في الكرتونة',

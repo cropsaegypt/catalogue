@@ -300,7 +300,10 @@ export const aiCatalogService = {
           displayName: pkg.displayName || `${pkg.quantity || 1} ${pkg.unit || 'لتر'}`,
           quantity: Number(pkg.quantity) || 1,
           unit: pkg.unit || 'لتر',
-          price: Number(pkg.price) || 0,
+          price:
+            typeof pkg.price === 'number' && !isNaN(pkg.price) && pkg.price > 0
+              ? Number(pkg.price)
+              : 0,
           piecesPerCarton:
             Number(pkg.piecesPerCarton) ||
             (pkg.unit?.includes('كجم') || pkg.unit?.includes('لتر') ? 12 : 24),
@@ -426,7 +429,7 @@ export const aiCatalogService = {
                     displayName: computedType === 'fertilizer' ? '1 كجم' : '1 لتر',
                     quantity: 1,
                     unit: computedType === 'fertilizer' ? 'كجم' : 'لتر',
-                    price: 150,
+                    price: 0,
                     piecesPerCarton: 12,
                   },
                 ],

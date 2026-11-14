@@ -53,6 +53,21 @@ export interface UploadedCatalogFile {
   compressedSizeKb?: number;
 }
 
+export interface ExtractionSummaryStats {
+  companyName: string;
+  previousProductsCount: number;
+  extractedPagesCount: number;
+  extractedProductsCount: number;
+  withPriceCount: number;
+  missingPriceCount: number;
+  extractedAt: Date;
+}
+
+export const isProductMissingPrice = (prod: ExtractedProductItem): boolean => {
+  if (!prod.packages || prod.packages.length === 0) return true;
+  return prod.packages.every((pkg) => !pkg.price || Number(pkg.price) <= 0);
+};
+
 interface AiCatalogExtractorProps {
   companies: Company[];
   categories: Category[];
@@ -119,10 +134,14 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
   const [extractionResult, setExtractionResult] = useState<CatalogExtractionResult | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
 
+  // Extraction post-analysis summary & modal
+  const [extractionSummary, setExtractionSummary] = useState<ExtractionSummaryStats | null>(null);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   // Filter and bulk controls
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [priceFilter, setPriceFilter] = useState<'all' | 'missing-price' | 'has-price'>('all');
   const [expandedProductIds, setExpandedProductIds] = useState<Record<string, boolean>>({});
 
   // Bulk Price Adjuster Modal
@@ -322,8 +341,44 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       });
       setExpandedProductIds(expandMap);
 
+      // Calculate extraction summary metrics
+      const previousProductsCount = existingProducts.filter(
+        (p) => p.companyId === selectedCompany.id
+      ).length;
+
+      let extractedPagesCount = 0;
+      for (const item of uploadedFiles) {
+        if (item.isPdf && item.pageCount) {
+          extractedPagesCount += Math.min(item.pageCount, 24);
+        } else {
+          extractedPagesCount += 1;
+        }
+      }
+      if (extractedPagesCount === 0 && filesPayload.length > 0) {
+        extractedPagesCount = filesPayload.length;
+      }
+      if (extractedPagesCount === 0) {
+        extractedPagesCount = 1;
+      }
+
+      const missingPriceCount = result.products.filter(isProductMissingPrice).length;
+      const withPriceCount = result.products.length - missingPriceCount;
+
+      const summaryStats: ExtractionSummaryStats = {
+        companyName: selectedCompany.name,
+        previousProductsCount,
+        extractedPagesCount,
+        extractedProductsCount: result.products.length,
+        withPriceCount,
+        missingPriceCount,
+        extractedAt: new Date(),
+      };
+
+      setExtractionSummary(summaryStats);
+      setIsSummaryModalOpen(true);
+
       onShowToast(
-        `تم استخراج ${result.products.length} منتج وعبوة لشركة ${selectedCompany.name} بنجاح!`,
+        `ملخص الاستخراج: الكتالوج السابق كان به ${previousProductsCount} منتج، تم فحص ${extractedPagesCount} صفحة، واستخراج ${result.products.length} منتج (${missingPriceCount} بدون سعر محدد بالأحمر).`,
         'success'
       );
     } catch (error: any) {
@@ -345,10 +400,22 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
     setExtractionResult(sample);
     const expandMap: Record<string, boolean> = {};
     sample.products.forEach((p) => {
-
       expandMap[p.id] = true;
     });
     setExpandedProductIds(expandMap);
+
+    const prevCount = existingProducts.filter((p) => p.companyId === selectedCompany.id).length;
+    const missing = sample.products.filter(isProductMissingPrice).length;
+    setExtractionSummary({
+      companyName: selectedCompany.name,
+      previousProductsCount: prevCount,
+      extractedPagesCount: 4,
+      extractedProductsCount: sample.products.length,
+      withPriceCount: sample.products.length - missing,
+      missingPriceCount: missing,
+      extractedAt: new Date(),
+    });
+    setIsSummaryModalOpen(true);
     onShowToast(`تم تحميل نموذج استخراج كتالوج تجريبي لشركة ${selectedCompany.name}`, 'success');
   };
 
@@ -396,42 +463,75 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       displayName: '1 لتر',
       quantity: 1,
       unit: 'لتر',
-      price: 150,
+      price: 0,
       piecesPerCarton: 12,
     };
 
+    const updatedProducts = extractionResult.products.map((p) =>
+      p.id === productId ? { ...p, packages: [...p.packages, newPkg] } : p
+    );
+
     setExtractionResult({
       ...extractionResult,
-      products: extractionResult.products.map((p) =>
-        p.id === productId ? { ...p, packages: [...p.packages, newPkg] } : p
-      ),
+      products: updatedProducts,
     });
+
+    if (extractionSummary) {
+      const missing = updatedProducts.filter(isProductMissingPrice).length;
+      setExtractionSummary({
+        ...extractionSummary,
+        missingPriceCount: missing,
+        withPriceCount: updatedProducts.length - missing,
+      });
+    }
   };
 
   // Update package
   const handleUpdatePackage = (productId: string, pkgIdx: number, updates: Partial<ExtractedPackage>) => {
     if (!extractionResult) return;
+    const updatedProducts = extractionResult.products.map((p) => {
+      if (p.id !== productId) return p;
+      const newPkgs = [...p.packages];
+      newPkgs[pkgIdx] = { ...newPkgs[pkgIdx], ...updates };
+      return { ...p, packages: newPkgs };
+    });
+
     setExtractionResult({
       ...extractionResult,
-      products: extractionResult.products.map((p) => {
-        if (p.id !== productId) return p;
-        const newPkgs = [...p.packages];
-        newPkgs[pkgIdx] = { ...newPkgs[pkgIdx], ...updates };
-        return { ...p, packages: newPkgs };
-      }),
+      products: updatedProducts,
     });
+
+    if (extractionSummary) {
+      const missing = updatedProducts.filter(isProductMissingPrice).length;
+      setExtractionSummary({
+        ...extractionSummary,
+        missingPriceCount: missing,
+        withPriceCount: updatedProducts.length - missing,
+      });
+    }
   };
 
   // Remove package
   const handleRemovePackage = (productId: string, pkgIdx: number) => {
     if (!extractionResult) return;
+    const updatedProducts = extractionResult.products.map((p) => {
+      if (p.id !== productId) return p;
+      return { ...p, packages: p.packages.filter((_, idx) => idx !== pkgIdx) };
+    });
+
     setExtractionResult({
       ...extractionResult,
-      products: extractionResult.products.map((p) => {
-        if (p.id !== productId) return p;
-        return { ...p, packages: p.packages.filter((_, idx) => idx !== pkgIdx) };
-      }),
+      products: updatedProducts,
     });
+
+    if (extractionSummary) {
+      const missing = updatedProducts.filter(isProductMissingPrice).length;
+      setExtractionSummary({
+        ...extractionSummary,
+        missingPriceCount: missing,
+        withPriceCount: updatedProducts.length - missing,
+      });
+    }
   };
 
   // Add new manual product to table
@@ -449,16 +549,27 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       usage: ['رش ورقي 200 سم / 100 لتر ماء'],
       applicationRate: '200 سم / 100 لتر ماء',
       packages: [
-        { id: `PKG-${Date.now()}-1`, displayName: '1 لتر', quantity: 1, unit: 'لتر', price: 200, piecesPerCarton: 12 },
+        { id: `PKG-${Date.now()}-1`, displayName: '1 لتر', quantity: 1, unit: 'لتر', price: 0, piecesPerCarton: 12 },
       ],
       selectedForImport: true,
     };
 
+    const updated = [newProd, ...extractionResult.products];
     setExtractionResult({
       ...extractionResult,
-      products: [newProd, ...extractionResult.products],
+      products: updated,
     });
     setExpandedProductIds((prev) => ({ ...prev, [newProd.id]: true }));
+
+    if (extractionSummary) {
+      const missing = updated.filter(isProductMissingPrice).length;
+      setExtractionSummary({
+        ...extractionSummary,
+        extractedProductsCount: updated.length,
+        missingPriceCount: missing,
+        withPriceCount: updated.length - missing,
+      });
+    }
   };
 
   // Delete product from extracted table
@@ -523,6 +634,14 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
     if (selectedProducts.length === 0) {
       onShowToast('يرجى تحديد منتج واحد على الأقل للاعتماد والحفظ', 'error');
       return;
+    }
+
+    const unpricedSelected = selectedProducts.filter(isProductMissingPrice);
+    if (unpricedSelected.length > 0) {
+      const confirmSave = window.confirm(
+        `تنبيه: يوجد ${unpricedSelected.length} منتج من المحددة بدون سعر (سعرها 0 ج.م). هل ترغب في حفظها في الكتالوج الآن بدون سعر وإكمال تسعيرها لاحقاً؟`
+      );
+      if (!confirmSave) return;
     }
 
     const newProductsToAdd: Product[] = [];
@@ -711,11 +830,21 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       p.categoryId === filterCategory ||
       p.categoryName.toLowerCase().includes(filterCategory.toLowerCase());
 
-    return matchesSearch && matchesCategory;
+    const matchesPriceFilter =
+      priceFilter === 'all'
+        ? true
+        : priceFilter === 'missing-price'
+        ? isProductMissingPrice(p)
+        : !isProductMissingPrice(p);
+
+    return matchesSearch && matchesCategory && matchesPriceFilter;
   });
 
-  const selectedCount = (extractionResult?.products || []).filter((p) => p.selectedForImport).length;
-  const totalPackagesCount = (extractionResult?.products || []).reduce(
+  const allExtractedProducts = extractionResult?.products || [];
+  const missingPriceProductsCount = allExtractedProducts.filter(isProductMissingPrice).length;
+  const withPriceProductsCount = allExtractedProducts.length - missingPriceProductsCount;
+  const selectedCount = allExtractedProducts.filter((p) => p.selectedForImport).length;
+  const totalPackagesCount = allExtractedProducts.reduce(
     (acc, p) => acc + (p.selectedForImport ? p.packages.length : 0),
     0
   );
@@ -1004,6 +1133,124 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       {/* Interactive Review and Edit Table */}
       {extractionResult && (
         <div className="bg-[#FAF8F5] p-6 rounded-3xl border-2 border-emerald-600/40 shadow-sm space-y-6 animate-in fade-in">
+          {/* Smart AI Extraction Summary Dashboard */}
+          {extractionSummary && (
+            <div className="bg-gradient-to-br from-emerald-950 via-[#044A32] to-[#023321] text-white p-5 rounded-3xl shadow-lg border border-emerald-700/60 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/15 pb-3.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-400 text-stone-950 flex items-center justify-center font-black shadow-md">
+                    <Sparkles className="w-5 h-5 text-stone-950" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-black text-base text-white">ملخص استخراج الكتالوج بالذكاء الاصطناعي</h4>
+                      <span className="text-[10px] font-black bg-white/20 text-emerald-100 px-2 py-0.5 rounded-full">
+                        {extractionSummary.companyName}
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-200">
+                      مقارنة بين بيانات الكتالوج القديم والمخرجات المستخرجة حديثاً
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSummaryModalOpen(true)}
+                    className="text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/20 text-emerald-100 px-3 py-1 rounded-xl cursor-pointer transition-colors"
+                  >
+                    عرض تفاصيل الملخص ℹ️
+                  </button>
+                  <span className="text-[11px] font-bold bg-white/10 border border-white/20 text-emerald-100 px-3 py-1 rounded-xl">
+                    {new Date(extractionSummary.extractedAt).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+
+              {/* KPI Cards Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {/* 1. Old Catalog Products Count */}
+                <div className="bg-white/10 backdrop-blur-xs border border-white/15 rounded-2xl p-3.5 flex flex-col justify-between">
+                  <span className="text-[11px] font-bold text-emerald-200 block mb-1">
+                    الكتالوج القديم المسجل:
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-white">
+                      {extractionSummary.previousProductsCount}
+                    </span>
+                    <span className="text-xs text-emerald-200 font-bold">منتج سابق</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-300/80 mt-1">
+                    مسجلة حالياً بقاعدة البيانات
+                  </span>
+                </div>
+
+                {/* 2. Pages Scanned Count */}
+                <div className="bg-white/10 backdrop-blur-xs border border-white/15 rounded-2xl p-3.5 flex flex-col justify-between">
+                  <span className="text-[11px] font-bold text-emerald-200 block mb-1">
+                    الصفحات المستخرجة:
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-amber-300">
+                      {extractionSummary.extractedPagesCount}
+                    </span>
+                    <span className="text-xs text-emerald-200 font-bold">صفحة ومستند</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-300/80 mt-1">
+                    تم فحصها واستخراج بياناتها بالـ AI
+                  </span>
+                </div>
+
+                {/* 3. Extracted Products Count */}
+                <div className="bg-white/10 backdrop-blur-xs border border-white/15 rounded-2xl p-3.5 flex flex-col justify-between">
+                  <span className="text-[11px] font-bold text-emerald-200 block mb-1">
+                    المنتجات المستخرجة حديثاً:
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-black text-emerald-300">
+                      {extractionSummary.extractedProductsCount}
+                    </span>
+                    <span className="text-xs text-emerald-200 font-bold">منتج جديد</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-300/80 mt-1">
+                    جاهزة للاعتماد والمراجعة
+                  </span>
+                </div>
+
+                {/* 4. Missing Price Alert Card (RED) */}
+                <div
+                  onClick={() => setPriceFilter(priceFilter === 'missing-price' ? 'all' : 'missing-price')}
+                  className={`rounded-2xl p-3.5 flex flex-col justify-between cursor-pointer transition-all ${
+                    extractionSummary.missingPriceCount > 0
+                      ? 'bg-rose-500/25 border-2 border-rose-400 text-rose-100 hover:bg-rose-500/35'
+                      : 'bg-white/10 border border-white/15 text-emerald-100'
+                  }`}
+                  title="انقر لتصفية المنتجات بدون سعر فقط"
+                >
+                  <span className="text-[11px] font-bold block mb-1 flex items-center justify-between">
+                    <span>منتجات بدون سعر:</span>
+                    {extractionSummary.missingPriceCount > 0 && (
+                      <span className="text-[10px] font-black bg-rose-600 text-white px-1.5 py-0.5 rounded-full">
+                        تتطلب تسعير
+                      </span>
+                    )}
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className={`text-2xl font-black ${extractionSummary.missingPriceCount > 0 ? 'text-rose-300' : 'text-emerald-300'}`}>
+                      {extractionSummary.missingPriceCount}
+                    </span>
+                    <span className="text-xs font-bold">منتج بدون سعر</span>
+                  </div>
+                  <span className="text-[10px] mt-1 text-rose-200 underline">
+                    {extractionSummary.missingPriceCount > 0
+                      ? 'محددة بالأحمر (انقر لتصفيتها وتحديد أسعارها)'
+                      : 'جميع المنتجات مسعرة بالكامل ✓'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Section Title & Summary Metrics */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-4 border-b border-[#E5E2D9]">
             <div className="space-y-1">
@@ -1083,12 +1330,60 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {/* Quick Price Filter Pills */}
+              <div className="flex items-center bg-[#FAF8F5] border border-[#D4D1C5] p-1 rounded-xl text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setPriceFilter('all')}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    priceFilter === 'all'
+                      ? 'bg-white text-[#2D2D24] shadow-xs font-black'
+                      : 'text-[#5A5A40] hover:text-[#2D2D24]'
+                  }`}
+                >
+                  الكل ({allExtractedProducts.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPriceFilter('missing-price')}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 ${
+                    priceFilter === 'missing-price'
+                      ? 'bg-rose-600 text-white font-black shadow-xs'
+                      : missingPriceProductsCount > 0
+                      ? 'text-rose-600 hover:bg-rose-50 font-black'
+                      : 'text-stone-400 cursor-not-allowed'
+                  }`}
+                >
+                  <span>بدون سعر</span>
+                  {missingPriceProductsCount > 0 && (
+                    <span
+                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${
+                        priceFilter === 'missing-price' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-700'
+                      }`}
+                    >
+                      {missingPriceProductsCount}
+                    </span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPriceFilter('has-price')}
+                  className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    priceFilter === 'has-price'
+                      ? 'bg-[#046A47] text-white font-black shadow-xs'
+                      : 'text-[#5A5A40] hover:text-[#046A47]'
+                  }`}
+                >
+                  بأسعار ({withPriceProductsCount})
+                </button>
+              </div>
+
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="بحث في المنتجات المستخرجة..."
-                className="bg-[#FAF8F5] border border-[#D4D1C5] rounded-xl px-3 py-1.5 text-xs text-[#2D2D24] focus:ring-2 focus:ring-[#046A47] focus:outline-none w-48"
+                className="bg-[#FAF8F5] border border-[#D4D1C5] rounded-xl px-3 py-1.5 text-xs text-[#2D2D24] focus:ring-2 focus:ring-[#046A47] focus:outline-none w-44"
               />
 
               <select
@@ -1116,12 +1411,17 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
             ) : (
               filteredProducts.map((prod, pIdx) => {
                 const isExpanded = !!expandedProductIds[prod.id];
+                const isMissingPrice = isProductMissingPrice(prod);
 
                 return (
                   <div
                     key={prod.id}
-                    className={`bg-white rounded-2xl border transition-all shadow-xs ${
-                      prod.selectedForImport ? 'border-[#046A47]/40 ring-1 ring-[#046A47]/20' : 'border-[#E5E2D9] opacity-75'
+                    className={`bg-white rounded-2xl transition-all shadow-xs ${
+                      isMissingPrice
+                        ? 'border-2 border-rose-400 bg-rose-50/20 ring-1 ring-rose-300'
+                        : prod.selectedForImport
+                        ? 'border-2 border-[#046A47]/40 ring-1 ring-[#046A47]/20'
+                        : 'border border-[#E5E2D9] opacity-75'
                     }`}
                   >
                     {/* Header Row */}
@@ -1262,6 +1562,19 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
 
                       {/* Header Actions & Package Quick Overview */}
                       <div className="flex items-center gap-2 self-end md:self-center shrink-0">
+                        {isMissingPrice ? (
+                          <span className="text-xs font-black bg-rose-100 border border-rose-300 text-rose-700 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shrink-0 shadow-2xs">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                            <span>بدون سعر (اكتب السعر)</span>
+                          </span>
+                        ) : (
+                          <span className="text-xs font-black bg-emerald-50 border border-emerald-300 text-[#046A47] px-2.5 py-1 rounded-lg shrink-0">
+                            {prod.packages.length === 1
+                              ? `${prod.packages[0].price} ج.م`
+                              : `${Math.min(...prod.packages.map((pk) => pk.price || 0))} - ${Math.max(...prod.packages.map((pk) => pk.price || 0))} ج.م`}
+                          </span>
+                        )}
+
                         <span className="text-xs font-bold bg-[#FAF8F5] border border-[#E5E2D9] px-2.5 py-1 rounded-lg text-[#2D2D24]">
                           {prod.packages.length} أحجام عبوات
                         </span>
@@ -1441,14 +1754,32 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                                         <div className="relative">
                                           <input
                                             type="number"
-                                            value={pkg.price}
+                                            value={pkg.price === 0 ? '' : pkg.price}
+                                            placeholder="0 (بدون سعر)"
                                             onChange={(e) =>
-                                              handleUpdatePackage(prod.id, pIdx, { price: Number(e.target.value) })
+                                              handleUpdatePackage(prod.id, pIdx, {
+                                                price: e.target.value === '' ? 0 : Math.max(0, Number(e.target.value)),
+                                              })
                                             }
-                                            className="w-28 bg-[#FAF8F5] border border-[#D4D1C5] rounded-lg px-2.5 py-1.5 text-left font-black text-[#046A47] focus:outline-none focus:ring-1 focus:ring-[#046A47]"
+                                            className={`w-32 rounded-lg px-2.5 py-1.5 text-left font-black transition-colors focus:outline-none ${
+                                              !pkg.price || pkg.price <= 0
+                                                ? 'bg-rose-50 border-2 border-rose-500 text-rose-700 placeholder-rose-400 focus:ring-2 focus:ring-rose-500'
+                                                : 'bg-[#FAF8F5] border border-[#D4D1C5] text-[#046A47] focus:ring-1 focus:ring-[#046A47]'
+                                            }`}
                                           />
-                                          <span className="text-[10px] text-[#5A5A40] mr-1 font-bold">ج.م</span>
+                                          <span
+                                            className={`text-[10px] mr-1 font-bold ${
+                                              !pkg.price || pkg.price <= 0 ? 'text-rose-600' : 'text-[#5A5A40]'
+                                            }`}
+                                          >
+                                            ج.م
+                                          </span>
                                         </div>
+                                        {(!pkg.price || pkg.price <= 0) && (
+                                          <span className="text-[10px] font-black text-rose-600 block mt-0.5">
+                                            ⚠️ بدون سعر — اكتب السعر
+                                          </span>
+                                        )}
                                       </td>
                                       <td className="py-2 pr-2 text-center">
                                         <button
@@ -1671,6 +2002,143 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Post-Extraction Interactive Summary Modal */}
+      {isSummaryModalOpen && extractionSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs dir-rtl animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden">
+            <div className="p-5 bg-gradient-to-r from-[#046A47] to-[#024A31] text-white flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-400 text-stone-950 rounded-2xl flex items-center justify-center font-black">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black">ملخص استخراج الكتالوج بالذكاء الاصطناعي</h3>
+                  <p className="text-xs text-emerald-100 font-medium">
+                    شركة {extractionSummary.companyName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSummaryModalOpen(false)}
+                className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full cursor-pointer transition-colors"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 bg-[#FAF8F5]">
+              {/* Stat Highlights */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white p-4 rounded-2xl border border-[#E5E2D9] space-y-1">
+                  <span className="text-xs font-bold text-stone-500 block">الكتالوج القديم للشركة:</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-stone-800">
+                      {extractionSummary.previousProductsCount}
+                    </span>
+                    <span className="text-xs font-bold text-stone-500">منتج مسجل سابقاً</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-[#E5E2D9] space-y-1">
+                  <span className="text-xs font-bold text-stone-500 block">الصفحات المعالجة:</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-amber-600">
+                      {extractionSummary.extractedPagesCount}
+                    </span>
+                    <span className="text-xs font-bold text-stone-500">صفحة ومستند</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-2xl border border-[#E5E2D9] space-y-1">
+                  <span className="text-xs font-bold text-stone-500 block">إجمالي المنتجات المستخرجة:</span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black text-[#046A47]">
+                      {extractionSummary.extractedProductsCount}
+                    </span>
+                    <span className="text-xs font-bold text-stone-500">منتج جديد</span>
+                  </div>
+                </div>
+
+                <div
+                  className={`p-4 rounded-2xl border space-y-1 ${
+                    extractionSummary.missingPriceCount > 0
+                      ? 'bg-rose-50 border-rose-300'
+                      : 'bg-emerald-50 border-emerald-300'
+                  }`}
+                >
+                  <span
+                    className={`text-xs font-bold block ${
+                      extractionSummary.missingPriceCount > 0 ? 'text-rose-700' : 'text-emerald-700'
+                    }`}
+                  >
+                    منتجات بدون سعر:
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span
+                      className={`text-3xl font-black ${
+                        extractionSummary.missingPriceCount > 0 ? 'text-rose-600' : 'text-emerald-700'
+                      }`}
+                    >
+                      {extractionSummary.missingPriceCount}
+                    </span>
+                    <span
+                      className={`text-xs font-bold ${
+                        extractionSummary.missingPriceCount > 0 ? 'text-rose-700' : 'text-emerald-700'
+                      }`}
+                    >
+                      منتج
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Informative Note */}
+              <div className="bg-white p-4 rounded-2xl border border-[#E5E2D9] text-xs text-stone-700 space-y-2 leading-relaxed">
+                <p className="font-bold flex items-center gap-1.5 text-stone-900">
+                  <CheckCircle2 className="w-4 h-4 text-[#046A47]" />
+                  <span>تم استخراج وتنسيق كافة البيانات بدون اختراع أسعار وهمية</span>
+                </p>
+                <p className="text-stone-600">
+                  {extractionSummary.missingPriceCount > 0 ? (
+                    <>
+                      تم تلوين المنتجات التي ليس لها سعر صريح في الكتالوج باللون{' '}
+                      <strong className="text-rose-600 font-black">الأحمر</strong> ولم يقم الذكاء الاصطناعي بكتابة أي سعر
+                      من عنده منعاً لأي خطأ. يمكنك كتابة أسعارها بسهولة من الجدول.
+                    </>
+                  ) : (
+                    'جميع المنتجات المستخرجة محدد لها أسعار معتمدة بالكتالوج.'
+                  )}
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-2">
+                {extractionSummary.missingPriceCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPriceFilter('missing-price');
+                      setIsSummaryModalOpen(false);
+                    }}
+                    className="px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl text-xs font-black cursor-pointer transition-colors"
+                  >
+                    عرض المنتجات بدون سعر ({extractionSummary.missingPriceCount})
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsSummaryModalOpen(false)}
+                  className="px-5 py-2.5 bg-[#046A47] hover:bg-[#035136] text-white rounded-xl text-xs font-black cursor-pointer shadow-md transition-colors"
+                >
+                  مراجعة واعتماد المنتجات
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
