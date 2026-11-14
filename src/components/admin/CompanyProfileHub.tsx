@@ -9,6 +9,7 @@ import {
   Save,
   Plus,
   Upload,
+  Download,
   Trash2,
   CheckCircle2,
   ExternalLink,
@@ -20,10 +21,16 @@ import {
   ToggleLeft,
   ToggleRight,
   Filter,
+  TrendingUp,
+  X,
 } from 'lucide-react';
 import { Company, Product, Package, PriceHistory, CompanyImage, Category, CompanySubCategory } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
 import { excelService } from '../../services/excelService';
+import {
+  companyExcelService,
+  CompanyExcelAnalysisResult,
+} from '../../services/companyExcelService';
 import { AiCatalogExtractor } from './AiCatalogExtractor';
 import { pdfHelper, PdfPageImage } from '../../utils/pdfHelper';
 
@@ -114,6 +121,11 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
   // Excel Upload state
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [excelResult, setExcelResult] = useState<any | null>(null);
+
+  // Full Company Products & Packages Excel State
+  const [fullExcelResult, setFullExcelResult] = useState<CompanyExcelAnalysisResult | null>(null);
+  const [isAnalyzingFullExcel, setIsAnalyzingFullExcel] = useState(false);
+  const [isApplyingFullExcel, setIsApplyingFullExcel] = useState(false);
 
   // 1. Save SubCategory Handler
   const handleSaveSubCategory = (e: React.FormEvent) => {
@@ -301,6 +313,94 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
     const res = onBatchUpdatePrices(updates, 'excel', 'استيراد إكسيل شركة');
     onShowToast(`تم تحديث أسعار ${res.updatedCount} عبوة بنجاح لشركة ${company.name}`, 'success');
     setExcelResult(null);
+  };
+
+  const handleDownloadFullExcel = () => {
+    try {
+      companyExcelService.exportCompanyProductsToExcel(
+        company,
+        products,
+        packages,
+        categories,
+        subCategories
+      );
+      onShowToast(`تم تصدير ملف إكسيل منتجات شركة ${company.name} بنجاح`, 'success');
+    } catch (e: any) {
+      onShowToast(e?.message || 'تعذر تصدير ملف الإكسيل', 'error');
+    }
+  };
+
+  const handleFullExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsAnalyzingFullExcel(true);
+    setFullExcelResult(null);
+
+    try {
+      const result = await companyExcelService.parseAndAnalyzeCompanyExcel(
+        file,
+        company,
+        products,
+        packages,
+        categories,
+        subCategories
+      );
+      setFullExcelResult(result);
+      onShowToast(`تم فحص ملف الإكسيل: ${result.totalRows} سطر تم تحليله`, 'success');
+    } catch (err: any) {
+      alert(err?.message || 'تعذر تحليل ملف الإكسيل. تأكد من سلامة وصيغة الملف.');
+    } finally {
+      setIsAnalyzingFullExcel(false);
+    }
+  };
+
+  const handleConfirmFullExcel = () => {
+    if (!fullExcelResult) return;
+
+    setIsApplyingFullExcel(true);
+    try {
+      if (onSaveProducts) {
+        onSaveProducts(fullExcelResult.updatedProductsList);
+      }
+      if (onSavePackages) {
+        onSavePackages(fullExcelResult.updatedPackagesList);
+      }
+      if (onAddPriceHistory && fullExcelResult.priceChanges.length > 0) {
+        fullExcelResult.priceChanges.forEach((ch) => {
+          onAddPriceHistory({
+            productId: ch.productId,
+            packageId: ch.packageId,
+            productName: ch.productName,
+            packageDisplayName: ch.packageName,
+            oldPrice: ch.oldPrice,
+            newPrice: ch.newPrice,
+            source: 'excel',
+            updatedBy: `إكسيل شركة ${company.name}`,
+          });
+        });
+      }
+      if (onAddImportLog) {
+        onAddImportLog({
+          id: 'IMP-' + Date.now(),
+          fileName: `تحديث_إكسيل_${company.name}`,
+          totalRows: fullExcelResult.totalRows,
+          validRows: fullExcelResult.productsToUpdateCount,
+          changedRows: fullExcelResult.priceChanges.length,
+          timestamp: new Date().toISOString(),
+          status: 'success',
+        });
+      }
+      onShowToast(
+        `تم تحديث ${fullExcelResult.productsToUpdateCount} منتج و ${fullExcelResult.packagesToUpdateCount} عبوة بنجاح لشركة ${company.name}!`,
+        'success'
+      );
+      setFullExcelResult(null);
+    } catch (e: any) {
+      onShowToast(e?.message || 'حدث خطأ أثناء تطبيق التحديثات', 'error');
+    } finally {
+      setIsApplyingFullExcel(false);
+    }
   };
 
   return (
@@ -515,18 +615,43 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
       {/* TAB 2: Company Products Showcase */}
       {activeTab === 'products' && (
         <div className="bg-white rounded-3xl border border-gray-200 p-6 space-y-4 shadow-xs">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-gray-100 pb-3">
             <div>
-              <h3 className="text-base font-black text-gray-900">جميع منتجات شركة {company.name}</h3>
-              <p className="text-xs text-gray-500 font-medium">عرض وإدارة كافة المركبات والعبوات التابعة للشركة</p>
+              <h3 className="text-base font-black text-gray-900">
+                جميع منتجات شركة {company.name} ({companyProducts.length})
+              </h3>
+              <p className="text-xs text-gray-500 font-medium">عرض وإدارة وتحديث كافة المركبات والعبوات التابعة للشركة</p>
             </div>
-            <button
-              onClick={() => setActiveTab('add_product')}
-              className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs px-4 py-2 rounded-xl cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>إضافة منتج جديد</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadFullExcel}
+                className="bg-white hover:bg-emerald-50 text-[#046A47] border border-emerald-300 font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+                title="تنزيل شيت إكسيل لمنتجات الشركة قابل للتعديل بالكامل"
+              >
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+                <span>تنزيل شيت إكسيل</span>
+              </button>
+
+              <label className="bg-[#046A47] hover:bg-[#035237] text-white font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer">
+                <Upload className="w-3.5 h-3.5 text-amber-300" />
+                <span>رفع وتحديث الإكسيل</span>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={handleFullExcelUpload}
+                  className="hidden"
+                />
+              </label>
+
+              <button
+                onClick={() => setActiveTab('add_product')}
+                className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs px-3.5 py-2 rounded-xl cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>إضافة منتج يدوي</span>
+              </button>
+            </div>
           </div>
 
           {companyProducts.length === 0 ? (
@@ -867,31 +992,139 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
         </div>
       )}
 
-      {/* TAB 6: Excel Importer */}
+      {/* TAB 6: Full Company Products & Packages Excel Importer */}
       {activeTab === 'excel' && (
-        <div className="bg-white rounded-3xl border border-gray-200 p-6 space-y-4 shadow-xs">
-          <div className="border-b border-gray-100 pb-3">
-            <h3 className="text-base font-black text-gray-900">استيراد وتحديث أسعار شركة {company.name} عبر الإكسيل</h3>
-            <p className="text-xs text-gray-500 font-medium">ارفع ملف إكسيل يحتوي على أسعار منتجات الشركة</p>
-          </div>
-
-          <div className="p-6 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 text-center space-y-3">
-            <FileSpreadsheet className="w-10 h-10 text-emerald-600 mx-auto" />
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={handleExcelUpload} className="text-xs" />
-          </div>
-
-          {excelResult && (
-            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200 space-y-3">
-              <h4 className="text-xs font-black text-emerald-900">نتائج فحص ملف الإكسيل:</h4>
-              <p className="text-xs text-emerald-800">
-                تم العثور على {excelResult.validUpdates?.length || 0} أسعار مطابقة لمنتجات هذه الشركة.
+        <div className="bg-white rounded-3xl border border-gray-200 p-6 space-y-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+            <div>
+              <h3 className="text-base font-black text-gray-900">
+                تنزيل ورفع وتحديث منتجات وعبوات شركة {company.name} عبر الإكسيل
+              </h3>
+              <p className="text-xs text-gray-500 font-medium">
+                قم بتنزيل شيت إكسيل الشامل لمنتجات الشركة، عدّل الأسعار والأوصاف والعبوات كما تشاء، ثم ارفعه لتحديث قاعدة البيانات دفعة واحدة.
               </p>
-              <button
-                onClick={handleConfirmCompanyExcel}
-                className="px-5 py-2 bg-[#046A47] text-white rounded-xl font-black text-xs shadow-md"
-              >
-                تطبيق واعتماد الأسعار الجديدة
-              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDownloadFullExcel}
+              className="bg-white hover:bg-emerald-50 text-[#046A47] border border-emerald-300 font-black text-xs px-4 py-2.5 rounded-xl shadow-2xs flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <Download className="w-4 h-4 text-emerald-600" />
+              <span>تنزيل شيت إكسيل قابل للتعديل</span>
+            </button>
+          </div>
+
+          {/* Upload Area */}
+          <div className="p-8 bg-[#FAF8F5] rounded-3xl border-2 border-dashed border-emerald-300 text-center space-y-3">
+            <div className="w-14 h-14 bg-emerald-100 text-[#046A47] rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+              <FileSpreadsheet className="w-7 h-7" />
+            </div>
+            <div>
+              <h4 className="text-sm font-black text-gray-900">اختر أو اسحب ملف الإكسيل المعدل (.xlsx / .csv)</h4>
+              <p className="text-xs text-gray-500 mt-1">
+                سيقوم النظام بمطابقة المنتجات وتحديث الأسعار والتراكيب والعبوات تلقائياً لشركة {company.name}
+              </p>
+            </div>
+            <label className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#046A47] hover:bg-[#035237] text-white font-black text-xs rounded-xl shadow-sm cursor-pointer transition-all">
+              <Upload className="w-4 h-4 text-amber-300" />
+              <span>{isAnalyzingFullExcel ? 'جاري فحص الملف...' : 'اختيار ملف الإكسيل للتحديث'}</span>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFullExcelUpload}
+                disabled={isAnalyzingFullExcel}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          {/* Analysis Results & Confirmation Card */}
+          {fullExcelResult && (
+            <div className="p-5 bg-white rounded-3xl border-2 border-emerald-400 space-y-4 shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <h4 className="text-sm font-black text-gray-900">نتائج تحليل ملف إكسيل لشركة {company.name}:</h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFullExcelResult(null)}
+                  className="p-1 text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Metrics */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-gray-50 border border-gray-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] text-gray-500 block font-bold">إجمالي صفوف الشيت</span>
+                  <span className="text-lg font-black text-gray-900">{fullExcelResult.totalRows}</span>
+                </div>
+                <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] text-emerald-800 block font-bold">منتجات سيتم تحديثها</span>
+                  <span className="text-lg font-black text-emerald-900">{fullExcelResult.productsToUpdateCount}</span>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] text-amber-800 block font-bold">عبوات سيتم تحديثها</span>
+                  <span className="text-lg font-black text-amber-900">{fullExcelResult.packagesToUpdateCount}</span>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded-2xl text-center">
+                  <span className="text-[10px] text-blue-700 block font-bold">عناصر جديدة</span>
+                  <span className="text-lg font-black text-blue-900">
+                    {fullExcelResult.newProductsCount + fullExcelResult.newPackagesCount}
+                  </span>
+                </div>
+              </div>
+
+              {/* Price differences diff */}
+              {fullExcelResult.priceChanges.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-[#046A47]" />
+                    <span>فروق الأسعار الجديدة ({fullExcelResult.priceChanges.length}):</span>
+                  </h5>
+                  <div className="max-h-40 overflow-y-auto divide-y divide-gray-100 border border-gray-200 rounded-xl">
+                    {fullExcelResult.priceChanges.map((ch, idx) => (
+                      <div key={idx} className="p-2.5 flex items-center justify-between text-xs bg-white">
+                        <div>
+                          <strong className="text-gray-900 block">{ch.productName}</strong>
+                          <span className="text-[11px] text-gray-500">{ch.packageName}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="line-through text-gray-400">{ch.oldPrice} ج</span>
+                          <span>←</span>
+                          <span className="font-black text-[#046A47] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                            {ch.newPrice} جنيه
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Confirm Execution Button */}
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFullExcelResult(null)}
+                  disabled={isApplyingFullExcel}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl cursor-pointer"
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmFullExcel}
+                  disabled={isApplyingFullExcel}
+                  className="px-6 py-2.5 bg-[#046A47] hover:bg-[#035237] text-white font-black text-xs rounded-xl shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-amber-300" />
+                  <span>{isApplyingFullExcel ? 'جاري تطبيق وتحديث المنتجات...' : 'تأكيد وتطبيق التحديثات فوراً ✓'}</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
