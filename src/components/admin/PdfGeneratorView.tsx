@@ -1317,11 +1317,22 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
   const buildShareLinkWhatsAppMessage = (url: string, count: number) =>
     `أهلاً بك${customClientName.trim() ? ` يا ${customClientName.trim()}` : ''} 🌱\nجهزنا لك كتالوج خاص بالمنتجات والأسعار المطلوبة من كروپسا (${count} منتج):\n${url}`;
 
+  const getExportPageNodes = (): HTMLElement[] => {
+    if (pageContainerRef.current) {
+      const nodes = Array.from(
+        pageContainerRef.current.querySelectorAll('.pdf-a4-page')
+      ) as HTMLElement[];
+      if (nodes.length > 0) return nodes;
+    }
+    return Array.from(document.querySelectorAll('.pdf-a4-page')) as HTMLElement[];
+  };
+
   const handleDownloadPdf = async () => {
-    if (!pageContainerRef.current) return;
-    const pageNodes = Array.from(
-      pageContainerRef.current.querySelectorAll('.pdf-a4-page')
-    ) as HTMLElement[];
+    let pageNodes = getExportPageNodes();
+    if (pageNodes.length === 0 && catalogSequence.length > 0) {
+      await new Promise((r) => setTimeout(r, 120));
+      pageNodes = getExportPageNodes();
+    }
 
     if (pageNodes.length === 0) {
       onShowToast('لا توجد صفحات متاحة لتصدير الكتالوج', 'error');
@@ -1345,6 +1356,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       setIsPreviewModalOpen(false);
       setPostDownloadAction({ kind: 'pdf', fileName });
     } catch (err: any) {
+      console.error('PDF export error:', err);
       onShowToast(err.message || 'حدث خطأ أثناء تصدير PDF.', 'error');
     } finally {
       setIsGeneratingPdf(false);
@@ -1352,10 +1364,11 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
   };
 
   const handleGenerateImages = async () => {
-    if (!pageContainerRef.current) return;
-    const pageNodes = Array.from(
-      pageContainerRef.current.querySelectorAll('.pdf-a4-page')
-    ) as HTMLElement[];
+    let pageNodes = getExportPageNodes();
+    if (pageNodes.length === 0 && catalogSequence.length > 0) {
+      await new Promise((r) => setTimeout(r, 120));
+      pageNodes = getExportPageNodes();
+    }
 
     if (pageNodes.length === 0) {
       onShowToast('لا توجد صفحات متاحة لتحويلها إلى صور', 'error');
@@ -1377,6 +1390,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       setIsImagesModalOpen(true);
       onShowToast(`تم تجهيز ${imgs.length} صورة جاهزة للتحميل والإرسال على واتساب ✓`, 'success');
     } catch (err: any) {
+      console.error('Generate images error:', err);
       onShowToast(err.message || 'حدث خطأ أثناء تجهيز الصور.', 'error');
     } finally {
       setIsGeneratingImages(false);
@@ -1387,7 +1401,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
     for (let i = 0; i < generatedImages.length; i++) {
       const img = generatedImages[i];
       pdfService.downloadImageDataUrl(img.dataUrl, img.filename);
-      await new Promise((r) => setTimeout(r, 260));
+      await new Promise((r) => setTimeout(r, 320));
     }
     onShowToast(`تم تنزيل ${generatedImages.length} صورة إلى جهازك`, 'success');
     if (andOpenWhatsApp) {
@@ -2970,7 +2984,17 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
       <div
         ref={pageContainerRef}
         aria-hidden="true"
-        className="fixed left-[-99999px] top-0 pointer-events-none space-y-4 print:static print:left-0"
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '794px',
+          zIndex: -99999,
+          pointerEvents: 'none',
+          opacity: 1,
+          overflow: 'hidden',
+        }}
+        className="space-y-4 print:static print:left-0"
       >
         {catalogSequence.map((item, idx) => renderCatalogPageNode(item, idx, true))}
       </div>
