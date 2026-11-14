@@ -108,6 +108,9 @@ service cloud.firestore {
     //             city (string, opt), addressDetails (string, opt),
     //             paymentMethod (string enum: cash|installment, opt),
     //             installmentDetails (map, opt), shippingAddress (map, opt),
+    //             salesRepId (string, opt), salesRepName (string, opt),
+    //             salesRepUsername (string, opt), salesRepPhone (string, opt),
+    //             referralSource (string, opt),
     //             notes (string, opt), items (list, opt), totalItems (number >= 0, opt),
     //             status (string enum: new|contacted|confirmed|cancelled|completed, opt),
     //             createdAt (string, opt), updatedAt (string, opt)
@@ -480,7 +483,9 @@ service cloud.firestore {
                'id', 'orderNumber', 'customerName', 'phone', 'companyName',
                'governorate', 'city', 'addressDetails', 'paymentMethod',
                'installmentDetails', 'shippingAddress', 'notes', 'items',
-               'totalItems', 'totalAmount', 'status', 'createdAt', 'updatedAt'
+               'totalItems', 'totalAmount', 'status', 'createdAt', 'updatedAt',
+               'salesRepId', 'salesRepName', 'salesRepUsername', 'salesRepPhone',
+               'referralSource'
              ]) &&
              isValidReqString(data, 'orderNumber', 1, 64) &&
              isValidReqString(data, 'customerName', 0, 200) &&
@@ -495,6 +500,11 @@ service cloud.firestore {
               data.paymentMethod in ['cash', 'installment']) &&
              isValidOptMap(data, 'installmentDetails', 20) &&
              isValidOptMap(data, 'shippingAddress', 10) &&
+             isValidOptString(data, 'salesRepId', 0, 128) &&
+             isValidOptString(data, 'salesRepName', 0, 200) &&
+             isValidOptString(data, 'salesRepUsername', 0, 100) &&
+             isValidOptString(data, 'salesRepPhone', 0, 40) &&
+             isValidOptString(data, 'referralSource', 0, 100) &&
              isValidOptString(data, 'notes', 0, 2000) &&
              isValidOptList(data, 'items', 200) &&
              isValidOptNonNegNumber(data, 'totalItems') &&

@@ -686,6 +686,9 @@ export function createApiApp() {
         `📞 *رقم العميل:* ${order.phone}`,
         `📍 *العنوان:* ${order.governorate || ''} - ${order.city || ''} ${order.addressDetails ? `(${order.addressDetails})` : ''}`,
         `💳 *نوع الدفع:* ${paymentLabel}`,
+        order.salesRepName
+          ? `👨‍💼 *المندوب المسؤول:* ${order.salesRepName}${order.salesRepPhone ? ` (${order.salesRepPhone})` : ''}`
+          : '',
         `💰 *قيمة الفاتورة:* ${Number(order.totalAmount || 0).toLocaleString('en-US')} جنيه مصري`,
         `━━━━━━━━━━━━━━━━━`,
         `🛒 *تفاصيل المنتجات:*`,
@@ -718,6 +721,11 @@ export function createApiApp() {
               addressDetails: order.addressDetails,
               paymentMethod: order.paymentMethod,
               paymentMethodLabel: paymentLabel,
+              salesRepId: order.salesRepId,
+              salesRepName: order.salesRepName,
+              salesRepUsername: order.salesRepUsername,
+              salesRepPhone: order.salesRepPhone,
+              referralSource: order.referralSource,
               totalAmount: order.totalAmount,
               currency: 'جنيه مصري',
               items: order.items,

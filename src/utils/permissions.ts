@@ -146,9 +146,9 @@ export const ROLE_METADATA: Record<
   sales_rep: {
     label: 'مندوب مبيعات بالكتالوج',
     shortLabel: 'مندوب مبيعات',
-    desc: 'دخول من الكتالوج لتجهيز كتالوج مخصص للعميل وتسجيل الطلبيات وعرض رابط الطلبية',
+    desc: 'دخول من الكتالوج لتجهيز كتالوج مخصص للعميل وتسجيل الطلبيات وعرض فواتيره ورابطه التسويقي',
     badge: 'bg-teal-700 text-white',
-    defaultPermissions: ['order_link', 'pdf'],
+    defaultPermissions: ['order_link', 'pdf', 'orders'],
   },
 };
 
@@ -208,6 +208,7 @@ const TAB_FALLBACK_ORDER: AdminTab[] = [
 export function canAccessAdminTab(user: TeamMember | null | undefined, tab: AdminTab): boolean {
   if (!user || !user.active) return false;
   if (user.role === 'super_admin') return true;
+  if (tab === 'orders' && user.role === 'sales_rep') return true;
   const required = TAB_REQUIRED_PERMISSIONS[tab] || [];
   return required.some((perm) => hasPermission(user, perm));
 }

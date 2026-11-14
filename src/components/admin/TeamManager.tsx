@@ -17,6 +17,10 @@ import {
   EyeOff,
   Sparkles,
   Link2,
+  Copy,
+  MessageCircle,
+  Share2,
+  ExternalLink,
 } from 'lucide-react';
 import { TeamMember, TeamRole } from '../../types';
 import {
@@ -24,6 +28,10 @@ import {
   ALL_PERMISSION_KEYS,
   ROLE_METADATA,
 } from '../../utils/permissions';
+import {
+  buildSalesRepStoreUrl,
+  formatPhoneForWhatsApp,
+} from '../../utils/salesRepReferral';
 
 interface TeamManagerProps {
   teamMembers: TeamMember[];
@@ -56,6 +64,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
   const [permissions, setPermissions] = useState<string[]>(ROLE_METADATA.orders_manager.defaultPermissions);
   const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [copiedRepId, setCopiedRepId] = useState<string | null>(null);
 
   const openAddModal = () => {
     setEditingMember(null);
@@ -289,6 +298,60 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                       </span>
                     )}
                   </div>
+
+                  {/* Sales Rep Personal Catalog Referral Link Box */}
+                  {member.role === 'sales_rep' && (
+                    <div className="mt-2.5 p-3 bg-emerald-50/90 border border-emerald-300 rounded-xl space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-black text-emerald-950 flex items-center gap-1">
+                          <Link2 className="w-3.5 h-3.5 text-[#046A47]" />
+                          <span>رابط الكتالوج الخاص بالمندوب:</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-200">
+                          ?rep={member.username}
+                        </span>
+                      </div>
+                      <div
+                        className="text-[10px] font-mono text-emerald-900 bg-white px-2 py-1.5 rounded-lg border border-emerald-200 truncate select-all"
+                        dir="ltr"
+                      >
+                        {buildSalesRepStoreUrl(member.username)}
+                      </div>
+                      <div className="flex items-center gap-1.5 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(buildSalesRepStoreUrl(member.username));
+                            setCopiedRepId(member.id);
+                            setTimeout(() => setCopiedRepId(null), 2500);
+                          }}
+                          className="flex-1 bg-white hover:bg-emerald-100 text-[#046A47] border border-emerald-300 font-bold text-[10px] py-1 px-2 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                        >
+                          {copiedRepId === member.id ? (
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                          <span>{copiedRepId === member.id ? 'تم النسخ!' : 'نسخ الرابط'}</span>
+                        </button>
+
+                        {member.phone && (
+                          <a
+                            href={`https://wa.me/${formatPhoneForWhatsApp(member.phone)}?text=${encodeURIComponent(
+                              `أهلاً م. ${member.name}، هذا هو رابط متجرك والكتالوج الزراعي المعتمد الخاص بك في شركة كروپسا:\n${buildSalesRepStoreUrl(member.username)}\n\nأي عميل يطلب من خلاله ستُسجل الفاتورة باسمك ويصلك إشعار شورت كت مباشر على الواتساب.`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-[10px] py-1 px-2 rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                            title="إرسال الرابط إلى واتساب المندوب الشخصي"
+                          >
+                            <MessageCircle className="w-3 h-3" />
+                            <span>إرسال لواتسابه 📲</span>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -506,7 +569,9 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-gray-700 mb-1">الهاتف</label>
+                  <label className="block text-[11px] font-bold text-gray-700 mb-1">
+                    الهاتف (واتساب الشخصي لإشعارات الفواتير والشورت كت) *
+                  </label>
                   <input
                     type="tel"
                     value={phone}
@@ -514,6 +579,9 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                     placeholder="010xxxxxxxx"
                     className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#046A47] focus:outline-hidden font-mono"
                   />
+                  <p className="text-[10px] text-[#046A47] font-semibold mt-1">
+                    يُرسل عليه إشعار الفواتير والشورت كت فوراً عند طلب أي عميل عبر رابط المندوب
+                  </p>
                 </div>
               </div>
 

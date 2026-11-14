@@ -55,6 +55,7 @@ import {
 import { IslamicFinancingPage } from './IslamicFinancingPage';
 import { hasDashboardAccess, canBuildCustomCatalog, ROLE_METADATA } from '../utils/permissions';
 import { resolveHomeShowcases } from '../utils/homeShowcases';
+import { StoredSalesRep } from '../utils/salesRepReferral';
 
 interface PublicCatalogPageProps {
   products: Product[];
@@ -68,6 +69,9 @@ interface PublicCatalogPageProps {
   onOpenCatalogBuilder?: () => void;
   isAdminLoggedIn: boolean;
   currentUser?: TeamMember | null;
+  activeSalesRep?: StoredSalesRep | null;
+  onClearActiveSalesRep?: () => void;
+  teamMembers?: TeamMember[];
   onEmployeeLogin?: (
     usernameOrEmail: string,
     password: string
@@ -91,6 +95,9 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   onOpenCatalogBuilder,
   isAdminLoggedIn,
   currentUser = null,
+  activeSalesRep = null,
+  onClearActiveSalesRep,
+  teamMembers = [],
   onEmployeeLogin,
   onLogout,
   onSubmitOrder,
@@ -373,6 +380,8 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         }}
         isAdminLoggedIn={isAdminLoggedIn}
         currentUser={currentUser}
+        activeSalesRep={activeSalesRep}
+        onClearActiveSalesRep={onClearActiveSalesRep}
         hasDashboardAccess={hasDashboardAccess(currentUser)}
         canBuildCatalog={canBuildCustomCatalog(currentUser)}
         onOpenCatalogBuilder={onOpenCatalogBuilder}
@@ -700,6 +709,8 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         onSubmitOrder={onSubmitOrder}
         whatsAppNumber={settings.whatsApp}
         currentUser={currentUser}
+        activeSalesRep={activeSalesRep}
+        teamMembers={teamMembers}
       />
 
       {/* Company Directory Modal */}

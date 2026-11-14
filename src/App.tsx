@@ -6,6 +6,11 @@ import { SharedCatalogView } from './components/catalog/SharedCatalogView';
 import { PdfGeneratorView } from './components/admin/PdfGeneratorView';
 import { ToastContainer, ToastMessage } from './components/common/Toast';
 import { canBuildCustomCatalog } from './utils/permissions';
+import {
+  resolveActiveSalesRep,
+  clearStoredSalesRep,
+  StoredSalesRep,
+} from './utils/salesRepReferral';
 
 import {
   dbStorage,
@@ -79,6 +84,31 @@ export default function App() {
   const [hasUnsyncedChanges, setHasUnsyncedChanges] = useState<boolean>(() =>
     dbStorage.hasPendingCloudSync()
   );
+
+  // Active Sales Rep attribution (from URL ?rep=username or localStorage)
+  const [activeSalesRep, setActiveSalesRep] = useState<StoredSalesRep | null>(() => {
+    return resolveActiveSalesRep();
+  });
+
+  // Re-resolve active sales rep whenever teamMembers are loaded/updated from DB or Cloud
+  useEffect(() => {
+    const resolved = resolveActiveSalesRep(teamMembers);
+    if (resolved) {
+      setActiveSalesRep(resolved);
+    }
+  }, [teamMembers]);
+
+  const handleClearActiveSalesRep = () => {
+    clearStoredSalesRep();
+    setActiveSalesRep(null);
+    if (window.history && window.history.replaceState) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('rep');
+      url.searchParams.delete('salesRep');
+      url.searchParams.delete('agent');
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   const addBuilderToast = (message: string, type: 'success' | 'error') => {
     const id = Date.now().toString();
@@ -510,6 +540,11 @@ export default function App() {
       paymentMethod: customerData.paymentMethod || 'cash',
       installmentDetails: customerData.installmentDetails,
       shippingAddress: customerData.shippingAddress,
+      salesRepId: customerData.salesRepId || activeSalesRep?.id,
+      salesRepName: customerData.salesRepName || activeSalesRep?.name,
+      salesRepUsername: customerData.salesRepUsername || activeSalesRep?.username,
+      salesRepPhone: customerData.salesRepPhone || activeSalesRep?.phone,
+      referralSource: customerData.referralSource || (activeSalesRep ? 'rep_link' : 'direct'),
       items,
       totalItems,
       totalAmount: totalAmount || 0,
@@ -648,6 +683,9 @@ export default function App() {
           onOpenCatalogBuilder={() => setCurrentView('catalog_builder')}
           isAdminLoggedIn={isAdminLoggedIn}
           currentUser={currentUser}
+          activeSalesRep={activeSalesRep}
+          onClearActiveSalesRep={handleClearActiveSalesRep}
+          teamMembers={teamMembers}
           onEmployeeLogin={handleDetailedLogin}
           onLogout={handleLogout}
           onSubmitOrder={handleSubmitOrder}

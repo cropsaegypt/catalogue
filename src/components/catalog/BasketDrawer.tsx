@@ -17,9 +17,15 @@ import {
   Printer,
   Sparkles,
   ShieldAlert,
+  UserCheck,
 } from 'lucide-react';
 import { OrderItem, Order, TeamMember } from '../../types';
 import { canViewOrderLink } from '../../utils/permissions';
+import {
+  SalesRepReferralData,
+  buildSalesRepWhatsAppUrl,
+  formatPhoneForWhatsApp,
+} from '../../utils/salesRepReferral';
 
 interface BasketDrawerProps {
   isOpen: boolean;
@@ -38,12 +44,19 @@ interface BasketDrawerProps {
     paymentMethod: 'cash' | 'installment';
     installmentDetails?: any;
     shippingAddress?: any;
+    salesRepId?: string;
+    salesRepName?: string;
+    salesRepUsername?: string;
+    salesRepPhone?: string;
+    referralSource?: string;
     notes: string;
     items: OrderItem[];
     totalAmount: number;
   }) => Promise<Order | any>;
   whatsAppNumber?: string;
   currentUser?: TeamMember | null;
+  activeSalesRep?: SalesRepReferralData | null;
+  teamMembers?: TeamMember[];
 }
 
 const EGYPT_GOVERNORATES = [
@@ -63,6 +76,8 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
   onSubmitOrder,
   whatsAppNumber = '201012345678',
   currentUser = null,
+  activeSalesRep = null,
+  teamMembers = [],
 }) => {
   if (!isOpen) return null;
 
@@ -75,6 +90,15 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
 
   // Payment & Installment State
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'installment'>('cash');
+
+  // Sales Rep Attribution State
+  const [selectedRepId, setSelectedRepId] = useState<string>(
+    activeSalesRep?.id || (currentUser?.role === 'sales_rep' ? currentUser.id : '')
+  );
+  const [personalRepPhone, setPersonalRepPhone] = useState<string>(
+    activeSalesRep?.phone || (currentUser?.role === 'sales_rep' ? currentUser.phone : '') || ''
+  );
+  const [repNotificationPhone, setRepNotificationPhone] = useState<string>('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedOrder, setSubmittedOrder] = useState<Order | null>(null);
@@ -95,6 +119,14 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
 
     setIsSubmitting(true);
     try {
+      const matchedRep =
+        teamMembers.find((m) => m.id === selectedRepId) ||
+        (activeSalesRep && activeSalesRep.id === selectedRepId ? activeSalesRep : null) ||
+        activeSalesRep ||
+        (currentUser?.role === 'sales_rep' ? currentUser : null);
+
+      const effectiveRepPhone = personalRepPhone.trim() || matchedRep?.phone || '';
+
       const payload = {
         customerName: customerName.trim(),
         phone: phone.trim(),
@@ -116,6 +148,11 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
           city: city.trim(),
           addressDetails: addressDetails.trim(),
         },
+        salesRepId: matchedRep?.id,
+        salesRepName: matchedRep?.name,
+        salesRepUsername: matchedRep?.username,
+        salesRepPhone: effectiveRepPhone,
+        referralSource: matchedRep ? 'rep_link' : undefined,
         notes: notes.trim(),
         items,
         totalAmount,
@@ -133,6 +170,11 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
           addressDetails: addressDetails.trim(),
           paymentMethod,
           installmentDetails: payload.installmentDetails,
+          salesRepId: matchedRep?.id,
+          salesRepName: matchedRep?.name,
+          salesRepUsername: matchedRep?.username,
+          salesRepPhone: effectiveRepPhone,
+          referralSource: matchedRep ? 'rep_link' : undefined,
           items,
           totalItems: items.reduce((sum, it) => sum + it.quantity, 0),
           totalAmount,
@@ -141,6 +183,7 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
           updatedAt: new Date().toISOString(),
         }
       );
+      setRepNotificationPhone(effectiveRepPhone);
     } catch (err) {
       console.error(err);
       alert('حدث خطأ أثناء إرسال الطلبية، يرجى المحاولة مرة أخرى.');
@@ -307,6 +350,64 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
                       <Printer className="w-4 h-4" />
                       <span>طباعة</span>
                     </button>
+                  </div>
+
+                  {/* Dedicated Sales Rep WhatsApp Notification & Shortcut */}
+                  <div className="bg-emerald-50/90 border border-emerald-300 rounded-2xl p-3.5 space-y-2.5 text-right">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-black text-[#046A47] flex items-center gap-1.5">
+                        <UserCheck className="w-4 h-4 text-[#046A47]" />
+                        <span>إرسال شورت كت الفاتورة لمندوب المبيعات:</span>
+                      </span>
+                      <span
+                        className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                          submittedOrder.paymentMethod === 'installment'
+                            ? 'bg-amber-400 text-stone-950'
+                            : 'bg-emerald-700 text-white'
+                        }`}
+                      >
+                        {submittedOrder.paymentMethod === 'installment' ? 'تقسيط' : 'كاش'}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-stone-600 font-medium leading-relaxed">
+                      يبعت للموظف على رقمه الشخصي شورت كت مباشر للفاتورة، ومين العميل، وأنها اتعملت، ونوع الدفع كاش أو تقسيط.
+                    </p>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="tel"
+                          dir="ltr"
+                          value={repNotificationPhone}
+                          onChange={(e) => setRepNotificationPhone(e.target.value)}
+                          placeholder="رقم واتساب الموظف الشخصي (01xxxxxxxxx)..."
+                          className="flex-1 text-xs p-2.5 rounded-xl border border-emerald-300 bg-white font-mono text-left focus:outline-none focus:ring-2 focus:ring-[#046A47]"
+                        />
+                        <a
+                          href={buildSalesRepWhatsAppUrl(
+                            repNotificationPhone,
+                            submittedOrder,
+                            submittedOrder.salesRepName
+                          )}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex items-center justify-center gap-1.5 bg-[#25D366] hover:bg-[#20ba59] text-white font-black py-2.5 px-3 rounded-xl shadow-xs text-xs shrink-0 ${
+                            !repNotificationPhone.trim() ? 'opacity-50 pointer-events-none' : ''
+                          }`}
+                          title="إرسال شورت كت الفاتورة ونوع الدفع للموظف واتساب"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          <span>إرسال للموظف 🔔</span>
+                        </a>
+                      </div>
+                      {submittedOrder.salesRepName && (
+                        <div className="flex items-center justify-between text-[11px] text-emerald-900 font-bold bg-white/80 px-2.5 py-1 rounded-lg border border-emerald-200">
+                          <span>المندوب المسند له الطلب: <strong>{submittedOrder.salesRepName}</strong></span>
+                          {submittedOrder.salesRepUsername && <span>@{submittedOrder.salesRepUsername}</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {canViewOrderLink(currentUser) && (
@@ -571,6 +672,59 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
                         </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* Sales Rep Attribution & WhatsApp Notification Field */}
+                  <div className="border-t border-gray-200 pt-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-gray-900 flex items-center gap-1.5">
+                        <UserCheck className="w-4 h-4 text-[#046A47]" />
+                        <span>مندوب المبيعات التابع له الطلب:</span>
+                      </label>
+                      {activeSalesRep && (
+                        <span className="text-[10px] font-bold bg-emerald-100 text-[#046A47] px-2 py-0.5 rounded-md">
+                          محال عبر الرابط
+                        </span>
+                      )}
+                    </div>
+
+                    {teamMembers && teamMembers.length > 0 && (
+                      <select
+                        value={selectedRepId}
+                        onChange={(e) => {
+                          const id = e.target.value;
+                          setSelectedRepId(id);
+                          const found = teamMembers.find((m) => m.id === id);
+                          if (found && found.phone) {
+                            setPersonalRepPhone(found.phone);
+                          }
+                        }}
+                        className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white font-bold text-gray-800 focus:ring-2 focus:ring-[#046A47]"
+                      >
+                        <option value="">بدون مندوب محدد (طلب مباشر عبر المتجر)</option>
+                        {teamMembers
+                          .filter((m) => m.active)
+                          .map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name} (@{m.username}) {m.role === 'sales_rep' ? '— مندوب مبيعات' : ''}
+                            </option>
+                          ))}
+                      </select>
+                    )}
+
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-600 block mb-1">
+                        رقم الواتساب الشخصي للموظف (لإرسال إشعار الفاتورة له فوراً):
+                      </label>
+                      <input
+                        type="tel"
+                        dir="ltr"
+                        value={personalRepPhone}
+                        onChange={(e) => setPersonalRepPhone(e.target.value)}
+                        placeholder="مثال: 01012345678"
+                        className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white font-mono text-left focus:ring-2 focus:ring-[#046A47]"
+                      />
+                    </div>
                   </div>
 
                   <div>

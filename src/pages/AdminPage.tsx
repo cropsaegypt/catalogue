@@ -528,7 +528,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         )}
 
         {activeTab === 'orders' && (!currentUser || canAccessAdminTab(currentUser, 'orders')) && (
-          <OrderManager orders={orders} onUpdateOrderStatus={onUpdateOrderStatus} onShowToast={addToast} />
+          <OrderManager
+            orders={orders}
+            onUpdateOrderStatus={onUpdateOrderStatus}
+            onShowToast={addToast}
+            currentUser={currentUser}
+            teamMembers={teamMembers}
+          />
         )}
 
         {activeTab === 'financing' && (!currentUser || canAccessAdminTab(currentUser, 'financing')) && (

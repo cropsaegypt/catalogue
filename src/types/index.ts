@@ -161,6 +161,11 @@ export interface Order {
     addressDetails: string;
     landmark?: string;
   };
+  salesRepId?: string;
+  salesRepName?: string;
+  salesRepUsername?: string;
+  salesRepPhone?: string;
+  referralSource?: string;
   notes?: string;
   items: OrderItem[];
   totalItems: number;

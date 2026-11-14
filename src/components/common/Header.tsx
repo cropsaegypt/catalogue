@@ -16,6 +16,12 @@ import { motion } from 'motion/react';
 import { TeamMember } from '../../types';
 import { ROLE_METADATA } from '../../utils/permissions';
 import { BrandLogoMark } from './BrandLogoMark';
+import {
+  SalesRepReferralData,
+  buildSalesRepStoreUrl,
+  formatPhoneForWhatsApp,
+} from '../../utils/salesRepReferral';
+import { Link2, Check } from 'lucide-react';
 
 interface HeaderProps {
   cartItemCount: number;
@@ -35,6 +41,8 @@ interface HeaderProps {
   whatsAppNumber?: string;
   phone?: string;
   logoUrl?: string;
+  activeSalesRep?: SalesRepReferralData | null;
+  onClearActiveSalesRep?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -55,8 +63,19 @@ export const Header: React.FC<HeaderProps> = ({
   whatsAppNumber = '201000000000',
   phone = '01012345678',
   logoUrl,
+  activeSalesRep,
+  onClearActiveSalesRep,
 }) => {
   const cleanWa = whatsAppNumber.replace(/[^0-9]/g, '');
+  const [copiedRepLink, setCopiedRepLink] = React.useState(false);
+
+  const handleCopyMyRepLink = () => {
+    if (!currentUser) return;
+    const url = buildSalesRepStoreUrl(currentUser.username);
+    navigator.clipboard.writeText(url);
+    setCopiedRepLink(true);
+    setTimeout(() => setCopiedRepLink(false), 2200);
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-white/98 backdrop-blur-md border-b border-stone-200/80 shadow-xs dir-rtl">
@@ -78,6 +97,41 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Active Sales Rep Referral Banner for Customer */}
+      {activeSalesRep && (
+        <div className="bg-emerald-900 text-white py-1 px-3 sm:px-4 text-[11px] font-bold border-b border-emerald-800">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 truncate">
+              <UserCheck className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span className="truncate">
+                أنت تتسوق عبر مستشارك الزراعي المعتمد: <strong className="text-amber-300">{activeSalesRep.name}</strong>
+              </span>
+              {activeSalesRep.phone && (
+                <a
+                  href={`https://wa.me/${formatPhoneForWhatsApp(activeSalesRep.phone)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:inline-flex items-center gap-1 bg-[#25D366] text-white px-2 py-0.5 rounded-full text-[10px] font-black hover:bg-[#20ba59]"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  <span>تواصل معه واتساب</span>
+                </a>
+              )}
+            </div>
+            {onClearActiveSalesRep && (
+              <button
+                type="button"
+                onClick={onClearActiveSalesRep}
+                className="text-[10px] text-emerald-200 hover:text-white underline cursor-pointer shrink-0"
+                title="إلغاء الإحالة والتسوق مباشرة"
+              >
+                تغيير / تسوق مباشر
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Noon/Amazon Style Header */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 flex items-center justify-between gap-2 sm:gap-5">
@@ -176,7 +230,35 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
 
-              {canBuildCatalog && onOpenCatalogBuilder && (
+              {currentUser.role === 'sales_rep' && (
+                <button
+                  type="button"
+                  onClick={handleCopyMyRepLink}
+                  className={`hidden sm:flex h-9 sm:h-10 items-center gap-1.5 px-3 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs ${
+                    copiedRepLink
+                      ? 'bg-emerald-700 text-white'
+                      : 'bg-teal-700 hover:bg-teal-800 text-white'
+                  }`}
+                  title="نسخ رابطك التسويقي — أي طلب يُسجل باسمك تلقائياً وتصلك فواتيره"
+                >
+                  {copiedRepLink ? <Check className="w-3.5 h-3.5 text-amber-300" /> : <Link2 className="w-3.5 h-3.5" />}
+                  <span>{copiedRepLink ? 'تم نسخ رابطك!' : 'رابطي التسويقي'}</span>
+                </button>
+              )}
+
+              {currentUser.role === 'sales_rep' && (
+              <button
+                type="button"
+                onClick={handleCopyMyRepLink}
+                className="flex items-center gap-1 bg-teal-700 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 cursor-pointer"
+                title="نسخ رابطك التسويقي"
+              >
+                {copiedRepLink ? <Check className="w-3 h-3 text-amber-300" /> : <Link2 className="w-3 h-3" />}
+                <span>{copiedRepLink ? 'تم النسخ!' : 'رابطي'}</span>
+              </button>
+            )}
+
+            {canBuildCatalog && onOpenCatalogBuilder && (
                 <button
                   type="button"
                   onClick={onOpenCatalogBuilder}
@@ -259,6 +341,18 @@ export const Header: React.FC<HeaderProps> = ({
                 {ROLE_METADATA[currentUser.role]?.shortLabel || 'موظف'}
               </span>
             </span>
+
+            {currentUser.role === 'sales_rep' && (
+              <button
+                type="button"
+                onClick={handleCopyMyRepLink}
+                className="flex items-center gap-1 bg-teal-700 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 cursor-pointer"
+                title="نسخ رابطك التسويقي"
+              >
+                {copiedRepLink ? <Check className="w-3 h-3 text-amber-300" /> : <Link2 className="w-3 h-3" />}
+                <span>{copiedRepLink ? 'تم النسخ!' : 'رابطي'}</span>
+              </button>
+            )}
 
             {canBuildCatalog && onOpenCatalogBuilder && (
               <button
