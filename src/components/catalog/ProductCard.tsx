@@ -69,6 +69,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   ].filter(Boolean);
 
   const pct = Math.max(0, Math.min(95, Number(promoDiscountPercent) || 0));
+  const isMarketPrice = !currentPackage || typeof currentPackage.price !== 'number' || currentPackage.price <= 0;
   const finalUnitPrice =
     currentPackage && pct > 0 ? Math.round(currentPackage.price * (1 - pct / 100)) : currentPackage?.price ?? 0;
 
@@ -93,7 +94,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     e.stopPropagation();
     const phone = (whatsAppNumber || '201000000000').replace(/[^0-9]/g, '');
     const pkgName = currentPackage ? currentPackage.displayName : 'العبوة القياسية';
-    const priceText = currentPackage && showPrices ? `${currentPackage.price} جنيه` : 'حسب السعر الحالي';
+    const priceText = isMarketPrice
+      ? 'مربوط بسعر اليوم (استفسار عن آخر سعر)'
+      : currentPackage && showPrices
+        ? `${currentPackage.price} جنيه`
+        : 'حسب السعر الحالي';
     const compName = company ? `\nالشركة: *${company.name}*` : '';
 
     const stockNote = isProductOutOfStock ? '\n*(استفسار عن موعد توفر المنتج بالمخزون)*' : '';
@@ -289,7 +294,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Price Row */}
           <div className="flex items-center justify-between gap-1">
-            {showPrices && currentPackage ? (
+            {showPrices && currentPackage && !isMarketPrice ? (
               <div className="flex items-baseline gap-1 flex-wrap">
                 <span className={`text-base sm:text-lg font-black ${pct > 0 ? 'text-rose-700' : 'text-stone-950'}`}>
                   {Number(finalUnitPrice).toLocaleString('en-US')}
@@ -302,6 +307,15 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     {Number(currentPackage.price).toLocaleString('en-US')}
                   </span>
                 )}
+              </div>
+            ) : isMarketPrice ? (
+              <div className="flex flex-col">
+                <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-lg shadow-2xs">
+                  <span>📅 مربوط بسعر اليوم</span>
+                </span>
+                <span className="text-[9px] text-stone-500 font-bold mt-0.5">
+                  سيتم إبلاغك بآخر سعر وتأكيد الخصم
+                </span>
               </div>
             ) : (
               <span className="text-xs font-bold text-stone-400">السعر عند الطلب</span>

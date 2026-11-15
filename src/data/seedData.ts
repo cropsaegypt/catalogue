@@ -585,6 +585,10 @@ export const INITIAL_CATALOG_SETTINGS: CatalogSettings = {
   showAdvertisements: true,
   showProductIds: true,
   pdfOrientation: 'portrait',
+  showWholesaleNotice: true,
+  wholesaleNoticeTitle: 'تنبيه الأسعار والخصومات التجارية',
+  wholesaleNoticeContent:
+    'الأسعار المعروضة بالكتالوج هي الأسعار التجارية المعتمدة الخاصة بالموزعين والتجار والمزارع الكبرى، وهي أسعار مبدئية قبل احتساب خصومات الكميات وعروض السداد. بعد إرسال طلبيتك، سيتم التواصل معك مباشرة من إدارة البيع التجاري لتحديد الخصم التجاري الخاص بكم وتأكيد الفاتورة النهائية.',
 };
 
 export const INITIAL_ORDERS: Order[] = [

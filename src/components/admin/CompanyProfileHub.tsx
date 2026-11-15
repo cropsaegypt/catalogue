@@ -23,6 +23,7 @@ import {
   Filter,
   TrendingUp,
   X,
+  RotateCw,
 } from 'lucide-react';
 import { Company, Product, Package, PriceHistory, CompanyImage, Category, CompanySubCategory } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
@@ -34,6 +35,7 @@ import {
 import { AiCatalogExtractor } from './AiCatalogExtractor';
 import { pdfHelper, PdfPageImage } from '../../utils/pdfHelper';
 import { QuickProductEditModal } from './QuickProductEditModal';
+import { rotateAndUploadImage } from '../../utils/imageRotation';
 
 interface CompanyProfileHubProps {
   company: Company;
@@ -130,6 +132,36 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
 
   // Quick Product Edit Modal State
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
+  const [rotatingProdId, setRotatingProdId] = useState<string | null>(null);
+
+  const handleFastRotate = async (e: React.MouseEvent, targetProduct: Product) => {
+    e.stopPropagation();
+    if (!targetProduct.mainImageUrl || rotatingProdId === targetProduct.id) return;
+    setRotatingProdId(targetProduct.id);
+    try {
+      const rotated = await rotateAndUploadImage(
+        targetProduct.mainImageUrl,
+        90,
+        `comp-rot-${targetProduct.id}`
+      );
+      if (rotated) {
+        const updatedProduct: Product = {
+          ...targetProduct,
+          mainImageUrl: rotated,
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedProductsList = products.map((p) =>
+          p.id === updatedProduct.id ? updatedProduct : p
+        );
+        if (onSaveProducts) onSaveProducts(updatedProductsList);
+        onShowToast(`تم تدوير صورة "${targetProduct.name}" 90° وحفظها بنجاح ✓`, 'success');
+      }
+    } catch {
+      onShowToast('تعذر تدوير الصورة', 'error');
+    } finally {
+      setRotatingProdId(null);
+    }
+  };
 
   const handleQuickSaveProduct = (updatedProduct: Product, updatedPackages: Package[]) => {
     if (onSaveProducts) {
@@ -751,6 +783,23 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
                             </span>
                           )}
                         </div>
+
+                        {/* Quick Rotate Button */}
+                        {p.mainImageUrl && (
+                          <button
+                            type="button"
+                            disabled={rotatingProdId === p.id}
+                            onClick={(e) => handleFastRotate(e, p)}
+                            className="absolute top-2 left-2 z-10 w-7 h-7 bg-white/95 hover:bg-[#046A47] text-stone-700 hover:text-white rounded-full shadow-xs border border-stone-200 flex items-center justify-center transition-all cursor-pointer opacity-80 hover:opacity-100 disabled:opacity-50"
+                            title="تدوير الصورة 90° لليمين لضبط الاستقامة"
+                          >
+                            <RotateCw
+                              className={`w-3.5 h-3.5 ${
+                                rotatingProdId === p.id ? 'animate-spin text-emerald-500' : ''
+                              }`}
+                            />
+                          </button>
+                        )}
 
                         {/* Quick Edit Hint */}
                         <div className="absolute bottom-2 inset-x-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold py-1 px-2 rounded-lg text-center flex items-center justify-center gap-1">

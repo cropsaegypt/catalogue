@@ -52,6 +52,11 @@ export const CatalogSettingsManager: React.FC<CatalogSettingsManagerProps> = ({
     showUsage: settings.showUsage !== undefined ? settings.showUsage : true,
     pdfOrientation: settings.pdfOrientation || 'portrait',
     productsPerPage: settings.productsPerPage || 8,
+    showWholesaleNotice: settings.showWholesaleNotice !== undefined ? settings.showWholesaleNotice : true,
+    wholesaleNoticeTitle: settings.wholesaleNoticeTitle || 'تنبيه الأسعار والخصومات التجارية',
+    wholesaleNoticeContent:
+      settings.wholesaleNoticeContent ||
+      'الأسعار المعروضة بالكتالوج هي الأسعار التجارية المعتمدة الخاصة بالموزعين والتجار والمزارع الكبرى، وهي أسعار مبدئية قبل احتساب خصومات الكميات وعروض السداد. بعد إرسال طلبيتك، سيتم التواصل معك مباشرة من إدارة البيع التجاري لتحديد الخصم التجاري الخاص بكم وتأكيد الفاتورة النهائية.',
   });
 
   const [activeTab, setActiveTab] = useState<string>('identity');
@@ -70,6 +75,11 @@ export const CatalogSettingsManager: React.FC<CatalogSettingsManagerProps> = ({
         showUsage: settings.showUsage !== undefined ? settings.showUsage : true,
         pdfOrientation: settings.pdfOrientation || 'portrait',
         productsPerPage: settings.productsPerPage || 8,
+        showWholesaleNotice: settings.showWholesaleNotice !== undefined ? settings.showWholesaleNotice : true,
+        wholesaleNoticeTitle: settings.wholesaleNoticeTitle || 'تنبيه الأسعار والخصومات التجارية',
+        wholesaleNoticeContent:
+          settings.wholesaleNoticeContent ||
+          'الأسعار المعروضة بالكتالوج هي الأسعار التجارية المعتمدة الخاصة بالموزعين والتجار والمزارع الكبرى، وهي أسعار مبدئية قبل احتساب خصومات الكميات وعروض السداد. بعد إرسال طلبيتك، سيتم التواصل معك مباشرة من إدارة البيع التجاري لتحديد الخصم التجاري الخاص بكم وتأكيد الفاتورة النهائية.',
       });
     }
   }, [settings]);
@@ -600,6 +610,54 @@ export const CatalogSettingsManager: React.FC<CatalogSettingsManagerProps> = ({
                         })
                       }
                     />
+                  </div>
+
+                  {/* Toggle 4: Wholesale Notice Popup */}
+                  <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <span className="text-xs font-black text-stone-900 block">
+                          نافذة تنبيه الأسعار التجارية والخصومات (Popup للزوار)
+                        </span>
+                        <span className="text-[11px] text-stone-500 font-medium block">
+                          تظهر تلقائياً عند فتح الكتالوج لتوضيح أن الأسعار مبدئية والخصم يُحدد بعد عمل الطلبية
+                        </span>
+                      </div>
+                      <Switch
+                        checked={formData.showWholesaleNotice !== false}
+                        onCheckedChange={(checked) =>
+                          setFormData({ ...formData, showWholesaleNotice: checked })
+                        }
+                      />
+                    </div>
+
+                    {formData.showWholesaleNotice !== false && (
+                      <div className="space-y-3 pt-2 border-t border-stone-200/70">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-stone-700 block">عنوان النافذة التنبيهية</label>
+                          <Input
+                            type="text"
+                            value={formData.wholesaleNoticeTitle || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, wholesaleNoticeTitle: e.target.value })
+                            }
+                            placeholder="تنبيه الأسعار والخصومات التجارية"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-stone-700 block">نص التنبيه والتعليمات للعميل</label>
+                          <textarea
+                            rows={3}
+                            value={formData.wholesaleNoticeContent || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, wholesaleNoticeContent: e.target.value })
+                            }
+                            className="w-full text-xs p-3 rounded-xl border border-stone-300 focus:border-emerald-600 outline-none"
+                            placeholder="اكتب التوضيح الخاص بالأسعار التجارية وطريقة التواصل وتطبيق الخصم..."
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

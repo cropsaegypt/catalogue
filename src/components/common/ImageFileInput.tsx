@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Loader2, Sparkles, Crop } from 'lucide-react';
+import { Upload, X, Loader2, Sparkles, Crop, RotateCw, RotateCcw } from 'lucide-react';
 import { aiCatalogService } from '../../services/aiCatalogService';
 import { ImageCropModal } from './ImageCropModal';
+import { rotateAndUploadImage } from '../../utils/imageRotation';
 
 interface ImageFileInputProps {
   value: string;
@@ -25,6 +26,20 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
   const [isCleaningBg, setIsCleaningBg] = useState(false);
   const [cropSourceSrc, setCropSourceSrc] = useState<string>('');
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+
+  const handleRotate = async (degrees: 90 | -90 | 180) => {
+    if (!value || isRotating || isUploading) return;
+    setIsRotating(true);
+    try {
+      const rotated = await rotateAndUploadImage(value, degrees, 'rotated');
+      if (rotated) {
+        onChange(rotated);
+      }
+    } finally {
+      setIsRotating(false);
+    }
+  };
 
   const handleRemoveBg = async () => {
     if (!value || isCleaningBg) return;
@@ -151,6 +166,27 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
+            {/* Quick Rotate Buttons */}
+            <button
+              type="button"
+              disabled={isRotating || isUploading}
+              onClick={() => handleRotate(90)}
+              className="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer disabled:opacity-60"
+              title="تدوير 90° لليمين لضبط الاستقامة"
+            >
+              <RotateCw className={`w-3.5 h-3.5 ${isRotating ? 'animate-spin text-[#046A47]' : ''}`} />
+              <span>تدوير 90°</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={isRotating || isUploading}
+              onClick={() => handleRotate(-90)}
+              className="p-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-[11px] flex items-center justify-center cursor-pointer disabled:opacity-60"
+              title="تدوير 90° لليسار"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
             {cropShape === 'circle' && (
               <button
                 type="button"

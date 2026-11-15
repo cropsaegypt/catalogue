@@ -13,10 +13,16 @@ import {
   Sparkles,
   Tag,
   Boxes,
+  RotateCw,
+  RotateCcw,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import { Product, Package, Company, Category, CompanySubCategory } from '../../types';
 import { getMainCategories, getSubCategories } from '../../utils/categoryHierarchy';
 import { getAgriculturalProductImage, AGRICULTURAL_PRESET_IMAGES } from '../../utils/agriculturalImages';
+import { rotateAndUploadImage } from '../../utils/imageRotation';
+import { aiCatalogService } from '../../services/aiCatalogService';
 
 interface QuickProductEditModalProps {
   product: Product | null;
@@ -54,6 +60,63 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
   const [shortDescription, setShortDescription] = useState(product.shortDescription || '');
   const [mainImageUrl, setMainImageUrl] = useState(product.mainImageUrl || '');
   const [active, setActive] = useState(product.active !== false);
+
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isRotating, setIsRotating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCleaningBg, setIsCleaningBg] = useState(false);
+
+  const handleRotate = async (degrees: 90 | -90 | 180) => {
+    if (!mainImageUrl || isRotating || isUploading) return;
+    setIsRotating(true);
+    try {
+      const rotated = await rotateAndUploadImage(mainImageUrl, degrees, `quick-rot-${product.id}`);
+      if (rotated) {
+        setMainImageUrl(rotated);
+        onShowToast('تم تدوير صورة المنتج وتعديلها بنجاح ✓', 'success');
+      }
+    } catch {
+      onShowToast('تعذر تدوير الصورة', 'error');
+    } finally {
+      setIsRotating(false);
+    }
+  };
+
+  const handleCleanBg = async () => {
+    if (!mainImageUrl || isCleaningBg) return;
+    setIsCleaningBg(true);
+    try {
+      const cleaned = await aiCatalogService.cleanBackgroundAndUpload(mainImageUrl, `quick-clean-${product.id}`);
+      if (cleaned) {
+        setMainImageUrl(cleaned);
+        onShowToast('تم تفريغ خلفية الصورة بنجاح ✓', 'success');
+      } else {
+        onShowToast('الصورة لا تحتوي على خلفية قابلة للإزالة', 'error');
+      }
+    } finally {
+      setIsCleaningBg(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    e.target.value = '';
+    setIsUploading(true);
+    try {
+      const compressed = await aiCatalogService.compressImage(file, 1080, 0.85);
+      if (compressed) {
+        const uploaded = await aiCatalogService.uploadExtractedImage(compressed, `quick-up-${product.id}`);
+        setMainImageUrl(uploaded || compressed);
+        onShowToast('تم رفع وتجهيز صورة المنتج بنجاح ✓', 'success');
+      }
+    } catch {
+      onShowToast('تعذر رفع الصورة', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Stock Control State
   const [isOutOfStock, setIsOutOfStock] = useState<boolean>(() => {
@@ -586,23 +649,42 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
             </div>
           </div>
 
-          {/* 4. PRODUCT IMAGE (صورة المنتج والمعاينة) */}
+          {/* 4. PRODUCT IMAGE (صورة المنتج والمعاينة والتدوير) */}
           <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
-            <h4 className="text-xs font-black text-stone-900 flex items-center gap-1.5 pb-2 border-b border-stone-100">
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>صورة المنتج أو العبوة</span>
+            <h4 className="text-xs font-black text-stone-900 flex items-center justify-between pb-2 border-b border-stone-100">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                <span>صورة المنتج أو العبوة وضبط الاستقامة</span>
+              </span>
+              {mainImageUrl && (
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">
+                  يمكنك تدوير وضبط اتجاه الصورة فوراً
+                </span>
+              )}
             </h4>
 
             <div className="flex flex-col sm:flex-row items-center gap-4">
-              <div className="w-24 h-24 rounded-2xl border-2 border-stone-200 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
+              <div className="relative group/qimg w-24 h-24 rounded-2xl border-2 border-stone-200 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
                 {mainImageUrl ? (
                   <img src={mainImageUrl} alt={name} className="w-full h-full object-contain p-1" />
                 ) : (
                   <span className="text-xs text-stone-400 font-bold">بدون صورة</span>
                 )}
+                {mainImageUrl && (
+                  <button
+                    type="button"
+                    disabled={isRotating || isUploading}
+                    onClick={() => handleRotate(90)}
+                    className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover/qimg:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-[10px] font-black cursor-pointer"
+                    title="اضغط لتدوير الصورة 90°"
+                  >
+                    <RotateCw className={`w-4 h-4 ${isRotating ? 'animate-spin' : ''}`} />
+                    <span>تدوير 90°</span>
+                  </button>
+                )}
               </div>
 
-              <div className="flex-1 space-y-2 w-full">
+              <div className="flex-1 space-y-2.5 w-full">
                 <input
                   type="text"
                   value={mainImageUrl}
@@ -611,7 +693,61 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
                   className="w-full bg-[#FAF8F5] border border-stone-300 rounded-xl px-3 py-2 text-xs font-mono text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#046A47]"
                 />
 
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={isUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 border border-stone-300 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin text-[#046A47]" /> : <Upload className="w-3.5 h-3.5 text-stone-600" />}
+                    <span>{isUploading ? 'جاري الرفع...' : 'رفع صورة من جهازك'}</span>
+                  </button>
+
+                  {mainImageUrl && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={isRotating || isUploading}
+                        onClick={() => handleRotate(90)}
+                        className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 rounded-xl text-xs font-black cursor-pointer transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                        title="تدوير الصورة 90° لليمين لضبط الاستقامة الأفقية/الرأسية"
+                      >
+                        <RotateCw className={`w-3.5 h-3.5 ${isRotating ? 'animate-spin' : ''}`} />
+                        <span>{isRotating ? 'جاري التدوير...' : 'تدوير 90°'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isRotating || isUploading}
+                        onClick={() => handleRotate(-90)}
+                        className="p-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl text-xs cursor-pointer transition-colors flex items-center justify-center disabled:opacity-50"
+                        title="تدوير 90° لليسار"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={isCleaningBg || isUploading}
+                        onClick={handleCleanBg}
+                        className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1 disabled:opacity-50"
+                        title="إزالة خلفية الصورة"
+                      >
+                        {isCleaningBg ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-amber-600" />}
+                        <span>{isCleaningBg ? 'جاري التفريغ...' : 'تفريغ الخلفية'}</span>
+                      </button>
+                    </>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => {
@@ -619,18 +755,18 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
                       setMainImageUrl(sampleImg);
                       onShowToast('تم اختيار صورة زراعية مناسبة للمنتج ✓', 'success');
                     }}
-                    className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                    className="px-2.5 py-1.5 bg-stone-50 hover:bg-stone-100 text-stone-700 border border-stone-200 rounded-xl text-xs font-medium cursor-pointer transition-colors"
                   >
-                    🌱 اختيار صورة زراعية مقترحة
+                    🌱 صورة مقترحة
                   </button>
 
                   {mainImageUrl && (
                     <button
                       type="button"
                       onClick={() => setMainImageUrl('')}
-                      className="px-2.5 py-1.5 text-stone-500 hover:text-stone-800 text-xs font-bold cursor-pointer"
+                      className="px-2 py-1.5 text-rose-600 hover:text-rose-800 text-xs font-bold cursor-pointer"
                     >
-                      مسح الصورة
+                      مسح
                     </button>
                   )}
                 </div>

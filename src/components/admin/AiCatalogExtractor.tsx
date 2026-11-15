@@ -24,6 +24,8 @@ import {
   ChevronDown,
   ChevronUp,
   KeyRound,
+  RotateCw,
+  RotateCcw,
 } from 'lucide-react';
 import {
   Company,
@@ -38,6 +40,7 @@ import {
 import { aiCatalogService, CatalogExtractionResult } from '../../services/aiCatalogService';
 import { pdfHelper } from '../../utils/pdfHelper';
 import { ImageFileInput } from '../common/ImageFileInput';
+import { rotateAndUploadImage } from '../../utils/imageRotation';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
 import { getMainCategories, getSubCategories } from '../../utils/categoryHierarchy';
 
@@ -113,6 +116,7 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
   });
   const [autoRemoveBackground, setAutoRemoveBackground] = useState<boolean>(true);
   const [cleaningProductId, setCleaningProductId] = useState<string | null>(null);
+  const [rotatingProductId, setRotatingProductId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/health')
@@ -1467,30 +1471,85 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                             </button>
                           </div>
                           {prod.imageUrl && !prod.imageUrl.startsWith('data:image/svg+xml') && (
-                            <button
-                              type="button"
-                              disabled={cleaningProductId === prod.id}
-                              onClick={async () => {
-                                setCleaningProductId(prod.id);
-                                try {
-                                  const cleaned = await aiCatalogService.cleanBackgroundAndUpload(
-                                    prod.imageUrl!,
-                                    `ext-${prod.id}`
-                                  );
-                                  if (cleaned) {
-                                    handleUpdateProduct(prod.id, { imageUrl: cleaned });
-                                    onShowToast(`تم تفريغ خلفية "${prod.name}" بنجاح`, 'success');
-                                  } else {
-                                    onShowToast('الصورة شفافة بالفعل أو لا تحتوي على خلفية موحدة قابلة للإزالة', 'error');
+                            <div className="flex flex-col items-center gap-1 mt-1 w-full">
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  disabled={rotatingProductId === prod.id}
+                                  onClick={async () => {
+                                    setRotatingProductId(prod.id);
+                                    try {
+                                      const rotated = await rotateAndUploadImage(
+                                        prod.imageUrl!,
+                                        90,
+                                        `ext-rot-${prod.id}`
+                                      );
+                                      if (rotated) {
+                                        handleUpdateProduct(prod.id, { imageUrl: rotated });
+                                        onShowToast(`تم تدوير صورة "${prod.name}" 90° بنجاح ✓`, 'success');
+                                      }
+                                    } finally {
+                                      setRotatingProductId(null);
+                                    }
+                                  }}
+                                  className="px-1.5 py-0.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded text-[9.5px] font-bold flex items-center gap-0.5 cursor-pointer disabled:opacity-50"
+                                  title="تدوير 90° لليمين لضبط الاستقامة"
+                                >
+                                  <RotateCw
+                                    className={`w-3 h-3 ${rotatingProductId === prod.id ? 'animate-spin text-[#046A47]' : ''}`}
+                                  />
+                                  <span>تدوير 90°</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={rotatingProductId === prod.id}
+                                  onClick={async () => {
+                                    setRotatingProductId(prod.id);
+                                    try {
+                                      const rotated = await rotateAndUploadImage(
+                                        prod.imageUrl!,
+                                        -90,
+                                        `ext-rot-${prod.id}`
+                                      );
+                                      if (rotated) {
+                                        handleUpdateProduct(prod.id, { imageUrl: rotated });
+                                        onShowToast(`تم تدوير صورة "${prod.name}" لليسار بنجاح ✓`, 'success');
+                                      }
+                                    } finally {
+                                      setRotatingProductId(null);
+                                    }
+                                  }}
+                                  className="p-1 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded text-[9.5px] flex items-center justify-center cursor-pointer disabled:opacity-50"
+                                  title="تدوير 90° لليسار"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={cleaningProductId === prod.id}
+                                onClick={async () => {
+                                  setCleaningProductId(prod.id);
+                                  try {
+                                    const cleaned = await aiCatalogService.cleanBackgroundAndUpload(
+                                      prod.imageUrl!,
+                                      `ext-${prod.id}`
+                                    );
+                                    if (cleaned) {
+                                      handleUpdateProduct(prod.id, { imageUrl: cleaned });
+                                      onShowToast(`تم تفريغ خلفية "${prod.name}" بنجاح`, 'success');
+                                    } else {
+                                      onShowToast('الصورة شفافة بالفعل أو لا تحتوي على خلفية موحدة قابلة للإزالة', 'error');
+                                    }
+                                  } finally {
+                                    setCleaningProductId(null);
                                   }
-                                } finally {
-                                  setCleaningProductId(null);
-                                }
-                              }}
-                              className="text-[9px] font-black text-[#046A47] hover:underline cursor-pointer disabled:opacity-50 mt-1"
-                            >
-                              {cleaningProductId === prod.id ? 'جاري التفريغ...' : '✨ إزالة الخلفية'}
-                            </button>
+                                }}
+                                className="text-[9px] font-black text-[#046A47] hover:underline cursor-pointer disabled:opacity-50"
+                              >
+                                {cleaningProductId === prod.id ? 'جاري التفريغ...' : '✨ إزالة الخلفية'}
+                              </button>
+                            </div>
                           )}
                         </div>
 

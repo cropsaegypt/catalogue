@@ -72,7 +72,8 @@ service cloud.firestore {
     //            whatsApp, orderWebhookUrl, email, qrCodeUrl, productsPerPage, showPrices,
     //            showCharacteristics, showComposition, showUsage, showAdvertisements,
     //            showProductIds, pdfOrientation, showHomeShowcases, homeShowcases,
-    //            islamicFinancingConfig
+    //            islamicFinancingConfig, showWholesaleNotice, wholesaleNoticeTitle,
+    //            wholesaleNoticeContent
     //
     // 9. Collection: customCatalogs/{catalogId}
     //    Fields: id (string, req), productIds (list, req), clientName (string, opt),
@@ -371,7 +372,8 @@ service cloud.firestore {
                'qrCodeUrl', 'productsPerPage', 'showPrices', 'showCharacteristics',
                'showComposition', 'showUsage', 'showAdvertisements', 'showProductIds',
                'pdfOrientation', 'showHomeShowcases', 'homeShowcases',
-               'islamicFinancingConfig'
+               'islamicFinancingConfig', 'showWholesaleNotice',
+               'wholesaleNoticeTitle', 'wholesaleNoticeContent'
              ]) &&
              isValidReqString(data, 'title', 1, 300) &&
              isValidOptString(data, 'subtitle', 0, 1000) &&
@@ -407,7 +409,10 @@ service cloud.firestore {
               data.pdfOrientation in ['portrait', 'landscape']) &&
              isValidOptBool(data, 'showHomeShowcases') &&
              isValidOptMap(data, 'homeShowcases', 10) &&
-             isValidOptMap(data, 'islamicFinancingConfig', 20);
+             isValidOptMap(data, 'islamicFinancingConfig', 20) &&
+             isValidOptBool(data, 'showWholesaleNotice') &&
+             isValidOptString(data, 'wholesaleNoticeTitle', 0, 300) &&
+             isValidOptString(data, 'wholesaleNoticeContent', 0, 2000);
     }
 
     function isValidCustomCatalog(data) {

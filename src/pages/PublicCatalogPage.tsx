@@ -20,6 +20,7 @@ import { EmployeeLoginModal } from '../components/common/EmployeeLoginModal';
 import { ProductCard } from '../components/catalog/ProductCard';
 import { ProductModal } from '../components/catalog/ProductModal';
 import { QuickAddQuantityModal } from '../components/catalog/QuickAddQuantityModal';
+import { WholesaleNoticeModal } from '../components/catalog/WholesaleNoticeModal';
 import { BasketDrawer } from '../components/catalog/BasketDrawer';
 import { CompanyDirectoryModal } from '../components/catalog/CompanyDirectoryModal';
 import { OffersBannerCarousel } from '../components/catalog/OffersBannerCarousel';
@@ -123,6 +124,16 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   } | null>(null);
   const [isEmployeeLoginOpen, setIsEmployeeLoginOpen] = useState(false);
   const [isFinancingPageOpen, setIsFinancingPageOpen] = useState(false);
+  const [isWholesaleNoticeOpen, setIsWholesaleNoticeOpen] = useState<boolean>(() => {
+    return settings.showWholesaleNotice !== false;
+  });
+
+  // Automatically show the Wholesale & Commercial Pricing Notice when catalog opens
+  React.useEffect(() => {
+    if (settings.showWholesaleNotice !== false) {
+      setIsWholesaleNoticeOpen(true);
+    }
+  }, [settings.showWholesaleNotice]);
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -408,6 +419,28 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             basketItems.length > 0 ? 'pb-36 md:pb-20' : 'pb-24 md:pb-12'
           }`}
         >
+        {/* Wholesale Commercial Pricing Notification Strip */}
+        {settings.showWholesaleNotice !== false && (
+          <div className="bg-gradient-to-l from-emerald-900 via-stone-900 to-stone-900 text-white rounded-2xl p-2.5 sm:p-3 shadow-xs border border-emerald-800/40 flex items-center justify-between gap-3 text-xs mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-6 h-6 rounded-lg bg-amber-400 text-stone-950 font-black flex items-center justify-center shrink-0 text-xs shadow-xs">
+                %
+              </span>
+              <p className="truncate font-bold text-stone-100 text-[11.5px] sm:text-xs">
+                <span className="text-amber-300 font-black ml-1.5">أسعار تجارية معتمدة:</span>
+                الأسعار المعروضة هي أسعار الموزعين والتجار المعتمدة مبدئية بدون خصم الكميات
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsWholesaleNoticeOpen(true)}
+              className="px-3 py-1 bg-white/10 hover:bg-white/20 text-amber-300 hover:text-white rounded-xl font-black text-[11px] shrink-0 transition-colors cursor-pointer"
+            >
+              عرض التنبيه ↳
+            </button>
+          </div>
+        )}
+
         {/* Top Configurable Hero Banner (From Settings: Default Carousel / Text + Image / Full Image) */}
         {isHomeDefaultView && (
           <OffersBannerCarousel
@@ -976,6 +1009,16 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           }
           return res;
         }}
+      />
+
+      {/* Wholesale Notice Welcome Popup */}
+      <WholesaleNoticeModal
+        isOpen={isWholesaleNoticeOpen}
+        onClose={() => setIsWholesaleNoticeOpen(false)}
+        title={settings.wholesaleNoticeTitle}
+        content={settings.wholesaleNoticeContent}
+        phone={settings.phone}
+        whatsAppNumber={settings.whatsApp}
       />
 
       <ToastContainer

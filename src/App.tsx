@@ -17,6 +17,7 @@ import {
   DbData,
 } from './services/dbStorage';
 import { firestoreSync } from './services/firestoreSync';
+import { serverSync } from './services/serverSync';
 import { auth, signInWithGoogleForCloudSync } from './services/firebase';
 
 import {
@@ -72,6 +73,10 @@ export default function App() {
     productsPerPage: 4,
     showPricesInPdf: true,
     showProductIds: true,
+    showWholesaleNotice: true,
+    wholesaleNoticeTitle: 'تنبيه الأسعار والخصومات التجارية',
+    wholesaleNoticeContent:
+      'الأسعار المعروضة بالكتالوج هي الأسعار التجارية المعتمدة الخاصة بالموزعين والتجار والمزارع الكبرى، وهي أسعار مبدئية قبل احتساب خصومات الكميات وعروض السداد. بعد إرسال طلبيتك، سيتم التواصل معك مباشرة من إدارة البيع التجاري لتحديد الخصم التجاري الخاص بكم وتأكيد الفاتورة النهائية.',
   });
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null);
@@ -298,6 +303,33 @@ export default function App() {
         }
       })
       .catch(() => {});
+
+    // 2.7 Centralized Server Storage Hydration (Syncs instantly across different browsers & tabs)
+    void serverSync.fetchFromCentralServer().then((serverRes) => {
+      if (serverRes.success && serverRes.hasData && serverRes.data) {
+        const sd = serverRes.data;
+        if (sd.categories?.length) { setCategories(sd.categories); dbStorage.saveCategories(sd.categories); }
+        if (sd.companies?.length) { setCompanies(sd.companies); dbStorage.saveCompanies(sd.companies); }
+        if (sd.subCategories?.length) { setSubCategories(sd.subCategories); dbStorage.saveSubCategories(sd.subCategories); }
+        if (sd.products?.length) { setProducts(sd.products); dbStorage.saveProducts(sd.products); }
+        if (sd.packages?.length) { setPackages(sd.packages); dbStorage.savePackages(sd.packages); }
+        if (sd.advertisements?.length) { setAdvertisements(sd.advertisements); dbStorage.saveAdvertisements(sd.advertisements); }
+        if (sd.images?.length) { setImages(sd.images); dbStorage.saveImages(sd.images); }
+        if (sd.orders?.length) { setOrders(sd.orders); dbStorage.saveOrders(sd.orders); }
+        if (sd.financingRequests?.length) { setFinancingRequests(sd.financingRequests); dbStorage.saveFinancingRequests(sd.financingRequests); }
+        if (sd.teamMembers?.length) { setTeamMembers(sd.teamMembers); dbStorage.saveTeamMembers(sd.teamMembers); }
+        if (sd.settings) { setSettings(sd.settings); dbStorage.saveSettings(sd.settings); }
+      } else {
+        // If server storage has no catalog yet, but this browser already has products/companies, seed server immediately!
+        const localData = dbStorage.getData();
+        if ((localData.products?.length || 0) > 0 || (localData.companies?.length || 0) > 0) {
+          void serverSync.syncToCentralServer({
+            ...localData,
+            pdfDividers: dbStorage.getPdfDividers(),
+          });
+        }
+      }
+    });
   }, []);
 
   // Automatic silent background synchronization when pending changes exist and device is online
@@ -351,6 +383,44 @@ export default function App() {
     };
   }, [hasUnsyncedChanges]);
 
+  // Live cross-browser session sync: updates even if a user has an active tab open right now
+  useEffect(() => {
+    let lastKnownSyncTime = '';
+
+    const checkServerUpdates = async () => {
+      if (dbStorage.hasPendingCloudSync()) return;
+      const res = await serverSync.fetchFromCentralServer();
+      if (res.success && res.hasData && res.data) {
+        const serverTime = res.serverTime || res.data.lastSyncedAt || '';
+        if (serverTime && serverTime !== lastKnownSyncTime) {
+          lastKnownSyncTime = serverTime;
+          const sd = res.data;
+          if (sd.products?.length) setProducts(sd.products);
+          if (sd.companies?.length) setCompanies(sd.companies);
+          if (sd.categories?.length) setCategories(sd.categories);
+          if (sd.subCategories?.length) setSubCategories(sd.subCategories);
+          if (sd.packages?.length) setPackages(sd.packages);
+          if (sd.advertisements?.length) setAdvertisements(sd.advertisements);
+          if (sd.images?.length) setImages(sd.images);
+          if (sd.settings) setSettings(sd.settings);
+        }
+      }
+    };
+
+    const interval = setInterval(checkServerUpdates, 8000);
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void checkServerUpdates();
+      }
+    };
+    window.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
   const trackCloudWrite = async (promise: Promise<{ ok: boolean; error?: string }>) => {
     const res = await promise;
     if (res.ok) {
@@ -377,6 +447,7 @@ export default function App() {
     setHasUnsyncedChanges(true);
     dbStorage.addAuditLog('تحديث المنتجات', 'Product', 'تم حفظ تعديلات قائمة المنتجات');
     void trackCloudWrite(firestoreSync.syncCollection('products', updatedProducts));
+    void serverSync.syncToCentralServer({ products: updatedProducts });
   };
 
   const handleSaveSubCategories = (updatedSubs: CompanySubCategory[]) => {
@@ -386,6 +457,7 @@ export default function App() {
     setHasUnsyncedChanges(true);
     dbStorage.addAuditLog('تحديث الأقسام الفرعية', 'SubCategory', 'تم حفظ تعديلات أقسام الشركات الفرعية');
     void trackCloudWrite(firestoreSync.syncCollection('subCategories', updatedSubs));
+    void serverSync.syncToCentralServer({ subCategories: updatedSubs });
   };
 
   const handleSaveTeamMembers = (updatedTeam: TeamMember[]) => {
@@ -394,6 +466,7 @@ export default function App() {
     dbStorage.setPendingCloudSync(true);
     setHasUnsyncedChanges(true);
     void trackCloudWrite(firestoreSync.syncCollection('team', updatedTeam));
+    void serverSync.syncToCentralServer({ teamMembers: updatedTeam });
     if (currentUser) {
       const updatedSelf = updatedTeam.find((m) => m.id === currentUser.id);
       if (!updatedSelf || !updatedSelf.active) {
@@ -413,6 +486,7 @@ export default function App() {
     dbStorage.setPendingCloudSync(true);
     setHasUnsyncedChanges(true);
     void trackCloudWrite(firestoreSync.syncCollection('packages', updatedPackages));
+    void serverSync.syncToCentralServer({ packages: updatedPackages });
   };
 
   const handleSaveCategories = (updatedCategories: Category[]) => {
@@ -422,6 +496,7 @@ export default function App() {
     setHasUnsyncedChanges(true);
     dbStorage.addAuditLog('تحديث الأقسام', 'Category', 'تم حفظ تعديلات الأقسام الرئيسية والفرعية');
     void trackCloudWrite(firestoreSync.syncCollection('categories', updatedCategories));
+    void serverSync.syncToCentralServer({ categories: updatedCategories });
   };
 
   const handleSaveCompanies = (updatedCompanies: Company[]) => {
@@ -431,6 +506,7 @@ export default function App() {
     setHasUnsyncedChanges(true);
     dbStorage.addAuditLog('تحديث الشركات', 'Company', 'تم حفظ تعديلات أسماء ومعلومات الشركات المصنعة');
     void trackCloudWrite(firestoreSync.syncCollection('companies', updatedCompanies));
+    void serverSync.syncToCentralServer({ companies: updatedCompanies });
   };
 
   const handleSaveImages = (updatedImages: CompanyImage[]) => {
@@ -439,6 +515,7 @@ export default function App() {
     dbStorage.setPendingCloudSync(true);
     setHasUnsyncedChanges(true);
     void trackCloudWrite(firestoreSync.syncCollection('images', updatedImages));
+    void serverSync.syncToCentralServer({ images: updatedImages });
   };
 
   const handleSaveAdvertisements = (updatedAds: Advertisement[]) => {
@@ -447,6 +524,7 @@ export default function App() {
     dbStorage.setPendingCloudSync(true);
     setHasUnsyncedChanges(true);
     void trackCloudWrite(firestoreSync.syncCollection('advertisements', updatedAds));
+    void serverSync.syncToCentralServer({ advertisements: updatedAds });
   };
 
   const handleSaveSettings = (updatedSettings: CatalogSettings) => {
@@ -455,6 +533,7 @@ export default function App() {
     dbStorage.setPendingCloudSync(true);
     setHasUnsyncedChanges(true);
     void trackCloudWrite(firestoreSync.saveSettings(updatedSettings));
+    void serverSync.syncToCentralServer({ settings: updatedSettings });
   };
 
   const handleUpdateOrderStatus = (orderId: string, status: Order['status']) => {
@@ -521,6 +600,24 @@ export default function App() {
     setIsCloudSyncing(true);
     setCloudError(undefined);
     try {
+      // Push to centralized server storage immediately (for all browsers)
+      await serverSync.syncToCentralServer({
+        ...dbStorage.getData(),
+        products,
+        packages,
+        categories,
+        companies,
+        subCategories,
+        images,
+        advertisements,
+        orders,
+        financingRequests,
+        teamMembers,
+        priceHistory,
+        settings,
+        pdfDividers: dbStorage.getPdfDividers(),
+      });
+
       const res = await firestoreSync.pushFullSnapshot({
         ...dbStorage.getData(),
         products,

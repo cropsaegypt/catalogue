@@ -204,7 +204,7 @@ export function createApiApp() {
         `5. المميزات: قائمة بأهم فوائد ومميزات المركب.`,
         `6. التوصيات ومعدلات الاستخدام: جرعة الرش الورقي أو التسميد الأرضي للمحاصيل (مثل 200 سم / 100 لتر ماء).`,
         `7. العبوات والأسعار: استخرج كل حجم عبوة مع سعرها الرسمي بالجنيه المصري (مثلا عبوة 1 لتر بسعر 350، وعبوة 5 لتر بسعر 1600). إذا كانت أسعار الكراتين مذكورة استخرج عدد العبوات في الكرتونة. إذا لم يذكر عدد العبوات في الكرتونة ضع القيمة الافتراضية المناسبة (اللتر 12 عبوة، الـ 250 سم 24 عبوة، الـ 5 لتر 4 عبوات، الشيكارة 25 كجم 1). [قاعدة صارمة للأسعار]: إذا لم يكن هناك سعر صريح ومكتوب للمنتج أو العبوة في الكتالوج، إياك أن تؤلف أو تخمن أو تفترض سعراً من عندك على الإطلاق! ضع السعر 0 (صفر) لكي يتم تمييزه كمنتج بدون سعر ومراجعته باللون الأحمر.`,
-        `8. سحب وقص صورة المنتج الفعلية من الكتالوج (هام جداً): لكل منتج توجد له صورة/عبوة/زجاجة/شيكارة في الملف/الصفحة المرفقة، حدد رقم الملف أو الصفحة (sourceImageIndex بدءاً من 0 حسب الترقيم [ملف/صفحة رقم X]) وحدد الإحداثيات الدقيقة لمربع صورة العبوة نفسها فقط (imageBox: ymin, xmin, ymax, xmax بنظام 0 إلى 1000) لكي نقوم بقص الصورة الحقيقية للمنتج من الكتالوج دون ضياعها. إذا كانت الصفحة تحوي عدة منتجات حدد مربع صورة كل منتج على حدة بدقة.`,
+        `8. سحب وقص صورة المنتج الفعلية من الكتالوج (هام جداً): لكل منتج توجد له صورة/عبوة/زجاجة/شيكارة في الملف/الصفحة المرفقة، حدد رقم الملف أو الصفحة (sourceImageIndex بدءاً من 0 حسب الترقيم [ملف/صفحة رقم X]) وحدد الإحداثيات الدقيقة لمربع صورة العبوة نفسها فقط (imageBox: ymin, xmin, ymax, xmax بنظام 0 إلى 1000) لكي نقوم بقص الصورة الحقيقية للمنتج من الكتالوج دون ضياعها. تأكد أن المربع يحيط بالعبوة باستقامة أفقية ورأسية صحيحة دون قطع أو ميل. إذا كانت الصفحة تحوي عدة منتجات حدد مربع صورة كل منتج على حدة بدقة.`,
         `9. وسوم البحث المخفية للآفات والمحاصيل (searchTags - هام للبحث السريع): اقرأ وصف المركب ومادته الفعالة واستخدامه، واستنتج جميع الآفات والحشرات والأمراض والمحاصيل والأغراض الزراعية التي يخدمها المنتج ككلمات مفتاحية شائعة باللغة العربية الدارجة (مثل: دودة، ديدان، يرقات، حشرات، توتا أبسلوتا، ذبابة بيضاء، من، تربس، أكاروس، نيماتودا، عفن، أعفان، فطريات، بياض، ندوة، حشائش، تجذير، جذور، تحجيم، تزهير، عقد، هيوميك، ملوحة، طماطم، بطاطس، عنب، موالح، خضر، فاكهة، قمح، ذرة) لتسريع ظهور المنتج للعميل في شريط البحث السريع.`,
       ];
 
@@ -788,6 +788,47 @@ export function createApiApp() {
 
   // Shareable Custom Client Catalogs Persistence
   const customCatalogsStorePath = getStoreFilePath('custom-catalogs-store.json');
+  const catalogDataStorePath = getStoreFilePath('catalog-data-store.json');
+
+  // Centralized live catalog storage across all browsers with zero cache delay
+  app.get('/api/catalog/data', (_req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+
+    const data = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
+    return res.json({
+      success: true,
+      hasData: Object.keys(data).length > 0,
+      data,
+      serverTime: new Date().toISOString(),
+    });
+  });
+
+  app.post('/api/catalog/sync', (req, res) => {
+    try {
+      const payload = req.body || {};
+      const existing = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
+
+      const updated: Record<string, any> = {
+        ...existing,
+        ...payload,
+        lastSyncedAt: new Date().toISOString(),
+      };
+
+      writeJsonStore(catalogDataStorePath, updated);
+
+      return res.json({
+        success: true,
+        message: 'تم حفظ ومزامنة البيانات في السيرفر المركزي بنجاح',
+        serverTime: updated.lastSyncedAt,
+      });
+    } catch (err: any) {
+      console.error('[CROPSA Server] Failed syncing catalog data:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
 
   app.post('/api/custom-catalogs', (req, res) => {
     try {

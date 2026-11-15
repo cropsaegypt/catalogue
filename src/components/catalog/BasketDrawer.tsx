@@ -219,7 +219,11 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
     msg += `━━━━━━━━━━━━━━━━━\n`;
     msg += `🛒 *تفاصيل المنتجات:*\n`;
     submittedOrder.items.forEach((item, idx) => {
-      msg += `${idx + 1}. ${item.productName}${item.companyName ? ` (${item.companyName})` : ''} — ${item.quantity} × ${item.packageDisplayName} = ${item.subtotal} ج.م\n`;
+      const priceStr =
+        item.unitPrice > 0
+          ? `${Number(item.subtotal).toLocaleString('en-US')} ج.م`
+          : 'مربوط بسعر اليوم (يُحدد عند التواصل)';
+      msg += `${idx + 1}. ${item.productName}${item.companyName ? ` (${item.companyName})` : ''} — ${item.quantity} × ${item.packageDisplayName} = ${priceStr}\n`;
     });
     if (submittedOrder.notes) {
       msg += `📝 *ملاحظات:* ${submittedOrder.notes}\n`;
@@ -474,7 +478,13 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
                             <span className="text-emerald-700 font-bold">{item.packageDisplayName}</span>
                           </div>
                           <div className="text-xs font-black text-[#046A47] mt-0.5">
-                            {item.subtotal} جنيه
+                            {item.unitPrice > 0 ? (
+                              `${Number(item.subtotal).toLocaleString('en-US')} جنيه`
+                            ) : (
+                              <span className="inline-block text-amber-800 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded text-[10.5px] font-bold">
+                                📅 مربوط بسعر اليوم
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -528,6 +538,18 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
                     <span className="font-bold text-gray-800">إجمالي الطلبية:</span>
                     <span className="text-lg font-black text-[#046A47]">{Number(totalAmount).toLocaleString('en-US')} جنيه</span>
                   </div>
+
+                  {/* Market price warning banner if any items are unpriced */}
+                  {items.some((it) => !it.unitPrice || it.unitPrice <= 0) && (
+                    <div className="bg-amber-50 border border-amber-300 rounded-2xl p-2.5 text-xs text-amber-900 font-bold space-y-0.5">
+                      <div className="flex items-center gap-1.5 font-black text-amber-950">
+                        <span>📅 تنبيه: أصناف مربوطة بسعر اليوم</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                        الطلبية تحتوي على أصناف سيتحدد سعرها النهائي وتطبيق الخصم التجاري عند تواصل إدارة المبيعات معك.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

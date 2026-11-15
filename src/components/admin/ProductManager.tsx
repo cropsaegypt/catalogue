@@ -14,6 +14,7 @@ import {
   Search,
   SlidersHorizontal,
   Loader2,
+  RotateCw,
 } from 'lucide-react';
 
 import { Product, Package, Company, Category, CompanyImage } from '../../types';
@@ -22,6 +23,7 @@ import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../u
 import { aiCatalogService } from '../../services/aiCatalogService';
 import { inferAgronomySearchTags } from '../../utils/agriculturalSearch';
 import { QuickProductEditModal } from './QuickProductEditModal';
+import { rotateAndUploadImage } from '../../utils/imageRotation';
 import {
   getMainCategories,
   getSubCategories,
@@ -61,6 +63,34 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
 
   // Quick Edit Modal State & 1-Click Stock Toggle
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
+  const [rotatingProdId, setRotatingProdId] = useState<string | null>(null);
+
+  const handleFastRotate = async (e: React.MouseEvent, targetProduct: Product) => {
+    e.stopPropagation();
+    if (!targetProduct.mainImageUrl || rotatingProdId === targetProduct.id) return;
+    setRotatingProdId(targetProduct.id);
+    try {
+      const rotated = await rotateAndUploadImage(
+        targetProduct.mainImageUrl,
+        90,
+        `prod-rot-${targetProduct.id}`
+      );
+      if (rotated) {
+        const updatedProduct: Product = {
+          ...targetProduct,
+          mainImageUrl: rotated,
+          updatedAt: new Date().toISOString(),
+        };
+        const updatedList = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+        onSaveProducts(updatedList);
+        onShowToast(`تم تدوير صورة "${targetProduct.name}" 90° وحفظها بنجاح ✓`, 'success');
+      }
+    } catch {
+      onShowToast('تعذر تدوير الصورة', 'error');
+    } finally {
+      setRotatingProdId(null);
+    }
+  };
 
   const handleToggleStock = (e: React.MouseEvent, targetProduct: Product) => {
     e.stopPropagation();
@@ -549,13 +579,26 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                     <td className="p-3.5 font-mono text-xs font-bold text-[#2D2D24]">{p.id}</td>
                     <td className="p-3.5">
                       <div className="flex items-center gap-2">
-                        <img
-                          src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=100&auto=format&fit=crop&q=80'}
-                          alt={p.name}
-                          className={`w-9 h-9 object-contain rounded-lg border border-[#D4D1C5] bg-white p-0.5 ${
-                            isOutOfStock ? 'opacity-60 grayscale-[30%]' : ''
-                          }`}
-                        />
+                        <div className="relative group/thumb shrink-0">
+                          <img
+                            src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=100&auto=format&fit=crop&q=80'}
+                            alt={p.name}
+                            className={`w-9 h-9 object-contain rounded-lg border border-[#D4D1C5] bg-white p-0.5 ${
+                              isOutOfStock ? 'opacity-60 grayscale-[30%]' : ''
+                            }`}
+                          />
+                          {p.mainImageUrl && (
+                            <button
+                              type="button"
+                              disabled={rotatingProdId === p.id}
+                              onClick={(e) => handleFastRotate(e, p)}
+                              className="absolute -top-1.5 -left-1.5 w-5 h-5 bg-stone-900/90 hover:bg-[#046A47] text-white rounded-full flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity shadow-xs cursor-pointer"
+                              title="تدوير الصورة 90° لليمين لضبط الاستقامة"
+                            >
+                              <RotateCw className={`w-3 h-3 ${rotatingProdId === p.id ? 'animate-spin text-emerald-400' : ''}`} />
+                            </button>
+                          )}
+                        </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-black text-[#2D2D24] block group-hover:text-[#046A47] transition-colors">

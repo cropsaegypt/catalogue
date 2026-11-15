@@ -210,7 +210,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                               {pkg.displayName}
                             </span>
                             <span className="text-xs font-extrabold text-[#046A47] mt-0.5 block">
-                              {Number(pkg.price).toLocaleString('en-US')} {pkg.currency || 'ج.م'}
+                              {pkg.price > 0 ? (
+                                `${Number(pkg.price).toLocaleString('en-US')} ${pkg.currency || 'ج.م'}`
+                              ) : (
+                                <span className="text-amber-800 font-black">📅 مربوط بسعر اليوم</span>
+                              )}
                             </span>
                           </div>
                           {isSelected && (
@@ -362,12 +366,23 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             <span className="text-[11px] font-bold text-stone-500 block">
               الإجمالي ({numericQty} قطعة):
             </span>
-            <span className="text-lg sm:text-xl font-black text-[#046A47]">
-              {Number(totalPrice).toLocaleString('en-US')}{' '}
-              <span className="text-xs font-bold text-stone-600">
-                {currentPackage?.currency || 'ج.م'}
+            {totalPrice > 0 ? (
+              <span className="text-lg sm:text-xl font-black text-[#046A47]">
+                {Number(totalPrice).toLocaleString('en-US')}{' '}
+                <span className="text-xs font-bold text-stone-600">
+                  {currentPackage?.currency || 'ج.م'}
+                </span>
               </span>
-            </span>
+            ) : (
+              <div className="flex flex-col">
+                <span className="text-xs sm:text-sm font-black text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md inline-block">
+                  📅 مربوط بسعر اليوم
+                </span>
+                <span className="text-[10px] text-stone-500 font-bold mt-0.5">
+                  سيتم إبلاغك بآخر سعر وتأكيد الخصم عند التواصل
+                </span>
+              </div>
+            )}
           </div>
 
           {isOutOfStock ? (

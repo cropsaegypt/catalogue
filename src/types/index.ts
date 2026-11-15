@@ -285,6 +285,9 @@ export interface CatalogSettings {
   showHomeShowcases?: boolean;
   homeShowcases?: Partial<Record<HomeShowcaseKey, HomeShowcaseSection>>;
   islamicFinancingConfig?: IslamicFinancingConfig;
+  showWholesaleNotice?: boolean;
+  wholesaleNoticeTitle?: string;
+  wholesaleNoticeContent?: string;
 }
 
 export interface ImportLogError {
