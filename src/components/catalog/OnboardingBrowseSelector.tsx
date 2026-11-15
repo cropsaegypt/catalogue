@@ -145,6 +145,63 @@ const getSubCategoryVisual = (name: string, imageUrl?: string) => {
   };
 };
 
+export interface CategoryVisual {
+  imageUrl: string;
+  tagline: string;
+  badgeText: string;
+  badgeClass: string;
+  borderHover: string;
+}
+
+export function getCategoryVisual(name: string, customImageUrl?: string): CategoryVisual {
+  const n = (name || '').trim().toLowerCase();
+
+  const isOldPlaceholder =
+    !customImageUrl ||
+    customImageUrl.includes('photo-1592417817098') ||
+    customImageUrl.includes('photo-1574943320219') ||
+    customImageUrl.includes('photo-1530836369250') ||
+    customImageUrl.includes('unsplash.com');
+
+  if (n.includes('سماد') || n.includes('أسمدة') || n.includes('اسمدة') || n.includes('fertilizer')) {
+    return {
+      imageUrl: isOldPlaceholder ? '/images/categories/fertilizers.jpg' : customImageUrl,
+      tagline: 'شكاير وبودرة ومحبب',
+      badgeText: 'تغذية التربة',
+      badgeClass: 'bg-amber-400 text-stone-950',
+      borderHover: 'group-hover:border-amber-400',
+    };
+  }
+
+  if (n.includes('مخصب') || n.includes('مغذ') || n.includes('ورق') || n.includes('stimulant') || n.includes('foliar')) {
+    return {
+      imageUrl: isOldPlaceholder ? '/images/categories/stimulants.jpg' : customImageUrl,
+      tagline: 'رش ورقي ومحفزات نمو',
+      badgeText: 'تنشيط وتزهير',
+      badgeClass: 'bg-emerald-400 text-stone-950',
+      borderHover: 'group-hover:border-emerald-400',
+    };
+  }
+
+  if (n.includes('مبيد') || n.includes('مكافح') || n.includes('وقاي') || n.includes('حشر') || n.includes('فطر') || n.includes('pesticide')) {
+    return {
+      imageUrl: isOldPlaceholder ? '/images/categories/pesticides.jpg' : customImageUrl,
+      tagline: 'فطرية • حشرية • حشائش',
+      badgeText: 'حماية ووقاية',
+      badgeClass: 'bg-sky-400 text-stone-950',
+      borderHover: 'group-hover:border-sky-400',
+    };
+  }
+
+  return {
+    imageUrl: isOldPlaceholder ? '/images/categories/fertilizers.jpg' : customImageUrl,
+    tagline: 'منتجات وأصناف زراعية',
+    badgeText: 'أصناف معتمدة',
+    badgeClass: 'bg-emerald-500 text-white',
+    borderHover: 'group-hover:border-emerald-400',
+  };
+}
+
 export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> = ({
   viewMode = 'both',
   companiesMeta,
@@ -343,12 +400,17 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
             </p>
           ) : (
             <div
-              className={`grid gap-2.5 sm:gap-3.5 ${
-                compactModalMode ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-4'
+              className={`grid gap-2 sm:gap-3.5 ${
+                visibleMainCategories.length === 3
+                  ? 'grid-cols-3'
+                  : compactModalMode
+                  ? 'grid-cols-2 sm:grid-cols-3'
+                  : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
               }`}
             >
               {visibleMainCategories.map(({ category, matchingCount }) => {
                 const isSelected = selectedCategoryIds.includes(category.id);
+                const visual = getCategoryVisual(category.name, category.imageUrl);
 
                 return (
                   <motion.button
@@ -356,49 +418,52 @@ export const OnboardingBrowseSelector: React.FC<OnboardingBrowseSelectorProps> =
                     type="button"
                     whileTap={{ scale: 0.97 }}
                     onClick={() => onToggleCategory(category.id)}
-                    className={`group relative h-26 sm:h-32 rounded-2xl overflow-hidden text-right cursor-pointer transition-all ${
+                    className={`group relative h-28 sm:h-38 md:h-44 rounded-2xl sm:rounded-3xl overflow-hidden text-right cursor-pointer transition-all duration-300 ${
                       isSelected
-                        ? 'ring-2 ring-[#046A47] ring-offset-2 shadow-md'
-                        : 'ring-1 ring-stone-200/80 hover:ring-emerald-400 hover:shadow-sm'
+                        ? 'ring-3 ring-[#046A47] ring-offset-2 ring-offset-white shadow-xl scale-[1.01]'
+                        : 'ring-1 ring-stone-200/90 hover:ring-2 hover:ring-emerald-500 hover:shadow-lg'
                     }`}
                   >
-                    {category.imageUrl ? (
-                      <img
-                        src={category.imageUrl}
-                        alt={category.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-emerald-50 to-stone-100 flex items-center justify-center">
-                        <Sprout className="w-9 h-9 text-[#046A47]/70" />
-                      </div>
-                    )}
+                    {/* Background Category Image with Smooth Hover Zoom */}
+                    <img
+                      src={visual.imageUrl}
+                      alt={category.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                    />
 
-                    {/* Clean Gradient Overlay */}
+                    {/* Gradient Overlay for 100% Contrast & Text Legibility */}
                     <div
-                      className={`absolute inset-0 transition-colors ${
+                      className={`absolute inset-0 transition-opacity duration-300 ${
                         isSelected
-                          ? 'bg-gradient-to-t from-[#046A47]/95 via-[#046A47]/45 to-black/15'
-                          : 'bg-gradient-to-t from-black/80 via-black/25 to-transparent'
+                          ? 'bg-gradient-to-t from-[#046A47]/95 via-[#046A47]/45 via-55% to-stone-950/25'
+                          : 'bg-gradient-to-t from-stone-950/95 via-stone-950/50 via-50% to-stone-950/15 group-hover:from-stone-950/90'
                       }`}
                     />
 
-                    {/* Subtle Product Count Top-Right */}
-                    <span className="absolute top-2 right-2 bg-black/45 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      {matchingCount} منتج
-                    </span>
-
-                    {/* Selected Check Top-Left */}
-                    {isSelected && (
-                      <span className="absolute top-2 left-2 w-6 h-6 rounded-full bg-white text-[#046A47] flex items-center justify-center shadow-sm">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    {/* Top Badges Bar: Count + Selection Indicator */}
+                    <div className="absolute top-2 inset-x-2 sm:top-2.5 sm:inset-x-3 flex items-center justify-between gap-1 z-10 pointer-events-none">
+                      {/* Product Count Pill */}
+                      <span className="bg-stone-950/75 backdrop-blur-md text-white text-[10px] sm:text-xs font-black px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full border border-white/20 shadow-xs flex items-center gap-1">
+                        <span>{matchingCount}</span>
+                        <span className="text-[9px] sm:text-[10px] font-bold text-stone-300">صنف</span>
                       </span>
-                    )}
 
-                    {/* Category Title Bottom */}
-                    <div className="absolute inset-x-0 bottom-0 p-2.5 sm:p-3">
-                      <span className="text-xs sm:text-sm font-black text-white leading-snug line-clamp-2 block drop-shadow-xs">
+                      {/* Selected Check Pill */}
+                      {isSelected && (
+                        <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white text-[#046A47] flex items-center justify-center shadow-md ring-2 ring-[#046A47]">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Bottom Content: Category Name + Clear Simple Tagline */}
+                    <div className="absolute inset-x-0 bottom-0 p-2 sm:p-3.5 flex flex-col justify-end text-right z-10">
+                      <span className="text-xs sm:text-base md:text-lg font-black text-white leading-tight block drop-shadow-md tracking-tight">
                         {category.name}
+                      </span>
+                      <span className="text-[9px] sm:text-xs font-bold text-amber-300 drop-shadow-sm line-clamp-1 mt-0.5 sm:mt-1 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                        <span>{visual.tagline}</span>
                       </span>
                     </div>
                   </motion.button>

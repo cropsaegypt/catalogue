@@ -23,6 +23,7 @@ import {
 import { serverSync } from '../../services/serverSync';
 import { firestoreSync } from '../../services/firestoreSync';
 import { dbStorage } from '../../services/dbStorage';
+import { getCategoryVisual } from '../catalog/OnboardingBrowseSelector';
 
 interface CategoryManagerProps {
   categories: Category[];
@@ -118,6 +119,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
     if (!name.trim()) return;
 
     const cleanParentId = parentId.trim() || undefined;
+    const finalImageUrl = (!cleanParentId && !imageUrl) ? getCategoryVisual(name).imageUrl : imageUrl;
     let updatedList: Category[];
 
     if (editingCategory) {
@@ -129,7 +131,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               ...c,
               name: name.trim(),
               description: description.trim(),
-              imageUrl,
+              imageUrl: finalImageUrl,
               parentId: safeParentId,
               updatedAt: new Date().toISOString(),
             }
@@ -154,7 +156,7 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
           '-' +
           Date.now().toString().slice(-3),
         description: description.trim(),
-        imageUrl,
+        imageUrl: finalImageUrl,
         ...(cleanParentId ? { parentId: cleanParentId } : {}),
         displayOrder: siblingCount + 1,
         active: true,
@@ -295,17 +297,18 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
                       #{index + 1}
                     </span>
 
-                    <div className="w-11 h-11 rounded-2xl bg-white border border-emerald-200 overflow-hidden shrink-0 flex items-center justify-center">
-                      {mainCat.imageUrl ? (
-                        <img
-                          src={mainCat.imageUrl}
-                          alt={mainCat.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <ImageIcon className="w-5 h-5 text-emerald-600/60" />
-                      )}
-                    </div>
+                    {(() => {
+                      const visual = getCategoryVisual(mainCat.name, mainCat.imageUrl);
+                      return (
+                        <div className="w-11 h-11 rounded-2xl bg-white border border-emerald-200 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
+                          <img
+                            src={visual.imageUrl}
+                            alt={mainCat.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      );
+                    })()}
 
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -505,10 +508,70 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
               </div>
 
               {!parentId && (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] font-bold text-gray-600 block">
+                    اختر أحد التصاميم الرسمية المعبرة للقسم أو ارفع صورة خاصة:
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('/images/categories/fertilizers.jpg')}
+                      className={`p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        imageUrl === '/images/categories/fertilizers.jpg'
+                          ? 'border-emerald-600 bg-emerald-50 ring-2 ring-emerald-500'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <img
+                        src="/images/categories/fertilizers.jpg"
+                        alt="أسمدة"
+                        className="w-full h-12 object-cover rounded-lg mb-1"
+                      />
+                      <span className="text-[10px] font-bold block text-gray-800">الأسمدة</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('/images/categories/stimulants.jpg')}
+                      className={`p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        imageUrl === '/images/categories/stimulants.jpg'
+                          ? 'border-emerald-600 bg-emerald-50 ring-2 ring-emerald-500'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <img
+                        src="/images/categories/stimulants.jpg"
+                        alt="مخصبات"
+                        className="w-full h-12 object-cover rounded-lg mb-1"
+                      />
+                      <span className="text-[10px] font-bold block text-gray-800">المخصبات</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('/images/categories/pesticides.jpg')}
+                      className={`p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                        imageUrl === '/images/categories/pesticides.jpg'
+                          ? 'border-emerald-600 bg-emerald-50 ring-2 ring-emerald-500'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <img
+                        src="/images/categories/pesticides.jpg"
+                        alt="مبيدات"
+                        className="w-full h-12 object-cover rounded-lg mb-1"
+                      />
+                      <span className="text-[10px] font-bold block text-gray-800">المبيدات</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!parentId && (
                 <ImageFileInput
                   value={imageUrl}
                   onChange={setImageUrl}
-                  label="صورة القسم (ارفع ملف الصورة من جهازك مباشرة):"
+                  label="أو ارفع صورة خاصة من جهازك مباشرة:"
                 />
               )}
 
