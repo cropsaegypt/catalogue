@@ -46,6 +46,7 @@ export interface Package {
   costPrice?: number; // سعر التكلفة للعبوة
   stockQuantity?: number; // كمية المخزون المتاحة
   minStockAlert?: number; // حد التنبيه لانخفاض المخزون
+  isOutOfStock?: boolean; // هل العبوة خارج المخزون
   currency: string;
   allowPieceOrder: boolean;
   allowCartonOrder: boolean;
@@ -74,6 +75,7 @@ export interface Product {
   costPrice?: number; // سعر التكلفة
   stockQuantity?: number; // المخزون الحالي للمنتج
   minStockAlert?: number; // حد التنبيه لنفاد المخزون
+  isOutOfStock?: boolean; // هل المنتج خارج المخزون حالياً
   galleryImageIds?: string[];
   displayOrder: number;
   active: boolean;

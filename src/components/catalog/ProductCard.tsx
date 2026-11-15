@@ -56,6 +56,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const currentPackage = activePackages.find((p) => p.id === selectedPackageId) || activePackages[0];
 
+  const isProductOutOfStock = Boolean(
+    product.isOutOfStock ||
+    (typeof product.stockQuantity === 'number' && product.stockQuantity <= 0) ||
+    currentPackage?.isOutOfStock
+  );
+
   const productImages = [
     product.mainImageUrl ||
       'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=600&auto=format&fit=crop&q=80',
@@ -68,7 +74,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!currentPackage) return;
+    if (!currentPackage || isProductOutOfStock) return;
     if (onRequestAdd) {
       onRequestAdd(
         product,
@@ -90,7 +96,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     const priceText = currentPackage && showPrices ? `${currentPackage.price} جنيه` : 'حسب السعر الحالي';
     const compName = company ? `\nالشركة: *${company.name}*` : '';
 
-    const message = `السلام عليكم،\nمحتاج أطلب منتج: *${product.name}*${compName}\nالعبوة: *${pkgName}*\nالسعر: *${priceText}*\nكود الصنف: ${product.id}`;
+    const stockNote = isProductOutOfStock ? '\n*(استفسار عن موعد توفر المنتج بالمخزون)*' : '';
+    const message = `السلام عليكم،\nمحتاج أطلب/أستفسر عن منتج: *${product.name}*${compName}\nالعبوة: *${pkgName}*\nالسعر: *${priceText}*\nكود الصنف: ${product.id}${stockNote}`;
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -178,29 +185,44 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           }}
           className={`w-full h-full group-hover:scale-105 transition-transform duration-300 ${
             isPackImage ? 'object-contain' : 'object-cover'
-          }`}
+          } ${isProductOutOfStock ? 'opacity-65 grayscale-[35%]' : ''}`}
           loading="lazy"
         />
 
-        {/* Quick "+" Add Button on Bottom-Left */}
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.85 }}
-          onClick={handleAdd}
-          disabled={!currentPackage}
-          className={`absolute bottom-1.5 left-1.5 z-10 w-8 h-8 sm:w-9 sm:h-9 rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer border ${
-            isAddedRecently
-              ? 'bg-emerald-700 text-white border-emerald-700'
-              : 'bg-white/95 text-stone-900 border-stone-200 hover:bg-[#046A47] hover:text-white hover:border-[#046A47]'
-          }`}
-          title="إضافة سريعة للسلة"
-        >
-          {isAddedRecently ? (
-            <CheckCircle2 className="w-4 h-4" />
-          ) : (
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5 font-black" />
-          )}
-        </motion.button>
+        {/* Out of Stock Ribbon / Overlay */}
+        {isProductOutOfStock && (
+          <div className="absolute inset-0 bg-stone-900/35 backdrop-blur-[0.5px] z-10 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+            <span className="bg-rose-600 text-white text-[11px] font-black px-3 py-1 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              نفذ من المخزون ✕
+            </span>
+            <span className="text-[10px] text-white/90 font-bold mt-1 drop-shadow-md">
+              غير متوفر حالياً
+            </span>
+          </div>
+        )}
+
+        {/* Quick "+" Add Button on Bottom-Left (hidden if out of stock) */}
+        {!isProductOutOfStock && (
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.85 }}
+            onClick={handleAdd}
+            disabled={!currentPackage}
+            className={`absolute bottom-1.5 left-1.5 z-10 w-8 h-8 sm:w-9 sm:h-9 rounded-full shadow-md flex items-center justify-center transition-all cursor-pointer border ${
+              isAddedRecently
+                ? 'bg-emerald-700 text-white border-emerald-700'
+                : 'bg-white/95 text-stone-900 border-stone-200 hover:bg-[#046A47] hover:text-white hover:border-[#046A47]'
+            }`}
+            title="إضافة سريعة للسلة"
+          >
+            {isAddedRecently ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 font-black" />
+            )}
+          </motion.button>
+        )}
       </div>
 
       {/* 2. Product Details */}
@@ -293,37 +315,48 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
           {/* Primary: Add to Order + Secondary Compact WhatsApp */}
           <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.96 }}
-              onClick={handleAdd}
-              disabled={!currentPackage}
-              className={`flex-1 h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer ${
-                isAddedRecently
-                  ? 'bg-emerald-800 text-white'
-                  : 'bg-[#046A47] hover:bg-[#035237] text-white'
-              }`}
-              title="أضف للطلبية"
-            >
-              {isAddedRecently ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-amber-300" />
-                  <span>تمت الإضافة!</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingBag className="w-3.5 h-3.5 text-amber-300" />
-                  <span>أضف للطلبية</span>
-                </>
-              )}
-            </motion.button>
+            {isProductOutOfStock ? (
+              <button
+                type="button"
+                disabled
+                className="flex-1 h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed"
+                title="هذا المنتج غير متوفر بالمخزون حالياً"
+              >
+                <span>نفذ من المخزون</span>
+              </button>
+            ) : (
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.96 }}
+                onClick={handleAdd}
+                disabled={!currentPackage}
+                className={`flex-1 h-9 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer ${
+                  isAddedRecently
+                    ? 'bg-emerald-800 text-white'
+                    : 'bg-[#046A47] hover:bg-[#035237] text-white'
+                }`}
+                title="أضف للطلبية"
+              >
+                {isAddedRecently ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-amber-300" />
+                    <span>تمت الإضافة!</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="w-3.5 h-3.5 text-amber-300" />
+                    <span>أضف للطلبية</span>
+                  </>
+                )}
+              </motion.button>
+            )}
 
             <motion.button
               type="button"
               whileTap={{ scale: 0.92 }}
               onClick={handleWhatsAppOrder}
               className="w-9 h-9 shrink-0 bg-[#25D366]/12 hover:bg-[#25D366] text-[#075E54] hover:text-white border border-[#25D366]/35 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
-              title="طلب سريع عبر الواتساب"
+              title={isProductOutOfStock ? 'استفسار عن موعد التوفر عبر الواتساب' : 'طلب سريع عبر الواتساب'}
             >
               <MessageCircle className="w-4 h-4" />
             </motion.button>

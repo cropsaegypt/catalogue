@@ -21,6 +21,7 @@ import { ImageFileInput } from '../common/ImageFileInput';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
 import { aiCatalogService } from '../../services/aiCatalogService';
 import { inferAgronomySearchTags } from '../../utils/agriculturalSearch';
+import { QuickProductEditModal } from './QuickProductEditModal';
 import {
   getMainCategories,
   getSubCategories,
@@ -57,6 +58,52 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [activeFormTab, setActiveFormTab] = useState<'basic' | 'content' | 'packages' | 'image'>('basic');
+
+  // Quick Edit Modal State & 1-Click Stock Toggle
+  const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
+
+  const handleToggleStock = (e: React.MouseEvent, targetProduct: Product) => {
+    e.stopPropagation();
+    const nextOutOfStock = !Boolean(targetProduct.isOutOfStock);
+    const updatedProduct: Product = {
+      ...targetProduct,
+      isOutOfStock: nextOutOfStock,
+      stockQuantity: nextOutOfStock ? 0 : (targetProduct.stockQuantity && targetProduct.stockQuantity > 0 ? targetProduct.stockQuantity : 50),
+    };
+
+    const updatedProductsList = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+    onSaveProducts(updatedProductsList);
+
+    const updatedPackagesList = packages.map((pkg) => {
+      if (pkg.productId === targetProduct.id) {
+        return {
+          ...pkg,
+          isOutOfStock: nextOutOfStock,
+          stockQuantity: nextOutOfStock ? 0 : (pkg.stockQuantity && pkg.stockQuantity > 0 ? pkg.stockQuantity : 50),
+        };
+      }
+      return pkg;
+    });
+    onSavePackages(updatedPackagesList);
+
+    onShowToast(
+      nextOutOfStock
+        ? `تم إخراج منتج "${targetProduct.name}" من المخزون`
+        : `تمت إعادة منتج "${targetProduct.name}" للمخزون كمتوفر`,
+      'success'
+    );
+  };
+
+  const handleQuickSaveProduct = (updatedProduct: Product, updatedPackages: Package[]) => {
+    const updatedProductsList = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+    onSaveProducts(updatedProductsList);
+
+    const otherPackages = packages.filter((pkg) => pkg.productId !== updatedProduct.id);
+    onSavePackages([...otherPackages, ...updatedPackages]);
+
+    onShowToast(`تم حفظ تعديل منتج "${updatedProduct.name}" والمخزون بنجاح!`, 'success');
+    setQuickEditProduct(null);
+  };
 
   // Form State
   const [productId, setProductId] = useState('');
@@ -478,6 +525,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 <th className="p-3.5">اسم المنتج</th>
                 <th className="p-3.5">الشركة</th>
                 <th className="p-3.5">القسم</th>
+                <th className="p-3.5 text-center">المخزون والتوفر</th>
                 <th className="p-3.5">العبوات والأسعار</th>
                 <th className="p-3.5 text-center">الإجراءات</th>
               </tr>
@@ -487,19 +535,38 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 const comp = companies.find((c) => c.id === p.companyId);
                 const catPath = getCategoryDisplayPath(p.categoryId, p.subCategoryId, categories);
                 const prodPackages = packages.filter((pkg) => pkg.productId === p.id && pkg.active);
+                const isOutOfStock = Boolean(
+                  p.isOutOfStock || (typeof p.stockQuantity === 'number' && p.stockQuantity <= 0)
+                );
 
                 return (
-                  <tr key={p.id} className="hover:bg-[#F1EFEC]/80 transition-colors">
+                  <tr
+                    key={p.id}
+                    onClick={() => setQuickEditProduct(p)}
+                    className="hover:bg-[#F1EFEC] transition-colors cursor-pointer group"
+                    title="اضغط للتعديل السريع والتحكم في المخزون"
+                  >
                     <td className="p-3.5 font-mono text-xs font-bold text-[#2D2D24]">{p.id}</td>
                     <td className="p-3.5">
                       <div className="flex items-center gap-2">
                         <img
                           src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=100&auto=format&fit=crop&q=80'}
                           alt={p.name}
-                          className="w-9 h-9 object-contain rounded-lg border border-[#D4D1C5] bg-white p-0.5"
+                          className={`w-9 h-9 object-contain rounded-lg border border-[#D4D1C5] bg-white p-0.5 ${
+                            isOutOfStock ? 'opacity-60 grayscale-[30%]' : ''
+                          }`}
                         />
                         <div>
-                          <span className="font-black text-[#2D2D24] block">{p.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-[#2D2D24] block group-hover:text-[#046A47] transition-colors">
+                              {p.name}
+                            </span>
+                            {isOutOfStock && (
+                              <span className="bg-rose-100 text-rose-800 text-[9.5px] font-black px-1.5 py-0.2 rounded-md">
+                                نفذ
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[11px] text-[#8A8A6D] line-clamp-1">{p.shortDescription}</span>
                         </div>
                       </div>
@@ -513,37 +580,67 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                         </span>
                       )}
                     </td>
+
+                    {/* Stock Status with 1-Click Fast Toggle */}
+                    <td className="p-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={(e) => handleToggleStock(e, p)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all inline-flex items-center justify-center gap-1.5 border cursor-pointer ${
+                          isOutOfStock
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 shadow-2xs'
+                            : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 shadow-2xs'
+                        }`}
+                        title={isOutOfStock ? 'اضغط لإعادة المنتج للمخزون كمتوفر' : 'اضغط لإخراج المنتج من المخزون (نفذ)'}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${isOutOfStock ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+                        <span>{isOutOfStock ? 'نفذ من المخزون ✕' : 'متوفر بالمخزون ✓'}</span>
+                      </button>
+                    </td>
+
                     <td className="p-3.5">
                       <div className="flex flex-wrap gap-1">
                         {prodPackages.map((pkg) => (
                           <span
                             key={pkg.id}
-                            className="bg-[#E5E2D9] text-[#2D2D24] border border-[#D4D1C5] text-[11px] font-bold px-2 py-0.5 rounded-md"
+                            className={`border text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                              pkg.isOutOfStock || isOutOfStock
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-[#E5E2D9] text-[#2D2D24] border-[#D4D1C5]'
+                            }`}
                           >
                             {pkg.displayName}: {pkg.price} ج
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="p-3.5">
+                    <td className="p-3.5" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-center gap-1.5">
                         <button
+                          onClick={() => setQuickEditProduct(p)}
+                          className="px-2.5 py-1.5 bg-[#046A47] hover:bg-[#035237] text-white rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
+                          title="تعديل سريع ومخزون"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">تعديل سريع</span>
+                        </button>
+                        <button
                           onClick={() => handleDuplicate(p)}
-                          className="p-1.5 bg-[#E5E2D9] hover:bg-[#D4D1C5] text-[#2D2D24] rounded-lg"
+                          className="p-1.5 bg-[#E5E2D9] hover:bg-[#D4D1C5] text-[#2D2D24] rounded-lg cursor-pointer"
                           title="نسخ المنتج"
                         >
                           <Copy className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => openEditModal(p)}
-                          className="p-1.5 bg-[#5A5A40] hover:bg-[#484833] text-[#F9F8F6] rounded-lg"
-                          title="تعديل"
+                          className="p-1.5 bg-[#5A5A40] hover:bg-[#484833] text-[#F9F8F6] rounded-lg cursor-pointer"
+                          title="تعديل تفصيلي كامل"
                         >
-                          <Edit3 className="w-4 h-4" />
+                          <SlidersHorizontal className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteProduct(p.id)}
-                          className="p-1.5 bg-amber-900/10 hover:bg-amber-900/20 text-amber-900 rounded-lg"
+                          className="p-1.5 bg-amber-900/10 hover:bg-amber-900/20 text-amber-900 rounded-lg cursor-pointer"
                           title="حذف"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1094,6 +1191,19 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
             </form>
           </div>
         </div>
+      )}
+      {/* Quick Product Edit & Instant Stock Control Modal */}
+      {quickEditProduct && (
+        <QuickProductEditModal
+          product={quickEditProduct}
+          packages={packages.filter((pkg) => pkg.productId === quickEditProduct.id)}
+          companies={companies}
+          categories={categories}
+          isOpen={Boolean(quickEditProduct)}
+          onClose={() => setQuickEditProduct(null)}
+          onSave={handleQuickSaveProduct}
+          onShowToast={onShowToast}
+        />
       )}
     </div>
   );

@@ -56,6 +56,12 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
   const currentPackage =
     activePackages.find((p) => p.id === selectedPackageId) || activePackages[0];
 
+  const isOutOfStock = Boolean(
+    product.isOutOfStock ||
+    (typeof product.stockQuantity === 'number' && product.stockQuantity <= 0) ||
+    currentPackage?.isOutOfStock
+  );
+
   const numericQty = Math.max(1, parseInt(quantityText, 10) || 1);
   const rawPrice = currentPackage ? currentPackage.price : 0;
   const pct = Math.max(0, Math.min(95, Number(promoDiscountPercent) || 0));
@@ -69,7 +75,7 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
 
   const handleConfirm = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!currentPackage) return;
+    if (!currentPackage || isOutOfStock) return;
     onConfirmAdd(product, currentPackage, numericQty, pct > 0 ? unitPrice : undefined);
     onClose();
   };
@@ -282,15 +288,25 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
                 </div>
               )}
 
-              <motion.button
-                type="submit"
-                whileTap={{ scale: 0.97 }}
-                disabled={!currentPackage}
-                className="w-full h-14 bg-[#046A47] hover:bg-[#035237] disabled:opacity-50 text-white font-black text-sm sm:text-base rounded-2xl shadow-lg flex items-center justify-center gap-2.5 cursor-pointer transition-all"
-              >
-                <ShoppingBag className="w-5 h-5 text-amber-300" />
-                <span>تأكيد وإضافة للطلبية ({numericQty} قطعة)</span>
-              </motion.button>
+              {isOutOfStock ? (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full h-14 bg-stone-100 text-stone-400 font-black text-sm sm:text-base rounded-2xl border border-stone-200 cursor-not-allowed"
+                >
+                  <span>هذا المنتج نفذ من المخزون حالياً</span>
+                </button>
+              ) : (
+                <motion.button
+                  type="submit"
+                  whileTap={{ scale: 0.97 }}
+                  disabled={!currentPackage}
+                  className="w-full h-14 bg-[#046A47] hover:bg-[#035237] disabled:opacity-50 text-white font-black text-sm sm:text-base rounded-2xl shadow-lg flex items-center justify-center gap-2.5 cursor-pointer transition-all"
+                >
+                  <ShoppingBag className="w-5 h-5 text-amber-300" />
+                  <span>تأكيد وإضافة للطلبية ({numericQty} قطعة)</span>
+                </motion.button>
+              )}
             </div>
           </div>
         </motion.form>

@@ -71,6 +71,12 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const currentPackage =
     activePackages.find((p) => p.id === selectedPackageId) || activePackages[0];
 
+  const isOutOfStock = Boolean(
+    product.isOutOfStock ||
+    (typeof product.stockQuantity === 'number' && product.stockQuantity <= 0) ||
+    currentPackage?.isOutOfStock
+  );
+
   const numericQty = Math.max(1, parseInt(quantityText, 10) || 1);
   const unitPrice = currentPackage ? currentPackage.price : 0;
   const totalPrice = unitPrice * numericQty;
@@ -132,10 +138,23 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 onClick={() => setIsZoomOpen(true)}
                 className="relative w-full h-56 sm:h-64 flex items-center justify-center cursor-pointer overflow-hidden rounded-xl bg-white p-2 border border-stone-100"
               >
+                {isOutOfStock && (
+                  <div className="absolute inset-0 bg-stone-900/40 z-10 flex flex-col items-center justify-center p-2 text-center pointer-events-none">
+                    <span className="bg-rose-600 text-white text-xs font-black px-3.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 border border-white/20">
+                      <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                      نفذ من المخزون ✕
+                    </span>
+                    <span className="text-[11px] text-white/95 font-bold mt-1.5 drop-shadow-md">
+                      غير متوفر للطلب حالياً
+                    </span>
+                  </div>
+                )}
                 <img
                   src={currentImage}
                   alt={product.name}
-                  className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300"
+                  className={`max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 ${
+                    isOutOfStock ? 'opacity-65 grayscale-[35%]' : ''
+                  }`}
                 />
                 <div className="absolute bottom-2 left-2 bg-white/95 text-[#046A47] text-[11px] font-black px-2.5 py-1 rounded-xl shadow-sm border border-stone-200 flex items-center gap-1">
                   <ZoomIn className="w-3.5 h-3.5" />
@@ -351,16 +370,26 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             </span>
           </div>
 
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.97 }}
-            onClick={handleAddToCart}
-            disabled={!currentPackage}
-            className="flex-1 max-w-md h-12 sm:h-14 bg-[#046A47] hover:bg-[#035237] disabled:opacity-50 text-white px-5 rounded-2xl text-sm sm:text-base font-black shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-          >
-            <ShoppingBag className="w-5 h-5 text-amber-300" />
-            <span>أضف للطلبية الآن</span>
-          </motion.button>
+          {isOutOfStock ? (
+            <button
+              type="button"
+              disabled
+              className="flex-1 max-w-md h-12 sm:h-14 bg-stone-100 text-stone-400 border border-stone-200 px-5 rounded-2xl text-sm sm:text-base font-black flex items-center justify-center gap-2 cursor-not-allowed"
+            >
+              <span>نفذ من المخزون وغير متوفر حالياً</span>
+            </button>
+          ) : (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={handleAddToCart}
+              disabled={!currentPackage}
+              className="flex-1 max-w-md h-12 sm:h-14 bg-[#046A47] hover:bg-[#035237] disabled:opacity-50 text-white px-5 rounded-2xl text-sm sm:text-base font-black shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+            >
+              <ShoppingBag className="w-5 h-5 text-amber-300" />
+              <span>أضف للطلبية الآن</span>
+            </motion.button>
+          )}
         </div>
       </div>
 

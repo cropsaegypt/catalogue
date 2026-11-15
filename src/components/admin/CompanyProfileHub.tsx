@@ -33,6 +33,7 @@ import {
 } from '../../services/companyExcelService';
 import { AiCatalogExtractor } from './AiCatalogExtractor';
 import { pdfHelper, PdfPageImage } from '../../utils/pdfHelper';
+import { QuickProductEditModal } from './QuickProductEditModal';
 
 interface CompanyProfileHubProps {
   company: Company;
@@ -126,6 +127,60 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
   const [fullExcelResult, setFullExcelResult] = useState<CompanyExcelAnalysisResult | null>(null);
   const [isAnalyzingFullExcel, setIsAnalyzingFullExcel] = useState(false);
   const [isApplyingFullExcel, setIsApplyingFullExcel] = useState(false);
+
+  // Quick Product Edit Modal State
+  const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
+
+  const handleQuickSaveProduct = (updatedProduct: Product, updatedPackages: Package[]) => {
+    if (onSaveProducts) {
+      const updatedProductsList = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+      onSaveProducts(updatedProductsList);
+    }
+
+    if (onSavePackages) {
+      const otherPackages = packages.filter((pkg) => pkg.productId !== updatedProduct.id);
+      onSavePackages([...otherPackages, ...updatedPackages]);
+    }
+
+    onShowToast(`تم حفظ تعديل منتج "${updatedProduct.name}" بنجاح!`, 'success');
+    setQuickEditProduct(null);
+  };
+
+  const handleToggleStock = (e: React.MouseEvent, targetProduct: Product) => {
+    e.stopPropagation();
+    const nextOutOfStock = !Boolean(targetProduct.isOutOfStock);
+    const updatedProduct: Product = {
+      ...targetProduct,
+      isOutOfStock: nextOutOfStock,
+      stockQuantity: nextOutOfStock ? 0 : (targetProduct.stockQuantity && targetProduct.stockQuantity > 0 ? targetProduct.stockQuantity : 50),
+    };
+
+    if (onSaveProducts) {
+      const updatedProductsList = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+      onSaveProducts(updatedProductsList);
+    }
+
+    if (onSavePackages) {
+      const updatedPackagesList = packages.map((pkg) => {
+        if (pkg.productId === targetProduct.id) {
+          return {
+            ...pkg,
+            isOutOfStock: nextOutOfStock,
+            stockQuantity: nextOutOfStock ? 0 : (pkg.stockQuantity && pkg.stockQuantity > 0 ? pkg.stockQuantity : 50),
+          };
+        }
+        return pkg;
+      });
+      onSavePackages(updatedPackagesList);
+    }
+
+    onShowToast(
+      nextOutOfStock
+        ? `تم إخراج منتج "${targetProduct.name}" من المخزون بنجاح`
+        : `تمت إعادة منتج "${targetProduct.name}" للمخزون (متوفر)`,
+      'success'
+    );
+  };
 
   // 1. Save SubCategory Handler
   const handleSaveSubCategory = (e: React.FormEvent) => {
@@ -670,16 +725,48 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
               {companyProducts.map((p) => {
                 const prodPkgs = packages.filter((pkg) => pkg.productId === p.id);
                 const subCat = companySubs.find((s) => s.id === p.subCategoryId);
+                const isOutOfStock = Boolean(
+                  p.isOutOfStock || (typeof p.stockQuantity === 'number' && p.stockQuantity <= 0)
+                );
+
                 return (
-                  <div key={p.id} className="bg-white rounded-2xl border border-gray-200 p-3 shadow-2xs flex flex-col justify-between">
+                  <div
+                    key={p.id}
+                    onClick={() => setQuickEditProduct(p)}
+                    className="group bg-white rounded-2xl border border-gray-200 hover:border-[#046A47] hover:shadow-md p-3.5 shadow-2xs flex flex-col justify-between transition-all cursor-pointer relative"
+                  >
                     <div>
-                      <div className="h-36 w-full rounded-xl bg-gray-50 border border-gray-100 p-2 flex items-center justify-center mb-2 overflow-hidden">
+                      <div className="relative h-40 w-full rounded-xl bg-gray-50 border border-gray-100 p-2 flex items-center justify-center mb-2.5 overflow-hidden">
+                        {/* Stock Status Badge */}
+                        <div className="absolute top-2 right-2 z-10">
+                          {isOutOfStock ? (
+                            <span className="bg-rose-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                              نفذ من المخزون ✕
+                            </span>
+                          ) : (
+                            <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                              متوفر بالمخزون ✓
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Quick Edit Hint */}
+                        <div className="absolute bottom-2 inset-x-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/75 backdrop-blur-xs text-white text-[10px] font-bold py-1 px-2 rounded-lg text-center flex items-center justify-center gap-1">
+                          <Edit2 className="w-3 h-3" />
+                          <span>اضغط للتعديل السريع والمخزون</span>
+                        </div>
+
                         <img
                           src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=300&auto=format&fit=crop&q=80'}
                           alt={p.name}
-                          className="max-h-full max-w-full object-contain"
+                          className={`max-h-full max-w-full object-contain transition-transform duration-200 group-hover:scale-105 ${
+                            isOutOfStock ? 'opacity-60 grayscale-[30%]' : ''
+                          }`}
                         />
                       </div>
+
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="font-mono text-[10px] text-gray-400 font-bold">{p.id}</span>
                         {subCat && (
@@ -688,17 +775,46 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
                           </span>
                         )}
                       </div>
-                      <h4 className="font-black text-xs text-gray-900 line-clamp-1">{p.name}</h4>
+                      <h4 className="font-black text-xs text-gray-900 group-hover:text-[#046A47] line-clamp-1 transition-colors">
+                        {p.name}
+                      </h4>
                       <p className="text-[11px] text-gray-500 font-medium line-clamp-2 mt-0.5">
                         {p.shortDescription || p.description}
                       </p>
                     </div>
 
-                    <div className="pt-2 border-t border-gray-100 mt-2 flex items-center justify-between">
-                      <div className="text-xs font-black text-[#046A47]">
-                        {prodPkgs[0]?.price ? `${prodPkgs[0].price} ج` : 'السعر غير محدد'}
+                    <div className="pt-2.5 border-t border-gray-100 mt-2.5 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-black text-[#046A47]">
+                          {prodPkgs[0]?.price ? `${prodPkgs[0].price} ج` : 'السعر غير محدد'}
+                        </div>
+                        <span className="text-[10px] text-gray-400 font-bold">{prodPkgs.length} عبوة</span>
                       </div>
-                      <span className="text-[10px] text-gray-400 font-bold">{prodPkgs.length} عبوة</span>
+
+                      {/* 1-Click Stock Toggle & Quick Edit Action Buttons */}
+                      <div className="flex items-center gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleStock(e, p)}
+                          className={`flex-1 py-1.5 px-2 rounded-xl text-[10.5px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer border ${
+                            isOutOfStock
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          }`}
+                          title={isOutOfStock ? 'إعادة المنتج للمخزون كمتوفر' : 'إخراج المنتج من المخزون (نفذ)'}
+                        >
+                          {isOutOfStock ? 'إعادة للمخزون ✓' : 'أخرجه من المخزون ✕'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setQuickEditProduct(p)}
+                          className="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
+                          title="تعديل تفاصيل المنتج"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1231,6 +1347,20 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
             </form>
           </div>
         </div>
+      )}
+      {/* Quick Product Edit & Stock Control Modal */}
+      {quickEditProduct && (
+        <QuickProductEditModal
+          product={quickEditProduct}
+          packages={packages.filter((pkg) => pkg.productId === quickEditProduct.id)}
+          companies={[company]}
+          categories={categories}
+          subCategories={subCategories}
+          isOpen={Boolean(quickEditProduct)}
+          onClose={() => setQuickEditProduct(null)}
+          onSave={handleQuickSaveProduct}
+          onShowToast={onShowToast}
+        />
       )}
     </div>
   );
