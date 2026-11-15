@@ -381,7 +381,6 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         isAdminLoggedIn={isAdminLoggedIn}
         currentUser={currentUser}
         activeSalesRep={activeSalesRep}
-        onClearActiveSalesRep={onClearActiveSalesRep}
         hasDashboardAccess={hasDashboardAccess(currentUser)}
         canBuildCatalog={canBuildCustomCatalog(currentUser)}
         onOpenCatalogBuilder={onOpenCatalogBuilder}

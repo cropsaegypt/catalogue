@@ -682,49 +682,79 @@ export const BasketDrawer: React.FC<BasketDrawerProps> = ({
                         <span>مندوب المبيعات التابع له الطلب:</span>
                       </label>
                       {activeSalesRep && (
-                        <span className="text-[10px] font-bold bg-emerald-100 text-[#046A47] px-2 py-0.5 rounded-md">
-                          محال عبر الرابط
+                        <span className="text-[10px] font-black bg-emerald-100 text-[#046A47] px-2 py-0.5 rounded-md flex items-center gap-1">
+                          <span>مثبت ومعتمد</span>
+                          <span>🔒</span>
                         </span>
                       )}
                     </div>
 
-                    {teamMembers && teamMembers.length > 0 && (
-                      <select
-                        value={selectedRepId}
-                        onChange={(e) => {
-                          const id = e.target.value;
-                          setSelectedRepId(id);
-                          const found = teamMembers.find((m) => m.id === id);
-                          if (found && found.phone) {
-                            setPersonalRepPhone(found.phone);
-                          }
-                        }}
-                        className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white font-bold text-gray-800 focus:ring-2 focus:ring-[#046A47]"
-                      >
-                        <option value="">بدون مندوب محدد (طلب مباشر عبر المتجر)</option>
-                        {teamMembers
-                          .filter((m) => m.active)
-                          .map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name} (@{m.username}) {m.role === 'sales_rep' ? '— مندوب مبيعات' : ''}
-                            </option>
-                          ))}
-                      </select>
-                    )}
+                    {activeSalesRep ? (
+                      <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-emerald-700 text-white font-black text-xs flex items-center justify-center">
+                              {activeSalesRep.name.slice(0, 1)}
+                            </div>
+                            <div>
+                              <span className="font-black text-xs text-gray-900 block">{activeSalesRep.name}</span>
+                              <span className="text-[10px] text-emerald-800 font-bold">
+                                المستشار الزراعي المحال عبر الرابط (معتمد للطلب 🔒)
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-black bg-emerald-700 text-white px-2 py-0.5 rounded-full">
+                            موثق
+                          </span>
+                        </div>
+                        {activeSalesRep.phone && (
+                          <div className="pt-2 border-t border-emerald-200/70 flex items-center justify-between text-[11px] font-bold text-gray-700">
+                            <span>واتساب الموظف للإشعار الفوري:</span>
+                            <span className="font-mono text-emerald-900 font-black dir-ltr">
+                              {activeSalesRep.phone} ✓
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : teamMembers && teamMembers.length > 0 ? (
+                      <>
+                        <select
+                          value={selectedRepId}
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            setSelectedRepId(id);
+                            const found = teamMembers.find((m) => m.id === id);
+                            if (found && found.phone) {
+                              setPersonalRepPhone(found.phone);
+                            }
+                          }}
+                          className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white font-bold text-gray-800 focus:ring-2 focus:ring-[#046A47]"
+                        >
+                          <option value="">بدون مندوب محدد (طلب مباشر عبر المتجر)</option>
+                          {teamMembers
+                            .filter((m) => m.active)
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>
+                                {m.name} (@{m.username}) {m.role === 'sales_rep' ? '— مندوب مبيعات' : ''}
+                              </option>
+                            ))}
+                        </select>
 
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-600 block mb-1">
-                        رقم الواتساب الشخصي للموظف (لإرسال إشعار الفاتورة له فوراً):
-                      </label>
-                      <input
-                        type="tel"
-                        dir="ltr"
-                        value={personalRepPhone}
-                        onChange={(e) => setPersonalRepPhone(e.target.value)}
-                        placeholder="مثال: 01012345678"
-                        className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white font-mono text-left focus:ring-2 focus:ring-[#046A47]"
-                      />
-                    </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-gray-600 block mb-1">
+                            رقم الواتساب الشخصي للموظف (لإرسال إشعار الفاتورة له فوراً):
+                          </label>
+                          <input
+                            type="tel"
+                            dir="ltr"
+                            value={personalRepPhone}
+                            onChange={(e) => setPersonalRepPhone(e.target.value)}
+                            placeholder="مثال: 01012345678"
+                            className="w-full text-xs p-2.5 rounded-xl border border-gray-300 bg-white font-mono text-left focus:ring-2 focus:ring-[#046A47]"
+                          />
+                        </div>
+                      </>
+                    ) : null}
                   </div>
 
                   <div>

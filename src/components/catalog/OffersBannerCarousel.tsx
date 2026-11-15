@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, ChevronRight, ChevronLeft, Percent, ShieldCheck, Truck, CreditCard, ArrowLeft } from 'lucide-react';
 import { Advertisement, CatalogSettings } from '../../types';
+import {
+  parseBannerUrlWithSettings,
+  getBannerHeightClass,
+  getBannerPositionStyle,
+} from '../../utils/bannerHelper';
 
 interface OffersBannerCarouselProps {
   advertisements?: Advertisement[];
@@ -138,8 +143,13 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
 
   // 1. Custom Full-Image Banner Mode (configured in Catalog Settings)
   if (settings?.heroBannerMode === 'full_image' && settings.heroBannerUrl) {
+    const desktopConfig = parseBannerUrlWithSettings(settings.heroBannerUrl);
+    const mobileConfig = settings.heroBannerMobileUrl
+      ? parseBannerUrlWithSettings(settings.heroBannerMobileUrl)
+      : desktopConfig;
+
     return (
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md my-2 dir-rtl">
+      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md my-2 dir-rtl bg-stone-900">
         <a
           href={settings.heroBannerLink || '#catalog-products-section'}
           target={settings.heroBannerLink ? '_blank' : undefined}
@@ -147,14 +157,20 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
           className="block w-full"
         >
           <img
-            src={settings.heroBannerUrl}
+            src={desktopConfig.url}
             alt={settings.title || 'بانر المتجر'}
-            className="hidden sm:block w-full h-[200px] md:h-[260px] object-cover"
+            className={`hidden sm:block w-full ${getBannerHeightClass(desktopConfig.height, false)} ${
+              desktopConfig.fit === 'contain' ? 'object-contain' : 'object-cover'
+            }`}
+            style={{ objectPosition: getBannerPositionStyle(desktopConfig.position) }}
           />
           <img
-            src={settings.heroBannerMobileUrl || settings.heroBannerUrl}
+            src={mobileConfig.url || desktopConfig.url}
             alt={settings.title || 'بانر المتجر'}
-            className="sm:hidden w-full h-[155px] object-cover"
+            className={`sm:hidden w-full ${getBannerHeightClass(mobileConfig.height, true)} ${
+              mobileConfig.fit === 'contain' ? 'object-contain' : 'object-cover'
+            }`}
+            style={{ objectPosition: getBannerPositionStyle(mobileConfig.position) }}
           />
         </a>
       </div>
@@ -163,6 +179,8 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
 
   // 2. Custom Text + Image Banner Mode (configured in Catalog Settings)
   if (settings?.heroBannerMode === 'text_and_image') {
+    const imgConfig = parseBannerUrlWithSettings(settings.heroBannerUrl);
+
     return (
       <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md my-2 dir-rtl">
         <div
@@ -200,12 +218,13 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
             )}
           </div>
 
-          {settings.heroBannerUrl && (
+          {imgConfig.url && (
             <div className="shrink-0">
               <img
-                src={settings.heroBannerUrl}
+                src={imgConfig.url}
                 alt={settings.heroBannerTitle || 'صورة البانر'}
                 className="w-36 h-28 sm:w-48 sm:h-36 rounded-2xl object-cover border-2 border-white/25 shadow-lg"
+                style={{ objectPosition: getBannerPositionStyle(imgConfig.position) }}
               />
             </div>
           )}
@@ -276,9 +295,10 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
         <div className="hidden sm:flex items-center justify-center shrink-0 pl-2">
           {current.imageUrl ? (
             <img
-              src={current.imageUrl}
+              src={parseBannerUrlWithSettings(current.imageUrl).url}
               alt={current.title}
               className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover border-2 border-white/20 shadow-md"
+              style={{ objectPosition: getBannerPositionStyle(parseBannerUrlWithSettings(current.imageUrl).position) }}
             />
           ) : (
             <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-inner">

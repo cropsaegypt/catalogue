@@ -111,7 +111,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       title: 'التسويق والميديا',
       items: [
         { id: 'showcases', label: 'مربعات الرئيسية والعروض', icon: <Tag className="w-4 h-4 text-amber-400" />, highlight: true },
-        { id: 'advertisements', label: 'إدارة الإعلانات', icon: <Megaphone className="w-4 h-4 text-rose-400" /> },
+        { id: 'advertisements', label: 'بانرات الصفحة الرئيسية والإعلانات', icon: <Megaphone className="w-4 h-4 text-amber-400" />, highlight: true },
         { id: 'gallery', label: 'معرض صور الشركات', icon: <ImageIcon className="w-4 h-4 text-purple-400" /> },
         { id: 'pdf', label: 'توليد الكتالوج PDF', icon: <FileText className="w-4 h-4 text-amber-400" /> },
       ],

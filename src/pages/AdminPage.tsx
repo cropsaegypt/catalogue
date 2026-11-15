@@ -570,7 +570,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         {activeTab === 'advertisements' && (!currentUser || canAccessAdminTab(currentUser, 'advertisements')) && (
           <AdvertisementManager
             advertisements={advertisements}
+            settings={settings}
             onSaveAdvertisements={onSaveAdvertisements}
+            onSaveSettings={onSaveSettings}
             onShowToast={addToast}
           />
         )}

@@ -119,16 +119,10 @@ export const Header: React.FC<HeaderProps> = ({
                 </a>
               )}
             </div>
-            {onClearActiveSalesRep && (
-              <button
-                type="button"
-                onClick={onClearActiveSalesRep}
-                className="text-[10px] text-emerald-200 hover:text-white underline cursor-pointer shrink-0"
-                title="إلغاء الإحالة والتسوق مباشرة"
-              >
-                تغيير / تسوق مباشر
-              </button>
-            )}
+            <span className="text-[10px] text-amber-300 font-bold shrink-0 bg-emerald-950/70 px-2.5 py-0.5 rounded-md border border-emerald-700/60 flex items-center gap-1">
+              <span>طلبك معتمد للمستشار</span>
+              <span>🔒</span>
+            </span>
           </div>
         </div>
       )}

@@ -25,6 +25,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../ui
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { ImageFileInput } from '../common/ImageFileInput';
+import { BannerViewportSelector } from './BannerViewportSelector';
+import {
+  parseBannerUrlWithSettings,
+  createBannerUrlWithSettings,
+} from '../../utils/bannerHelper';
 
 interface CatalogSettingsManagerProps {
   settings: CatalogSettings;
@@ -332,6 +337,19 @@ export const CatalogSettingsManager: React.FC<CatalogSettingsManagerProps> = ({
                           onChange={(url) => setFormData({ ...formData, heroBannerUrl: url })}
                           placeholder="https://example.com/full-banner.jpg"
                         />
+
+                        {formData.heroBannerUrl && (
+                          <BannerViewportSelector
+                            title="تحديد جزء ظهور الصورة والارتفاع في المتجر"
+                            settings={parseBannerUrlWithSettings(formData.heroBannerUrl)}
+                            onChange={(updated) =>
+                              setFormData({
+                                ...formData,
+                                heroBannerUrl: createBannerUrlWithSettings(updated),
+                              })
+                            }
+                          />
+                        )}
 
                         <ImageFileInput
                           label="صورة مخصصة للموبايل (اختياري — لو نفس الصورة اتركه فارغاً)"
