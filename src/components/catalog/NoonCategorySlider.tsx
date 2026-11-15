@@ -138,7 +138,7 @@ export const NoonCategorySlider: React.FC<NoonCategorySliderProps> = ({
 
         {/* Dynamic Main Categories from DB (if any, keeping icons neat) */}
         {categories
-          .filter((c) => c.active)
+          .filter((c) => c.active !== false)
           .slice(0, 4)
           .map((cat) => {
             const isActive = selectedCategoryId === cat.id;

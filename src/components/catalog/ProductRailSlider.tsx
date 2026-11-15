@@ -107,7 +107,7 @@ export const ProductRailSlider: React.FC<ProductRailSliderProps> = ({
       >
         {products.map((product) => {
           const company = companies.find((c) => c.id === product.companyId);
-          const prodPackages = packages.filter((p) => p.productId === product.id && p.active);
+          const prodPackages = packages.filter((p) => p.productId === product.id && p.active !== false);
 
           return (
             <div key={product.id} className="w-[185px] sm:w-[235px] shrink-0 flex flex-col">

@@ -9,6 +9,8 @@ import {
   CornerDownLeft,
   FolderPlus,
   Image as ImageIcon,
+  CloudUpload,
+  RefreshCw,
 } from 'lucide-react';
 import { Category, Product } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
@@ -18,6 +20,9 @@ import {
   getProductMainCategoryId,
   getProductSubCategoryId,
 } from '../../utils/categoryHierarchy';
+import { serverSync } from '../../services/serverSync';
+import { firestoreSync } from '../../services/firestoreSync';
+import { dbStorage } from '../../services/dbStorage';
 
 interface CategoryManagerProps {
   categories: Category[];
@@ -49,6 +54,37 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
 
   const getSubProductCount = (subId: string) =>
     products.filter((p) => getProductSubCategoryId(p, categories) === subId).length;
+
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
+
+  const handleManualFullSync = async () => {
+    setIsSyncingAll(true);
+    try {
+      const fullData = dbStorage.getData();
+      const sanitizedProducts = products.map((p) => ({ ...p, active: p.active !== false }));
+      const payload = {
+        ...fullData,
+        products: sanitizedProducts,
+        categories,
+        pdfDividers: dbStorage.getPdfDividers(),
+      };
+      dbStorage.saveProducts(sanitizedProducts);
+
+      await Promise.all([
+        serverSync.syncToCentralServer(payload),
+        firestoreSync.pushFullSnapshot(payload),
+      ]);
+
+      onShowToast(
+        `تم نشر وتحديث الكتالوج بالكامل (${sanitizedProducts.length} منتج) لجميع الأجهزة والزوار بنجاح!`,
+        'success'
+      );
+    } catch (err: any) {
+      onShowToast('حدث خطأ أثناء المزامنة: ' + (err?.message || 'تعذر الاتصال'), 'error');
+    } finally {
+      setIsSyncingAll(false);
+    }
+  };
 
   const openAddMainModal = () => {
     setEditingCategory(null);
@@ -201,6 +237,17 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleManualFullSync}
+            disabled={isSyncingAll}
+            className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-4 py-2.5 rounded-xl text-xs font-black shadow-md flex items-center gap-2 transition-all cursor-pointer disabled:opacity-60"
+            title="نشر ومزامنة كافة المنتجات والأقسام لجميع الأجهزة والزوار لحظياً"
+          >
+            <CloudUpload className={`w-4 h-4 ${isSyncingAll ? 'animate-bounce' : ''}`} />
+            <span>{isSyncingAll ? 'جاري النشر والمزامنة...' : `نشر ومزامنة الكتالوج (${products.length} منتج) للجميع`}</span>
+          </button>
+
           {mainCategories.length > 0 && (
             <button
               type="button"

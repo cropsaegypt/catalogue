@@ -48,7 +48,7 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
 
   if (!isOpen) return null;
 
-  const activeCompanies = companies.filter((c) => c.active);
+  const activeCompanies = companies.filter((c) => c.active !== false);
   const metaMap = new Map<string, CompanyAvailabilityItem>();
   if (companiesMeta) {
     for (const item of companiesMeta) {
@@ -58,7 +58,7 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
 
   const filteredCompanies = activeCompanies
     .filter((comp) => {
-      const compProducts = products.filter((p) => p.companyId === comp.id && p.active);
+      const compProducts = products.filter((p) => p.companyId === comp.id && p.active !== false);
       const q = searchQuery.trim().toLowerCase();
       if (!q) return true;
       return (
@@ -171,7 +171,7 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
             </div>
           ) : (
             filteredCompanies.map((comp) => {
-              const compProducts = products.filter((p) => p.companyId === comp.id && p.active);
+              const compProducts = products.filter((p) => p.companyId === comp.id && p.active !== false);
               const isExpanded = expandedCompanyId === comp.id;
               const isSelected = selectedCompanyIds.includes(comp.id);
               const availMeta = metaMap.get(comp.id);
@@ -259,7 +259,7 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                           {compProducts.map((product) => {
                             const prodPackages = packages.filter(
-                              (p) => p.productId === product.id && p.active
+                              (p) => p.productId === product.id && p.active !== false
                             );
                             const firstPkg = prodPackages[0];
 

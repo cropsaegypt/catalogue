@@ -47,7 +47,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   showPrices = true,
   whatsAppNumber = '201000000000',
 }) => {
-  const activePackages = packages.filter((p) => p.active);
+  const activePackages = packages.filter((p) => p.active !== false);
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
     activePackages.length > 0 ? activePackages[0].id : ''
   );

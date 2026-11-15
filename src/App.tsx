@@ -208,20 +208,25 @@ export default function App() {
         if (idbData.teamMembers?.length) setTeamMembers(idbData.teamMembers);
         if (idbData.priceHistory?.length) setPriceHistory(idbData.priceHistory);
         if (idbData.settings) setSettings(idbData.settings);
+        return idbData;
       })
-      .catch(() => {});
+      .catch(() => ({}));
 
-    // 3. Pull live catalog snapshot from Cloud Firestore (NEVER overwrite unsynced local edits!)
+    // 3. Pull live catalog snapshot from Cloud Firestore (NEVER overwrite unsynced local edits or larger catalogs!)
     Promise.all([idbHydratedPromise, firestoreSync.pullAllFromCloud()])
-      .then(([, cloudRes]) => {
+      .then(([idbData, cloudRes]) => {
         setCloudConnected(cloudRes.connected);
         if (cloudRes.error) setCloudError(cloudRes.error);
 
+        const localProducts = (idbData as any)?.products || dbStorage.getProducts();
+        const cloudProducts = cloudRes.data?.products || [];
         const pendingLocal = dbStorage.hasPendingCloudSync();
+
         if (cloudRes.connected) {
           setLastCloudSyncAt(new Date().toISOString());
 
-          if (pendingLocal) {
+          // If local has MORE products than cloud, or pending local changes exist: PUSH local to cloud!
+          if (pendingLocal || localProducts.length > cloudProducts.length) {
             void firestoreSync
               .pushFullSnapshot({
                 ...dbStorage.getData(),
@@ -241,6 +246,7 @@ export default function App() {
             return;
           }
 
+          // Otherwise, if cloud has equal or more data, hydrate from cloud
           const d = cloudRes.data;
           if (d.categories?.length) {
             setCategories(d.categories);
@@ -254,7 +260,7 @@ export default function App() {
             setSubCategories(d.subCategories);
             dbStorage.saveSubCategories(d.subCategories);
           }
-          if (d.products?.length) {
+          if (d.products?.length && d.products.length >= localProducts.length) {
             setProducts(d.products);
             dbStorage.saveProducts(d.products);
           }
@@ -306,12 +312,27 @@ export default function App() {
 
     // 2.7 Centralized Server Storage Hydration (Syncs instantly across different browsers & tabs)
     void serverSync.fetchFromCentralServer().then((serverRes) => {
+      const currentProds = dbStorage.getProducts();
+      const serverProds = serverRes.data?.products || [];
+
+      // If local has MORE products than central server, immediately seed/sync local to server!
+      if (currentProds.length > serverProds.length) {
+        void serverSync.syncToCentralServer({
+          ...dbStorage.getData(),
+          pdfDividers: dbStorage.getPdfDividers(),
+        });
+        return;
+      }
+
       if (serverRes.success && serverRes.hasData && serverRes.data) {
         const sd = serverRes.data;
         if (sd.categories?.length) { setCategories(sd.categories); dbStorage.saveCategories(sd.categories); }
         if (sd.companies?.length) { setCompanies(sd.companies); dbStorage.saveCompanies(sd.companies); }
         if (sd.subCategories?.length) { setSubCategories(sd.subCategories); dbStorage.saveSubCategories(sd.subCategories); }
-        if (sd.products?.length) { setProducts(sd.products); dbStorage.saveProducts(sd.products); }
+        if (sd.products?.length && sd.products.length >= currentProds.length) {
+          setProducts(sd.products);
+          dbStorage.saveProducts(sd.products);
+        }
         if (sd.packages?.length) { setPackages(sd.packages); dbStorage.savePackages(sd.packages); }
         if (sd.advertisements?.length) { setAdvertisements(sd.advertisements); dbStorage.saveAdvertisements(sd.advertisements); }
         if (sd.images?.length) { setImages(sd.images); dbStorage.saveImages(sd.images); }
@@ -395,7 +416,19 @@ export default function App() {
         if (serverTime && serverTime !== lastKnownSyncTime) {
           lastKnownSyncTime = serverTime;
           const sd = res.data;
-          if (sd.products?.length) setProducts(sd.products);
+          setProducts((prev) => {
+            if (sd.products && (sd.products.length >= prev.length || prev.length === 0)) {
+              dbStorage.saveProducts(sd.products);
+              return sd.products;
+            } else if (prev.length > (sd.products?.length || 0)) {
+              // Local has more products! Broadcast local to central server
+              void serverSync.syncToCentralServer({
+                ...dbStorage.getData(),
+                pdfDividers: dbStorage.getPdfDividers(),
+              });
+            }
+            return prev;
+          });
           if (sd.companies?.length) setCompanies(sd.companies);
           if (sd.categories?.length) setCategories(sd.categories);
           if (sd.subCategories?.length) setSubCategories(sd.subCategories);

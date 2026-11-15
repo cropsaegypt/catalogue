@@ -117,6 +117,7 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
   const [autoRemoveBackground, setAutoRemoveBackground] = useState<boolean>(true);
   const [cleaningProductId, setCleaningProductId] = useState<string | null>(null);
   const [rotatingProductId, setRotatingProductId] = useState<string | null>(null);
+  const [originalImageMap, setOriginalImageMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch('/api/health')
@@ -1525,30 +1526,57 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                                   <RotateCcw className="w-3 h-3" />
                                 </button>
                               </div>
-                              <button
-                                type="button"
-                                disabled={cleaningProductId === prod.id}
-                                onClick={async () => {
-                                  setCleaningProductId(prod.id);
-                                  try {
-                                    const cleaned = await aiCatalogService.cleanBackgroundAndUpload(
-                                      prod.imageUrl!,
-                                      `ext-${prod.id}`
-                                    );
-                                    if (cleaned) {
-                                      handleUpdateProduct(prod.id, { imageUrl: cleaned });
-                                      onShowToast(`تم تفريغ خلفية "${prod.name}" بنجاح`, 'success');
-                                    } else {
-                                      onShowToast('الصورة شفافة بالفعل أو لا تحتوي على خلفية موحدة قابلة للإزالة', 'error');
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <button
+                                  type="button"
+                                  disabled={cleaningProductId === prod.id}
+                                  onClick={async () => {
+                                    setCleaningProductId(prod.id);
+                                    try {
+                                      const prev = prod.imageUrl!;
+                                      const cleaned = await aiCatalogService.cleanBackgroundAndUpload(
+                                        prod.imageUrl!,
+                                        `ext-${prod.id}`
+                                      );
+                                      if (cleaned) {
+                                        setOriginalImageMap((m) => ({ ...m, [prod.id]: prev }));
+                                        handleUpdateProduct(prod.id, { imageUrl: cleaned });
+                                        onShowToast(`تم تفريغ خلفية "${prod.name}" بدقة عالية مع حماية بيانات المنتج ✓`, 'success');
+                                      } else {
+                                        onShowToast('الصورة شفافة بالفعل أو لا تحتوي على خلفية موحدة قابلة للإزالة', 'error');
+                                      }
+                                    } finally {
+                                      setCleaningProductId(null);
                                     }
-                                  } finally {
-                                    setCleaningProductId(null);
-                                  }
-                                }}
-                                className="text-[9px] font-black text-[#046A47] hover:underline cursor-pointer disabled:opacity-50"
-                              >
-                                {cleaningProductId === prod.id ? 'جاري التفريغ...' : '✨ إزالة الخلفية'}
-                              </button>
+                                  }}
+                                  className="text-[9.5px] font-black text-[#046A47] hover:underline cursor-pointer disabled:opacity-50"
+                                  title="تفريغ دقيق للخلفية مع الحفاظ على كامل جسم وبيانات المنتج"
+                                >
+                                  {cleaningProductId === prod.id ? 'جاري التفريغ...' : '✨ إزالة الخلفية'}
+                                </button>
+
+                                {originalImageMap[prod.id] && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const original = originalImageMap[prod.id];
+                                      if (original) {
+                                        handleUpdateProduct(prod.id, { imageUrl: original });
+                                        setOriginalImageMap((m) => {
+                                          const next = { ...m };
+                                          delete next[prod.id];
+                                          return next;
+                                        });
+                                        onShowToast(`تمت استعادة الصورة الأصلية لـ "${prod.name}" ✓`, 'success');
+                                      }
+                                    }}
+                                    className="text-[9px] font-bold text-stone-500 hover:text-stone-800 hover:underline cursor-pointer"
+                                    title="استعادة الصورة الأصلية كما تم استخراجها من الكتالوج"
+                                  >
+                                    ↩ استعادة
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>

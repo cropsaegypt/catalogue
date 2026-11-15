@@ -294,7 +294,7 @@ export const SharedCatalogView: React.FC<SharedCatalogViewProps> = ({
           {filteredProducts.map((product) => {
             const company = catalog.companiesSnapshot.find((c) => c.id === product.companyId);
             const prodPackages = catalog.packagesSnapshot.filter(
-              (pkg) => pkg.productId === product.id && pkg.active
+              (pkg) => pkg.productId === product.id && pkg.active !== false
             );
 
             return (
@@ -365,7 +365,7 @@ export const SharedCatalogView: React.FC<SharedCatalogViewProps> = ({
         packages={
           quickAddTarget
             ? catalog.packagesSnapshot.filter(
-                (p) => p.productId === quickAddTarget.product.id && p.active
+                (p) => p.productId === quickAddTarget.product.id && p.active !== false
               )
             : []
         }

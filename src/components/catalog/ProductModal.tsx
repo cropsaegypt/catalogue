@@ -42,7 +42,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   onClose,
   onAddToCart,
 }) => {
-  const activePackages = packages.filter((p) => p.active);
+  const activePackages = packages.filter((p) => p.active !== false);
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
   const [quantityText, setQuantityText] = useState<string>('1');
   const [isZoomOpen, setIsZoomOpen] = useState(false);
@@ -50,9 +50,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
   useEffect(() => {
     if (product) {
-      const active = packages.filter((p) => p.active);
+      const active = packages.filter((p) => p.active !== false);
       const def =
-        initialPackage && initialPackage.active ? initialPackage : active[0];
+        initialPackage && initialPackage.active !== false ? initialPackage : active[0];
       setSelectedPackageId(def ? def.id : '');
       setQuantityText('1');
       setActiveImageIndex(0);

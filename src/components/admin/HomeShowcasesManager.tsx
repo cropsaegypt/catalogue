@@ -174,7 +174,7 @@ export const HomeShowcasesManager: React.FC<HomeShowcasesManagerProps> = ({
   };
 
   const pickerProducts = products.filter((p) => {
-    if (!p.active) return false;
+    if (p.active === false) return false;
     const q = pickerSearch.trim().toLowerCase();
     const matchesSearch =
       !q || p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q);
@@ -410,7 +410,7 @@ export const HomeShowcasesManager: React.FC<HomeShowcasesManagerProps> = ({
                   if (!product) return null;
                   const company = companies.find((c) => c.id === product.companyId);
                   const prodPkgs = packages
-                    .filter((pkg) => pkg.productId === product.id && pkg.active)
+                    .filter((pkg) => pkg.productId === product.id && pkg.active !== false)
                     .sort((a, b) => a.displayOrder - b.displayOrder);
                   const firstPkg = prodPkgs[0];
                   const basePrice = firstPkg?.price ?? 0;
@@ -606,7 +606,7 @@ export const HomeShowcasesManager: React.FC<HomeShowcasesManagerProps> = ({
               pickerProducts.map((prod) => {
                 const isAdded = existingIdsSet.has(prod.id);
                 const comp = companies.find((c) => c.id === prod.companyId);
-                const firstPkg = packages.find((pkg) => pkg.productId === prod.id && pkg.active);
+                const firstPkg = packages.find((pkg) => pkg.productId === prod.id && pkg.active !== false);
 
                 return (
                   <div

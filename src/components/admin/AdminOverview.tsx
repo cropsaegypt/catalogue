@@ -74,7 +74,7 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   onExportBackupJson,
   onImportBackupJson,
 }) => {
-  const activeProducts = products.filter((p) => p.active);
+  const activeProducts = products.filter((p) => p.active !== false);
   const pendingOrders = orders.filter((o) => o.status === 'new');
   const recentPriceUpdates = priceHistory.slice(0, 5);
   const recentOrders = orders.slice(0, 5);

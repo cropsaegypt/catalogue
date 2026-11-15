@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Loader2, Sparkles, Crop, RotateCw, RotateCcw } from 'lucide-react';
+import { Upload, X, Loader2, Sparkles, Crop, RotateCw, RotateCcw, Undo2 } from 'lucide-react';
 import { aiCatalogService } from '../../services/aiCatalogService';
 import { ImageCropModal } from './ImageCropModal';
 import { rotateAndUploadImage } from '../../utils/imageRotation';
@@ -27,6 +27,7 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
   const [cropSourceSrc, setCropSourceSrc] = useState<string>('');
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+  const [originalBeforeClean, setOriginalBeforeClean] = useState<string | null>(null);
 
   const handleRotate = async (degrees: 90 | -90 | 180) => {
     if (!value || isRotating || isUploading) return;
@@ -45,12 +46,21 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
     if (!value || isCleaningBg) return;
     setIsCleaningBg(true);
     try {
+      const prev = value;
       const cleaned = await aiCatalogService.cleanBackgroundAndUpload(value, 'clean-asset');
       if (cleaned) {
+        setOriginalBeforeClean(prev);
         onChange(cleaned);
       }
     } finally {
       setIsCleaningBg(false);
+    }
+  };
+
+  const handleRestoreOriginal = () => {
+    if (originalBeforeClean) {
+      onChange(originalBeforeClean);
+      setOriginalBeforeClean(null);
     }
   };
 
@@ -208,7 +218,7 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
               disabled={isCleaningBg || isUploading}
               onClick={handleRemoveBg}
               className="px-2.5 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 text-[11px] font-black flex items-center gap-1 cursor-pointer disabled:opacity-60"
-              title="إزالة الخلفية وإبقاء صورة المنتج فقط"
+              title="إزالة الخلفية بدقة عالية مع الحفاظ على تفاصيل المنتج"
             >
               {isCleaningBg ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -217,6 +227,18 @@ export const ImageFileInput: React.FC<ImageFileInputProps> = ({
               )}
               <span>{isCleaningBg ? 'جاري التفريغ...' : 'إزالة الخلفية'}</span>
             </button>
+
+            {originalBeforeClean && (
+              <button
+                type="button"
+                onClick={handleRestoreOriginal}
+                className="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                title="استعادة الصورة الأصلية كما كانت قبل التفريغ"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+                <span>استعادة الأصل</span>
+              </button>
+            )}
           </div>
         </div>
       )}

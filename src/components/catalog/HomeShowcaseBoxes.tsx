@@ -84,7 +84,7 @@ export const HomeShowcaseBoxes: React.FC<HomeShowcaseBoxesProps> = ({
           const isSelected = selectedShowcaseKey === section.key;
 
           const activeItems = section.items.filter((it) =>
-            products.some((p) => p.id === it.productId && p.active)
+            products.some((p) => p.id === it.productId && p.active !== false)
           );
           const maxDiscount = activeItems.reduce(
             (max, it) => Math.max(max, Number(it.discountPercent) || 0),

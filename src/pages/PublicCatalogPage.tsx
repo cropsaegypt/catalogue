@@ -171,7 +171,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
 
     // Prune any selected categories/subcategories that don't have products in nextCompanies
     if (nextCompanies.length > 0) {
-      const pool = products.filter((p) => p.active && nextCompanies.includes(p.companyId));
+      const pool = products.filter((p) => p.active !== false && nextCompanies.includes(p.companyId));
       const availableMainSet = new Set(
         pool.map((p) => getProductMainCategoryId(p, categories))
       );
@@ -222,7 +222,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
 
   // Filter Active Products (Supports multi-select Companies + Main/Sub Categories + Smart Search)
   const activeProducts = products.filter((p) => {
-    if (!p.active) return false;
+    if (p.active === false) return false;
 
     const { mainCategory, subCategory } = getCategoryDisplayPath(
       p.categoryId,
@@ -644,7 +644,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
               {displayedProducts.map((product) => {
                 const company = companies.find((c) => c.id === product.companyId);
-                const prodPackages = packages.filter((p) => p.productId === product.id && p.active);
+                const prodPackages = packages.filter((p) => p.productId === product.id && p.active !== false);
                 const showcaseItem = showcaseItemByProductId.get(product.id);
                 const badgeLabel =
                   showcaseItem?.discountLabel?.trim() ||
@@ -722,7 +722,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         company={companies.find((c) => c.id === quickAddTarget?.product.companyId)}
         packages={
           quickAddTarget
-            ? packages.filter((p) => p.productId === quickAddTarget.product.id && p.active)
+            ? packages.filter((p) => p.productId === quickAddTarget.product.id && p.active !== false)
             : []
         }
         initialPackage={quickAddTarget?.pkg}

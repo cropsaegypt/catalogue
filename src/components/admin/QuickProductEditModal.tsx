@@ -17,6 +17,7 @@ import {
   RotateCcw,
   Upload,
   Loader2,
+  Undo2,
 } from 'lucide-react';
 import { Product, Package, Company, Category, CompanySubCategory } from '../../types';
 import { getMainCategories, getSubCategories } from '../../utils/categoryHierarchy';
@@ -65,6 +66,7 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
   const [isRotating, setIsRotating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCleaningBg, setIsCleaningBg] = useState(false);
+  const [originalImageBeforeClean, setOriginalImageBeforeClean] = useState<string | null>(null);
 
   const handleRotate = async (degrees: 90 | -90 | 180) => {
     if (!mainImageUrl || isRotating || isUploading) return;
@@ -86,15 +88,25 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
     if (!mainImageUrl || isCleaningBg) return;
     setIsCleaningBg(true);
     try {
+      const prev = mainImageUrl;
       const cleaned = await aiCatalogService.cleanBackgroundAndUpload(mainImageUrl, `quick-clean-${product.id}`);
       if (cleaned) {
+        setOriginalImageBeforeClean(prev);
         setMainImageUrl(cleaned);
-        onShowToast('تم تفريغ خلفية الصورة بنجاح ✓', 'success');
+        onShowToast('تم تفريغ خلفية الصورة بدقة فائقة مع الحفاظ على تفاصيل المنتج ✓', 'success');
       } else {
-        onShowToast('الصورة لا تحتوي على خلفية قابلة للإزالة', 'error');
+        onShowToast('الصورة شفافة بالفعل أو لا تحتوي على خلفية قابلة للإزالة', 'error');
       }
     } finally {
       setIsCleaningBg(false);
+    }
+  };
+
+  const handleRestoreOriginal = () => {
+    if (originalImageBeforeClean) {
+      setMainImageUrl(originalImageBeforeClean);
+      setOriginalImageBeforeClean(null);
+      onShowToast('تمت استعادة الصورة الأصلية بنجاح ✓', 'success');
     }
   };
 
@@ -740,11 +752,23 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
                         disabled={isCleaningBg || isUploading}
                         onClick={handleCleanBg}
                         className="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1 disabled:opacity-50"
-                        title="إزالة خلفية الصورة"
+                        title="إزالة خلفية الصورة بدقة فائقة مع الحفاظ على جسم وبيانات المنتج"
                       >
                         {isCleaningBg ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3 text-amber-600" />}
-                        <span>{isCleaningBg ? 'جاري التفريغ...' : 'تفريغ الخلفية'}</span>
+                        <span>{isCleaningBg ? 'جاري التفريغ...' : 'تفريغ دقيق للخلفية'}</span>
                       </button>
+
+                      {originalImageBeforeClean && (
+                        <button
+                          type="button"
+                          onClick={handleRestoreOriginal}
+                          className="px-2.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 rounded-xl text-xs font-bold cursor-pointer transition-colors flex items-center gap-1"
+                          title="استعادة الصورة الأصلية كما كانت قبل التفريغ"
+                        >
+                          <Undo2 className="w-3.5 h-3.5" />
+                          <span>استعادة الأصل</span>
+                        </button>
+                      )}
                     </>
                   )}
 

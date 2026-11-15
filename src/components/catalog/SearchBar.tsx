@@ -27,8 +27,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({
 }) => {
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
-  const activeCategories = categories.filter((c) => c.active);
-  const activeCompanies = companies.filter((c) => c.active);
+  const activeCategories = categories.filter((c) => c.active !== false);
+  const activeCompanies = companies.filter((c) => c.active !== false);
 
   const selectedCategory = activeCategories.find((c) => c.id === selectedCategoryId);
   const selectedCompany = activeCompanies.find((c) => c.id === selectedCompanyId);

@@ -151,10 +151,10 @@ export function computeCrossFilterAvailability(params: {
     selectedSubCategoryIds,
   } = params;
 
-  const activeProducts = products.filter((p) => p.active);
-  const activeCompanies = companies.filter((c) => c.active);
-  const activeMainCats = categories.filter((c) => c.active && !c.parentId);
-  const activeSubCats = categories.filter((c) => c.active && Boolean(c.parentId));
+  const activeProducts = products.filter((p) => p.active !== false);
+  const activeCompanies = companies.filter((c) => c.active !== false);
+  const activeMainCats = categories.filter((c) => c.active !== false && !c.parentId);
+  const activeSubCats = categories.filter((c) => c.active !== false && Boolean(c.parentId));
 
   const hasCatSelection = selectedCategoryIds.length > 0 || selectedSubCategoryIds.length > 0;
   const hasCompanySelection = selectedCompanyIds.length > 0;

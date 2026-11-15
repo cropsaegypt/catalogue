@@ -232,7 +232,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     setUsage(p.usage && p.usage.length > 0 ? p.usage : ['']);
     setSearchTagsText(p.searchTags && p.searchTags.length > 0 ? p.searchTags.join(' ، ') : '');
     setMainImageUrl(p.mainImageUrl || '');
-    setActive(p.active);
+    setActive(p.active !== false);
     setFeatured(p.featured || false);
 
     const productPackages = packages.filter((pkg) => pkg.productId === p.id);
@@ -564,7 +564,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
               {filteredProducts.map((p) => {
                 const comp = companies.find((c) => c.id === p.companyId);
                 const catPath = getCategoryDisplayPath(p.categoryId, p.subCategoryId, categories);
-                const prodPackages = packages.filter((pkg) => pkg.productId === p.id && pkg.active);
+                const prodPackages = packages.filter((pkg) => pkg.productId === p.id && pkg.active !== false);
                 const isOutOfStock = Boolean(
                   p.isOutOfStock || (typeof p.stockQuantity === 'number' && p.stockQuantity <= 0)
                 );

@@ -734,7 +734,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
   const [selectedProductTypes, setSelectedProductTypes] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(() =>
-    products.filter((p) => p.active).map((p) => p.id)
+    products.filter((p) => p.active !== false).map((p) => p.id)
   );
 
   // Persistent Dividers Library
@@ -790,7 +790,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
   // 1. Filter Matching Products (Multi-company + Multi-category + Multi-type + Search)
   const matchingProducts = useMemo(() => {
     return products.filter((p) => {
-      if (!p.active) return false;
+      if (p.active === false) return false;
 
       const matchesSearch =
         !searchQuery.trim() ||
@@ -1438,7 +1438,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
         createdAt: new Date().toISOString(),
         productIds: resolvedPdfProducts.map((p) => p.id),
         productsSnapshot: resolvedPdfProducts,
-        packagesSnapshot: packages.filter((pkg) => selectedSet.has(pkg.productId) && pkg.active),
+        packagesSnapshot: packages.filter((pkg) => selectedSet.has(pkg.productId) && pkg.active !== false),
         companiesSnapshot: companies.filter((c) => relatedCompanyIds.has(c.id)),
         categoriesSnapshot: categories.filter((c) => relatedCategoryIds.has(c.id)),
         settingsSnapshot: {
@@ -1687,7 +1687,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
         >
           {pageProducts.map((product) => {
             const comp = companies.find((c) => c.id === product.companyId);
-            const prodPackages = packages.filter((p) => p.productId === product.id && p.active);
+            const prodPackages = packages.filter((p) => p.productId === product.id && p.active !== false);
             const rawImg = product.mainImageUrl || '';
             const safeImgSrc =
               !rawImg || rawImg.includes('photo-1592417817098-8f3d6ef23a81')

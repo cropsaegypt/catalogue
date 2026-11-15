@@ -30,7 +30,7 @@ export const HOME_SHOWCASE_DEFAULTS: Record<
 };
 
 function buildAutoFallbackItems(key: HomeShowcaseKey, products: Product[]): HomeShowcaseItem[] {
-  const active = products.filter((p) => p.active);
+  const active = products.filter((p) => p.active !== false);
   if (active.length === 0) return [];
 
   let chosen: Product[] = [];

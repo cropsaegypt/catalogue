@@ -36,14 +36,14 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
   onClose,
   onConfirmAdd,
 }) => {
-  const activePackages = packages.filter((p) => p.active);
+  const activePackages = packages.filter((p) => p.active !== false);
   const [selectedPackageId, setSelectedPackageId] = useState<string>('');
   const [quantityText, setQuantityText] = useState<string>('1');
 
   useEffect(() => {
     if (isOpen && product) {
       const defPkg =
-        initialPackage && initialPackage.active
+        initialPackage && initialPackage.active !== false
           ? initialPackage
           : activePackages[0];
       setSelectedPackageId(defPkg ? defPkg.id : '');

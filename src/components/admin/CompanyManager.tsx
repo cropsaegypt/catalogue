@@ -598,10 +598,10 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                                   )}
                                   <span
                                     className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
-                                      prod.active ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
+                                      prod.active !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500'
                                     }`}
                                   >
-                                    {prod.active ? 'نشط' : 'معطل'}
+                                    {prod.active !== false ? 'نشط' : 'معطل'}
                                   </span>
                                 </div>
 

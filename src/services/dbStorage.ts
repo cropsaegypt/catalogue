@@ -320,23 +320,27 @@ export const dbStorage = {
 
   // Products
   getProducts(): Product[] {
-    return getItem<Product[]>(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    const list = getItem<Product[]>(STORAGE_KEYS.PRODUCTS, INITIAL_PRODUCTS);
+    return list.map((p) => ({ ...p, active: p.active !== false }));
   },
   saveProducts(products: Product[]): void {
-    setItem(STORAGE_KEYS.PRODUCTS, products);
+    const sanitized = products.map((p) => ({ ...p, active: p.active !== false }));
+    setItem(STORAGE_KEYS.PRODUCTS, sanitized);
   },
 
   // Packages
   getPackages(): Package[] {
-    return getItem<Package[]>(STORAGE_KEYS.PACKAGES, INITIAL_PACKAGES);
+    const list = getItem<Package[]>(STORAGE_KEYS.PACKAGES, INITIAL_PACKAGES);
+    return list.map((p) => ({ ...p, active: p.active !== false }));
   },
   savePackages(packages: Package[]): void {
-    setItem(STORAGE_KEYS.PACKAGES, packages);
+    const sanitized = packages.map((p) => ({ ...p, active: p.active !== false }));
+    setItem(STORAGE_KEYS.PACKAGES, sanitized);
   },
   getPackagesForProduct(productId: string): Package[] {
     const packages = this.getPackages();
     return packages
-      .filter((pkg) => pkg.productId === productId && pkg.active)
+      .filter((pkg) => pkg.productId === productId && pkg.active !== false)
       .sort((a, b) => a.displayOrder - b.displayOrder);
   },
 

@@ -15,7 +15,7 @@ export const CompanyBrandsSlider: React.FC<CompanyBrandsSliderProps> = ({
   onSelectCompany,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const activeCompanies = companies.filter((c) => c.active);
+  const activeCompanies = companies.filter((c) => c.active !== false);
 
   if (activeCompanies.length === 0) return null;
 
