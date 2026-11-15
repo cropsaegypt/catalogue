@@ -40,16 +40,17 @@ service cloud.firestore {
     //            mainImageUrl (string, opt), searchTags (list, opt),
     //            costPrice (number, opt), stockQuantity (number, opt), minStockAlert (number, opt),
     //            galleryImageIds (list, opt), displayOrder (number, opt),
-    //            active (bool, opt), featured (bool, opt), allowPieceOrder (bool, opt),
-    //            allowCartonOrder (bool, opt), piecesPerCarton (number, opt),
-    //            createdAt (string, opt), updatedAt (string, opt)
+    //            active (bool, opt), featured (bool, opt), isOutOfStock (bool, opt),
+    //            allowPieceOrder (bool, opt), allowCartonOrder (bool, opt),
+    //            piecesPerCarton (number, opt), createdAt (string, opt), updatedAt (string, opt)
     //
     // 5. Collection: packages/{packageId}
     //    Fields: id (string, req), productId (string, req), unit (string, req),
     //            price (number >= 0, req), quantity (number, opt), displayName (string, opt),
     //            costPrice (number, opt), stockQuantity (number, opt), minStockAlert (number, opt),
     //            currency (string, opt), allowPieceOrder (bool, opt), allowCartonOrder (bool, opt),
-    //            piecesPerCarton (number, opt), active (bool, opt), displayOrder (number, opt)
+    //            piecesPerCarton (number, opt), active (bool, opt), isOutOfStock (bool, opt),
+    //            displayOrder (number, opt)
     //
     // 6. Collection: advertisements/{adId}
     //    Fields: id (string, req), title (string, req), desktopImageUrl (string, req),
@@ -262,7 +263,7 @@ service cloud.firestore {
                'characteristics', 'composition', 'usage', 'applicationRate',
                'mainImageId', 'mainImageUrl', 'searchTags', 'costPrice',
                'stockQuantity', 'minStockAlert', 'galleryImageIds', 'displayOrder',
-               'active', 'featured', 'allowPieceOrder', 'allowCartonOrder',
+               'active', 'featured', 'isOutOfStock', 'allowPieceOrder', 'allowCartonOrder',
                'piecesPerCarton', 'createdAt', 'updatedAt'
              ]) &&
              isValidReqString(data, 'id', 1, 128) &&
@@ -289,6 +290,7 @@ service cloud.firestore {
              isValidOptNumber(data, 'displayOrder') &&
              isValidOptBool(data, 'active') &&
              isValidOptBool(data, 'featured') &&
+             isValidOptBool(data, 'isOutOfStock') &&
              isValidOptBool(data, 'allowPieceOrder') &&
              isValidOptBool(data, 'allowCartonOrder') &&
              isValidOptNonNegNumber(data, 'piecesPerCarton') &&
@@ -301,7 +303,7 @@ service cloud.firestore {
                'id', 'productId', 'quantity', 'unit', 'displayName', 'price',
                'costPrice', 'stockQuantity', 'minStockAlert', 'currency',
                'allowPieceOrder', 'allowCartonOrder', 'piecesPerCarton',
-               'active', 'displayOrder'
+               'active', 'isOutOfStock', 'displayOrder'
              ]) &&
              isValidReqString(data, 'id', 1, 128) &&
              isValidReqString(data, 'productId', 1, 128) &&
@@ -317,6 +319,7 @@ service cloud.firestore {
              isValidOptBool(data, 'allowCartonOrder') &&
              isValidOptNonNegNumber(data, 'piecesPerCarton') &&
              isValidOptBool(data, 'active') &&
+             isValidOptBool(data, 'isOutOfStock') &&
              isValidOptNumber(data, 'displayOrder');
     }
 

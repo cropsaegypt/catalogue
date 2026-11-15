@@ -17,6 +17,8 @@ import {
   PieChart as PieChartIcon,
   Cloud,
   RefreshCw,
+  Download,
+  Upload,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -49,6 +51,8 @@ interface AdminOverviewProps {
   cloudError?: string;
   onSyncToCloud?: () => Promise<void> | void;
   onConnectGoogleCloud?: () => Promise<void> | void;
+  onExportBackupJson?: () => void;
+  onImportBackupJson?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 const CROPSA_COLORS = ['#046A47', '#058E5E', '#5A5A40', '#8A8A6D', '#2D2D24', '#B45309'];
@@ -67,6 +71,8 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
   cloudError,
   onSyncToCloud,
   onConnectGoogleCloud,
+  onExportBackupJson,
+  onImportBackupJson,
 }) => {
   const activeProducts = products.filter((p) => p.active);
   const pendingOrders = orders.filter((o) => o.status === 'new');
@@ -247,6 +253,31 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {onExportBackupJson && (
+              <button
+                type="button"
+                onClick={onExportBackupJson}
+                className="px-3.5 py-2 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="تنزيل نسخة احتياطية كاملة (JSON)"
+              >
+                <Download className="w-3.5 h-3.5 text-stone-500" />
+                <span>تصدير نسخة</span>
+              </button>
+            )}
+
+            {onImportBackupJson && (
+              <label className="px-3.5 py-2 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors">
+                <Upload className="w-3.5 h-3.5 text-stone-500" />
+                <span>استيراد نسخة</span>
+                <input
+                  type="file"
+                  accept="application/json"
+                  onChange={onImportBackupJson}
+                  className="hidden"
+                />
+              </label>
+            )}
+
             {onConnectGoogleCloud && (
               <button
                 type="button"

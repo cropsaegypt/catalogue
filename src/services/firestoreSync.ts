@@ -103,6 +103,36 @@ async function sanitizeImagesForFirestore(item: Record<string, any>): Promise<Re
   return copy;
 }
 
+async function commitBatchOps(
+  colName: string,
+  ops: Array<{ type: 'set' | 'delete'; id: string; payload?: any; bytes: number }>
+): Promise<void> {
+  let idx = 0;
+  while (idx < ops.length) {
+    const batch = writeBatch(db);
+    let batchBytes = 0;
+    let batchCount = 0;
+
+    while (idx < ops.length && batchCount < 40) {
+      const next = ops[idx];
+      if (batchCount > 0 && batchBytes + next.bytes > 3_500_000) {
+        break;
+      }
+      const ref = doc(db, colName, next.id);
+      if (next.type === 'set') {
+        batch.set(ref, next.payload);
+      } else {
+        batch.delete(ref);
+      }
+      batchBytes += next.bytes;
+      batchCount++;
+      idx++;
+    }
+
+    await batch.commit();
+  }
+}
+
 async function fetchCollectionList<T>(colName: string): Promise<T[] | null> {
   try {
     const snap = await getDocs(collection(db, colName));
@@ -275,29 +305,41 @@ export const firestoreSync = {
       }
 
       // Commit in safe chunks: <= 40 ops AND <= 3.5MB per Firestore batch commit
-      let idx = 0;
-      while (idx < ops.length) {
-        const batch = writeBatch(db);
-        let batchBytes = 0;
-        let batchCount = 0;
+      try {
+        await commitBatchOps(colName, ops);
+      } catch (firstCommitErr: any) {
+        const errMsg = String(firstCommitErr?.message || firstCommitErr || '');
+        const isPermissionOrSchemaErr =
+          errMsg.includes('permission') ||
+          errMsg.includes('Missing or insufficient') ||
+          firstCommitErr?.code === 'permission-denied';
 
-        while (idx < ops.length && batchCount < 40) {
-          const next = ops[idx];
-          if (batchCount > 0 && batchBytes + next.bytes > 3_500_000) {
-            break;
-          }
-          const ref = doc(db, colName, next.id);
-          if (next.type === 'set') {
-            batch.set(ref, next.payload);
-          } else {
-            batch.delete(ref);
-          }
-          batchBytes += next.bytes;
-          batchCount++;
-          idx++;
+        if (isPermissionOrSchemaErr && (colName === 'products' || colName === 'packages')) {
+          console.warn(`[Firestore Sync] Retrying ${colName} with compatibility schema sanitation...`);
+          // Strip any fields that may violate legacy deployed Firestore security rules,
+          // while preserving out-of-stock semantics via stockQuantity: 0
+          const fallbackOps = ops.map((op) => {
+            if (op.type === 'set' && op.payload && typeof op.payload === 'object') {
+              const cleanPayload = { ...op.payload };
+              if ('isOutOfStock' in cleanPayload) {
+                if (cleanPayload.isOutOfStock) {
+                  cleanPayload.stockQuantity = 0;
+                }
+                delete cleanPayload.isOutOfStock;
+              }
+              return {
+                ...op,
+                payload: cleanPayload,
+                bytes: JSON.stringify(cleanPayload).length,
+              };
+            }
+            return op;
+          });
+
+          await commitBatchOps(colName, fallbackOps);
+        } else {
+          throw firstCommitErr;
         }
-
-        await batch.commit();
       }
 
       return { ok: true, writtenCount: items.length };

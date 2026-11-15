@@ -217,27 +217,22 @@ export default function App() {
           setLastCloudSyncAt(new Date().toISOString());
 
           if (pendingLocal) {
-            if (auth.currentUser) {
-              void firestoreSync
-                .pushFullSnapshot({
-                  ...dbStorage.getData(),
-                  pdfDividers: dbStorage.getPdfDividers(),
-                })
-                .then((pushRes) => {
-                  if (pushRes.success) {
-                    dbStorage.setPendingCloudSync(false);
-                    setHasUnsyncedChanges(false);
-                    setCloudError(undefined);
-                    setLastCloudSyncAt(new Date().toISOString());
-                  } else if (pushRes.error) {
-                    setCloudError(pushRes.error);
-                  }
-                });
-            } else {
-              setCloudError(
-                'توجد تعديلات محفوظة محلياً لم تُرفع للسحابة بعد — اضغط «رفع ومزامنة للسحابة» أو سجل Google للحفظ الدائم.'
-              );
-            }
+            void firestoreSync
+              .pushFullSnapshot({
+                ...dbStorage.getData(),
+                pdfDividers: dbStorage.getPdfDividers(),
+              })
+              .then((pushRes) => {
+                if (pushRes.success) {
+                  dbStorage.setPendingCloudSync(false);
+                  setHasUnsyncedChanges(false);
+                  setCloudError(undefined);
+                  setLastCloudSyncAt(new Date().toISOString());
+                } else if (pushRes.error) {
+                  setCloudError(pushRes.error);
+                }
+              })
+              .catch(() => {});
             return;
           }
 
@@ -305,6 +300,57 @@ export default function App() {
       .catch(() => {});
   }, []);
 
+  // Automatic silent background synchronization when pending changes exist and device is online
+  useEffect(() => {
+    if (!hasUnsyncedChanges) return;
+
+    const autoSyncTimer = setTimeout(() => {
+      if (dbStorage.hasPendingCloudSync()) {
+        void firestoreSync
+          .pushFullSnapshot({
+            ...dbStorage.getData(),
+            pdfDividers: dbStorage.getPdfDividers(),
+          })
+          .then((res) => {
+            if (res.success) {
+              setCloudConnected(true);
+              setCloudError(undefined);
+              setLastCloudSyncAt(new Date().toISOString());
+              dbStorage.setPendingCloudSync(false);
+              setHasUnsyncedChanges(false);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 15000);
+
+    const handleOnline = () => {
+      if (dbStorage.hasPendingCloudSync()) {
+        void firestoreSync
+          .pushFullSnapshot({
+            ...dbStorage.getData(),
+            pdfDividers: dbStorage.getPdfDividers(),
+          })
+          .then((res) => {
+            if (res.success) {
+              setCloudConnected(true);
+              setCloudError(undefined);
+              setLastCloudSyncAt(new Date().toISOString());
+              dbStorage.setPendingCloudSync(false);
+              setHasUnsyncedChanges(false);
+            }
+          })
+          .catch(() => {});
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => {
+      clearTimeout(autoSyncTimer);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [hasUnsyncedChanges]);
+
   const trackCloudWrite = async (promise: Promise<{ ok: boolean; error?: string }>) => {
     const res = await promise;
     if (res.ok) {
@@ -317,8 +363,8 @@ export default function App() {
       dbStorage.setPendingCloudSync(true);
       setHasUnsyncedChanges(true);
       if (res.error) {
+        console.warn('[Cloud Auto-Sync Warning]:', res.error);
         setCloudError(res.error);
-        addBuilderToast(res.error, 'error');
       }
     }
   };

@@ -637,12 +637,8 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
     }
 
     const unpricedSelected = selectedProducts.filter(isProductMissingPrice);
-    if (unpricedSelected.length > 0) {
-      const confirmSave = window.confirm(
-        `تنبيه: يوجد ${unpricedSelected.length} منتج من المحددة بدون سعر (سعرها 0 ج.م). هل ترغب في حفظها في الكتالوج الآن بدون سعر وإكمال تسعيرها لاحقاً؟`
-      );
-      if (!confirmSave) return;
-    }
+    // Unpriced products (highlighted in red) are smoothly accepted with price: 0
+    // so the admin can freely edit or batch-update their prices later manually or via Excel sheet.
 
     const newProductsToAdd: Product[] = [];
     const newPackagesToAdd: Package[] = [];
@@ -802,10 +798,13 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       });
     }
 
-    onShowToast(
-      `تم اعتماد وحفظ ${newProductsToAdd.length} منتج و ${newPackagesToAdd.length} عبوة وسعر لصالح ${selectedCompany.name} بنجاح!`,
-      'success'
-    );
+    const unpricedCount = unpricedSelected.length;
+    const toastMsg =
+      unpricedCount > 0
+        ? `تم اعتماد وحفظ ${newProductsToAdd.length} منتج بنجاح (منها ${unpricedCount} منتج بدون سعر محدد بالأحمر يمكنك تسعيرها لاحقاً مانيوال أو بالإكسيل)!`
+        : `تم اعتماد وحفظ ${newProductsToAdd.length} منتج و ${newPackagesToAdd.length} عبوة وسعر لصالح ${selectedCompany.name} بنجاح!`;
+
+    onShowToast(toastMsg, 'success');
 
     setExtractionResult(null);
     setUploadedFiles([]);

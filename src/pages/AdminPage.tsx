@@ -341,70 +341,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
       {/* Main Admin Dashboard Body */}
       <main className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto">
-        {(!cloudConnected || hasUnsyncedChanges || Boolean(cloudError)) && (
-          <div className="mb-6 bg-amber-50 border border-amber-300 rounded-2xl p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center shrink-0">
-                <Cloud className="w-5 h-5" />
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs font-black text-amber-950 block">
-                  {hasUnsyncedChanges
-                    ? 'تنبيه: توجد تعديلات محفوظة في المتصفح (أو IndexedDB) لم تُرفع للسحابة بعد'
-                    : 'تنبيه: الوضع محلي حالياً — لم يكتمل الاتصال بـ Cloud Firestore'}
-                </span>
-                <span className="text-[11px] font-medium text-amber-900/80 block">
-                  {cloudError || 'لحفظ المنتجات لجميع الأجهزة، سجل عبر Google للسحابة أو فعّل Anonymous Auth في Firebase وانشر firestore.rules.'}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleExportBackupJson}
-                className="px-3 py-1.5 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer"
-                title="تنزيل نسخة احتياطية كاملة"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>تصدير</span>
-              </button>
-
-              <label className="px-3 py-1.5 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-xl text-[11px] font-bold flex items-center gap-1 cursor-pointer">
-                <Upload className="w-3.5 h-3.5" />
-                <span>استيراد</span>
-                <input
-                  type="file"
-                  accept="application/json"
-                  onChange={handleImportBackupJson}
-                  className="hidden"
-                />
-              </label>
-
-              {onConnectGoogleCloud && (
-                <button
-                  type="button"
-                  onClick={onConnectGoogleCloud}
-                  className="px-3 py-1.5 bg-white hover:bg-stone-100 text-stone-900 border border-amber-400 rounded-xl text-[11px] font-black cursor-pointer"
-                >
-                  ربط Google للسحابة
-                </button>
-              )}
-              {onSyncToCloud && (
-                <button
-                  type="button"
-                  disabled={isCloudSyncing}
-                  onClick={onSyncToCloud}
-                  className="px-3.5 py-1.5 bg-[#046A47] hover:bg-[#035237] disabled:opacity-60 text-white rounded-xl text-[11px] font-black flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin' : ''}`} />
-                  <span>{isCloudSyncing ? 'جاري الرفع...' : 'رفع للسحابة الآن'}</span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
         {activeTab === 'overview' && (!currentUser || canAccessAdminTab(currentUser, 'overview')) && (
           <AdminOverview
             products={products}
@@ -420,6 +356,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             cloudError={cloudError}
             onSyncToCloud={onSyncToCloud}
             onConnectGoogleCloud={onConnectGoogleCloud}
+            onExportBackupJson={handleExportBackupJson}
+            onImportBackupJson={handleImportBackupJson}
           />
         )}
 
