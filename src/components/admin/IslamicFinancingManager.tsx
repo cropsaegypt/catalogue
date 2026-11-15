@@ -261,8 +261,11 @@ export const IslamicFinancingManager: React.FC<IslamicFinancingManagerProps> = (
                         <span className="text-sm font-black text-[#046A47] block">
                           {Number(req.requestedAmount || 0).toLocaleString('en-US')} ج.م
                         </span>
-                        <span className="text-[10px] text-stone-500 font-bold">
-                          {PLAN_LABELS[req.repaymentPlan] || req.repaymentPlan}
+                        <span className="text-[10px] text-stone-500 font-bold max-w-[180px] truncate block text-left">
+                          {req.customAnswers?.['خطة السداد التفصيلية'] ||
+                            req.customAnswers?.['مدة السداد المختارة'] ||
+                            PLAN_LABELS[req.repaymentPlan] ||
+                            req.repaymentPlan}
                         </span>
                       </div>
 
@@ -623,7 +626,13 @@ export const IslamicFinancingManager: React.FC<IslamicFinancingManagerProps> = (
               <div><strong>المساحة/النشاط:</strong> {selectedRequest.farmAreaOrScale || '-'}</div>
               <div><strong>المحاصيل:</strong> {selectedRequest.cropsOrActivity || '-'}</div>
               <div><strong>قيمة التمويل:</strong> {Number(selectedRequest.requestedAmount || 0).toLocaleString('en-US')} ج.م</div>
-              <div><strong>خطة السداد:</strong> {PLAN_LABELS[selectedRequest.repaymentPlan]}</div>
+              <div>
+                <strong>خطة السداد:</strong>{' '}
+                {selectedRequest.customAnswers?.['خطة السداد التفصيلية'] ||
+                  selectedRequest.customAnswers?.['مدة السداد المختارة'] ||
+                  PLAN_LABELS[selectedRequest.repaymentPlan] ||
+                  selectedRequest.repaymentPlan}
+              </div>
               <div><strong>تاريخ الطلب:</strong> {selectedRequest.createdAt.slice(0, 10)}</div>
             </div>
 

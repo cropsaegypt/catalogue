@@ -343,30 +343,6 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     setSelectedPackageModal(selectedPackage);
   };
 
-  if (isFinancingPageOpen) {
-    return (
-      <IslamicFinancingPage
-        settings={settings}
-        basketItems={basketItems}
-        onBackToCatalog={() => setIsFinancingPageOpen(false)}
-        onSubmitFinancingRequest={async (payload) => {
-          if (onSubmitFinancingRequest) {
-            return onSubmitFinancingRequest(payload);
-          }
-          const now = new Date().toISOString();
-          return {
-            ...payload,
-            id: 'FIN-' + Date.now(),
-            requestNumber: 'FIN-' + Math.floor(100000 + Math.random() * 900000),
-            status: 'new',
-            createdAt: now,
-            updatedAt: now,
-          };
-        }}
-      />
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#F7F8FA] flex flex-col justify-between font-sans dir-rtl text-stone-900">
       {/* 1. Noon / Amazon Style Sticky Header with Integrated Search */}
@@ -400,12 +376,38 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         }}
       />
 
-      {/* 2. Main Noon / Amazon Storefront Body */}
-      <main
-        className={`max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-5 flex-1 w-full space-y-4 sm:space-y-6 ${
-          basketItems.length > 0 ? 'pb-36 md:pb-20' : 'pb-24 md:pb-12'
-        }`}
-      >
+      {/* 2. Main Storefront Body OR Islamic Financing Page */}
+      {isFinancingPageOpen ? (
+        <div className="flex-1 w-full pb-28 md:pb-16 animate-in fade-in duration-200">
+          <IslamicFinancingPage
+            settings={settings}
+            basketItems={basketItems}
+            onBackToCatalog={() => {
+              setIsFinancingPageOpen(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onSubmitFinancingRequest={async (payload) => {
+              if (onSubmitFinancingRequest) {
+                return onSubmitFinancingRequest(payload);
+              }
+              const now = new Date().toISOString();
+              return {
+                ...payload,
+                id: 'FIN-' + Date.now(),
+                requestNumber: 'FIN-' + Math.floor(100000 + Math.random() * 900000),
+                status: 'new',
+                createdAt: now,
+                updatedAt: now,
+              };
+            }}
+          />
+        </div>
+      ) : (
+        <main
+          className={`max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-5 flex-1 w-full space-y-4 sm:space-y-6 ${
+            basketItems.length > 0 ? 'pb-36 md:pb-20' : 'pb-24 md:pb-12'
+          }`}
+        >
         {/* Top Configurable Hero Banner (From Settings: Default Carousel / Text + Image / Full Image) */}
         {isHomeDefaultView && (
           <OffersBannerCarousel
@@ -641,16 +643,19 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           )}
         </section>
       </main>
+      )}
 
       {/* Floating Bottom Order Bar */}
-      <FloatingOrderBar
-        itemsCount={basketItems.length}
-        totalAmount={totalBasketAmount}
-        onOpenBasket={() => setIsBasketOpen(true)}
-      />
+      {!isFinancingPageOpen && (
+        <FloatingOrderBar
+          itemsCount={basketItems.length}
+          totalAmount={totalBasketAmount}
+          onOpenBasket={() => setIsBasketOpen(true)}
+        />
+      )}
 
       {/* Footer */}
-      <Footer settings={settings} />
+      {!isFinancingPageOpen && <Footer settings={settings} />}
 
       {/* Product Detail Modal */}
       {(() => {
@@ -854,11 +859,12 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             type="button"
             onClick={() => {
               setMobileSheetMode('closed');
+              setIsFinancingPageOpen(false);
               resetAllFilters();
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`flex flex-col items-center gap-0.5 cursor-pointer px-2 py-0.5 rounded-xl transition-colors ${
-              isHomeDefaultView && mobileSheetMode === 'closed'
+              !isFinancingPageOpen && isHomeDefaultView && mobileSheetMode === 'closed'
                 ? 'text-[#046A47] font-black'
                 : 'text-stone-600 font-bold'
             }`}
@@ -869,11 +875,12 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
 
           <button
             type="button"
-            onClick={() =>
-              setMobileSheetMode(mobileSheetMode === 'companies' ? 'closed' : 'companies')
-            }
+            onClick={() => {
+              setIsFinancingPageOpen(false);
+              setMobileSheetMode(mobileSheetMode === 'companies' ? 'closed' : 'companies');
+            }}
             className={`relative flex flex-col items-center gap-0.5 cursor-pointer px-2 py-0.5 rounded-xl transition-colors ${
-              mobileSheetMode === 'companies' || selectedCompanyIds.length > 0
+              !isFinancingPageOpen && (mobileSheetMode === 'companies' || selectedCompanyIds.length > 0)
                 ? 'text-[#046A47] font-black'
                 : 'text-stone-600 font-bold'
             }`}
@@ -891,12 +898,14 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
 
           <button
             type="button"
-            onClick={() =>
-              setMobileSheetMode(mobileSheetMode === 'categories' ? 'closed' : 'categories')
-            }
+            onClick={() => {
+              setIsFinancingPageOpen(false);
+              setMobileSheetMode(mobileSheetMode === 'categories' ? 'closed' : 'categories');
+            }}
             className={`relative flex flex-col items-center gap-0.5 cursor-pointer px-2 py-0.5 rounded-xl transition-colors ${
-              mobileSheetMode === 'categories' ||
-              selectedCategoryIds.length + selectedSubCategoryIds.length > 0
+              !isFinancingPageOpen &&
+              (mobileSheetMode === 'categories' ||
+                selectedCategoryIds.length + selectedSubCategoryIds.length > 0)
                 ? 'text-amber-600 font-black'
                 : 'text-stone-600 font-bold'
             }`}
@@ -938,9 +947,13 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
               setIsFinancingPageOpen(true);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
-            className="flex flex-col items-center gap-0.5 text-[#046A47] hover:text-emerald-900 cursor-pointer px-1.5 py-0.5"
+            className={`flex flex-col items-center gap-0.5 cursor-pointer px-1.5 py-0.5 transition-colors ${
+              isFinancingPageOpen
+                ? 'text-[#046A47] font-black'
+                : 'text-stone-600 hover:text-emerald-900 font-bold'
+            }`}
           >
-            <Banknote className="w-5 h-5 text-[#046A47]" />
+            <Banknote className={`w-5 h-5 ${isFinancingPageOpen ? 'text-[#046A47]' : 'text-stone-500'}`} />
             <span className="text-[10px] font-black whitespace-nowrap">تمويل إسلامي</span>
           </button>
         </div>
