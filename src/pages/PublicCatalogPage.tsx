@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   Home,
   ShoppingBag,
@@ -28,7 +28,6 @@ import {
 } from '../components/catalog/OnboardingBrowseSelector';
 import { HomeShowcaseBoxes } from '../components/catalog/HomeShowcaseBoxes';
 import { FloatingOrderBar } from '../components/catalog/FloatingOrderBar';
-import { ExitConfirmationModal } from '../components/catalog/ExitConfirmationModal';
 import { matchesProductSearch } from '../utils/agriculturalSearch';
 import {
   computeCrossFilterAvailability,
@@ -124,94 +123,6 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   } | null>(null);
   const [isEmployeeLoginOpen, setIsEmployeeLoginOpen] = useState(false);
   const [isFinancingPageOpen, setIsFinancingPageOpen] = useState(false);
-  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
-  const isExitingRef = useRef(false);
-
-  // Intercept back button / exit navigation with high-converting marketing confirmation modal
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    // Push initial trap state into browser history
-    window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-
-    const handlePopState = () => {
-      // If the user already confirmed exit, let the browser proceed
-      if (isExitingRef.current) {
-        return;
-      }
-
-      // 1. If any sub-modal or drawer is open, close it first (natural mobile back UX)
-      if (selectedProductModal) {
-        setSelectedProductModal(null);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (isBasketOpen) {
-        setIsBasketOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (isFinancingPageOpen) {
-        setIsFinancingPageOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (isCompanyDirectoryOpen) {
-        setIsCompanyDirectoryOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (mobileSheetMode !== 'closed') {
-        setMobileSheetMode('closed');
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (isEmployeeLoginOpen) {
-        setIsEmployeeLoginOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (quickAddTarget) {
-        setQuickAddTarget(null);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-
-      // 2. If at root catalog, intercept the exit!
-      // Re-push trap state so the session stays, and prompt the Marketing Exit Modal!
-      window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-      setIsExitModalOpen(true);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [
-    selectedProductModal,
-    isBasketOpen,
-    isFinancingPageOpen,
-    isCompanyDirectoryOpen,
-    mobileSheetMode,
-    isEmployeeLoginOpen,
-    quickAddTarget,
-  ]);
-
-  const handleStayInCatalog = () => {
-    setIsExitModalOpen(false);
-    addToast('منورنا يا باشمهندس! استمتع بأقوى عروض الموسم الزراعي 🔥', 'success');
-  };
-
-  const handleConfirmExit = () => {
-    isExitingRef.current = true;
-    setIsExitModalOpen(false);
-    // Navigate back in history past the trap states
-    if (window.history.length > 2) {
-      window.history.go(-2);
-    } else {
-      window.history.back();
-    }
-  };
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -1047,15 +958,6 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Marketing Exit Confirmation Modal on Back Navigation */}
-      <ExitConfirmationModal
-        isOpen={isExitModalOpen}
-        onStay={handleStayInCatalog}
-        onExit={handleConfirmExit}
-        whatsAppNumber={settings.whatsApp}
-        phone={settings.phone}
-      />
 
       {/* Employee In-Catalog Login Modal */}
       <EmployeeLoginModal
