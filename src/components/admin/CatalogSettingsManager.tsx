@@ -203,6 +203,9 @@ export const CatalogSettingsManager: React.FC<CatalogSettingsManagerProps> = ({
                       <p className="text-xs text-stone-500 font-medium mt-0.5">
                         اختر شكل البانر في الصفحة الرئيسية للموقع: سلايدر العروض، نص مع صورة، أو صورة تصميم كاملة
                       </p>
+                      <div className="mt-2 bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 text-[11px] text-[#046A47] font-bold">
+                        💡 ملاحظة: البانر الرئيسي يعمل كشريحة أولى ضمن السلايدر الرئيسي الموحد ويدور تلقائياً كل 4.5 ثوانٍ مع باقي البانرات دون تعارض بمقاسات ثابتة.
+                      </div>
                     </div>
 
                     {/* Mode Radio Pills */}

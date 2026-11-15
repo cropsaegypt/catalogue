@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, ChevronRight, ChevronLeft, Percent, ShieldCheck, Truck, CreditCard, ArrowLeft } from 'lucide-react';
 import { Advertisement, CatalogSettings } from '../../types';
 import {
   parseBannerUrlWithSettings,
-  getBannerHeightClass,
   getBannerPositionStyle,
 } from '../../utils/bannerHelper';
 
@@ -17,15 +16,16 @@ interface OffersBannerCarouselProps {
 
 interface BannerSlide {
   id: string;
-  badge: string;
-  badgeColor: string;
-  title: string;
-  highlight: string;
-  description: string;
-  ctaText: string;
-  bgGradient: string;
-  icon: React.ReactNode;
+  badge?: string;
+  badgeColor?: string;
+  title?: string;
+  highlight?: string;
+  description?: string;
+  ctaText?: string;
+  bgGradient?: string;
+  icon?: React.ReactNode;
   imageUrl?: string;
+  mobileImageUrl?: string;
   actionType: 'category' | 'installment' | 'filter' | 'link';
   actionTarget?: string;
 }
@@ -36,7 +36,7 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
   onSelectCategory,
   onOpenInstallmentInfo,
 }) => {
-  // Built-in high-converting agricultural offer banners + any custom ads
+  // Built-in high-converting agricultural offer banners (shown when no custom slides exist)
   const defaultSlides: BannerSlide[] = [
     {
       id: 'offer-1',
@@ -90,256 +90,314 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
     },
   ];
 
-  // Convert custom advertisements to slides if any
-  const customSlides: BannerSlide[] = advertisements
-    .filter((ad) => ad.active && ad.showOnline)
-    .map((ad) => ({
-      id: ad.id,
+  // 1. Primary Banner Slide (from Settings heroBannerUrl) - Included as Slide #1
+  const heroSlide: BannerSlide | null = settings?.heroBannerUrl
+    ? {
+        id: 'hero-banner-primary',
+        badge: settings.heroBannerBadge || 'عرض مميز 🔥',
+        badgeColor: 'bg-amber-400 text-stone-950',
+        title: settings.heroBannerTitle || '',
+        highlight: '',
+        description: settings.heroBannerSubtitle || '',
+        ctaText: settings.heroBannerCtaText || '',
+        bgGradient: 'from-[#046A47] via-[#035A3C] to-[#023E29]',
+        imageUrl: settings.heroBannerUrl,
+        mobileImageUrl: settings.heroBannerMobileUrl || settings.heroBannerUrl,
+        actionType: 'link',
+        actionTarget: settings.heroBannerLink || '#catalog-products-section',
+      }
+    : null;
+
+  // 2. Custom Advertisement Slides
+  const adSlides: BannerSlide[] = advertisements
+    .filter((ad) => ad.active && ad.showOnline !== false)
+    .map((ad, idx) => ({
+      id: ad.id || `ad-${idx}`,
       badge: 'إعلان معتمد ✨',
-      badgeColor: 'bg-emerald-400 text-gray-900',
-      title: ad.title,
-      highlight: 'حلول زراعية متميزة',
-      description: ad.description || 'تصفح أحدث عروض الشركات المعتمدة في كروپسا',
+      badgeColor: 'bg-emerald-400 text-gray-950',
+      title: ad.title || '',
+      highlight: '',
+      description: ad.description || '',
       ctaText: 'مشاهدة العرض',
       bgGradient: 'from-[#046A47] via-[#035237] to-[#023E29]',
       icon: <Sparkles className="w-6 h-6 text-amber-300" />,
       imageUrl: ad.desktopImageUrl || ad.mobileImageUrl,
+      mobileImageUrl: ad.mobileImageUrl || ad.desktopImageUrl,
       actionType: 'link',
-      actionTarget: ad.link,
+      actionTarget: ad.link || '#catalog-products-section',
     }));
 
-  const allSlides = [...defaultSlides, ...customSlides];
+  // Build unified slides list: Hero Banner first, followed by all additional advertisement slides.
+  // Neither hides the other - both rotate together seamlessly in the unified slider.
+  const userSlides: BannerSlide[] = [];
+  if (heroSlide) {
+    userSlides.push(heroSlide);
+  }
+  userSlides.push(...adSlides);
+
+  // If user has uploaded any custom banners/ads, use them; otherwise show default agricultural promos.
+  const slides = userSlides.length > 0 ? userSlides : defaultSlides;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  // Auto-slide every 5 seconds unless hovered/interacted
+  // Keep index within bounds if slide count changes
+  const activeIndex = currentIndex >= slides.length ? 0 : currentIndex;
+  const current = slides[activeIndex];
+
+  const handleNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
+
+  const handlePrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  }, [slides.length]);
+
+  // Auto-play timer: flip slide every 4.5 seconds unless hovered or interacted
   useEffect(() => {
-    if (isPaused || allSlides.length <= 1) return;
+    if (isPaused || slides.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % allSlides.length);
+      handleNext();
     }, 4500);
     return () => clearInterval(interval);
-  }, [isPaused, allSlides.length]);
-
-  const current = allSlides[currentIndex];
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % allSlides.length);
-  };
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + allSlides.length) % allSlides.length);
-  };
+  }, [isPaused, slides.length, handleNext]);
 
   const handleAction = () => {
+    if (!current) return;
     if (current.actionType === 'category' && current.actionTarget && onSelectCategory) {
       onSelectCategory(current.actionTarget);
     } else if (current.actionType === 'installment' && onOpenInstallmentInfo) {
       onOpenInstallmentInfo();
-    } else if (current.actionType === 'link' && current.actionTarget) {
-      window.open(current.actionTarget, '_blank');
+    } else if (current.actionTarget) {
+      if (current.actionTarget.startsWith('#')) {
+        const targetElement = document.querySelector(current.actionTarget);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth' });
+        }
+      } else {
+        window.open(current.actionTarget, '_blank', 'noopener,noreferrer');
+      }
     }
   };
 
-  // 1. Custom Full-Image Banner Mode (configured in Catalog Settings)
-  if (settings?.heroBannerMode === 'full_image' && settings.heroBannerUrl) {
-    const desktopConfig = parseBannerUrlWithSettings(settings.heroBannerUrl);
-    const mobileConfig = settings.heroBannerMobileUrl
-      ? parseBannerUrlWithSettings(settings.heroBannerMobileUrl)
-      : desktopConfig;
+  if (!current) return null;
 
-    return (
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md my-2 dir-rtl bg-stone-900">
-        <a
-          href={settings.heroBannerLink || '#catalog-products-section'}
-          target={settings.heroBannerLink ? '_blank' : undefined}
-          rel={settings.heroBannerLink ? 'noopener noreferrer' : undefined}
-          className="block w-full"
-        >
-          <img
-            src={desktopConfig.url}
-            alt={settings.title || 'بانر المتجر'}
-            className={`hidden sm:block w-full ${getBannerHeightClass(desktopConfig.height, false)} ${
-              desktopConfig.fit === 'contain' ? 'object-contain' : 'object-cover'
-            }`}
-            style={{ objectPosition: getBannerPositionStyle(desktopConfig.position) }}
-          />
-          <img
-            src={mobileConfig.url || desktopConfig.url}
-            alt={settings.title || 'بانر المتجر'}
-            className={`sm:hidden w-full ${getBannerHeightClass(mobileConfig.height, true)} ${
-              mobileConfig.fit === 'contain' ? 'object-contain' : 'object-cover'
-            }`}
-            style={{ objectPosition: getBannerPositionStyle(mobileConfig.position) }}
-          />
-        </a>
-      </div>
-    );
-  }
+  // Determine if slide has an image
+  const hasImage = Boolean(current.imageUrl);
+  const desktopImgConfig = hasImage ? parseBannerUrlWithSettings(current.imageUrl) : null;
+  const mobileImgConfig = hasImage
+    ? parseBannerUrlWithSettings(current.mobileImageUrl || current.imageUrl)
+    : null;
 
-  // 2. Custom Text + Image Banner Mode (configured in Catalog Settings)
-  if (settings?.heroBannerMode === 'text_and_image') {
-    const imgConfig = parseBannerUrlWithSettings(settings.heroBannerUrl);
-
-    return (
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md my-2 dir-rtl">
-        <div
-          className="relative bg-gradient-to-r from-[#046A47] via-[#035A3C] to-[#023E29] text-white p-5 sm:p-8 min-h-[165px] sm:min-h-[210px] flex flex-col sm:flex-row items-center justify-between gap-4 overflow-hidden"
-          style={
-            settings.primaryColor
-              ? { background: `linear-gradient(to left, ${settings.primaryColor}, #023E29)` }
-              : undefined
-          }
-        >
-          <div className="relative z-10 max-w-xl space-y-2 text-center sm:text-right">
-            {settings.heroBannerBadge && (
-              <span className="inline-flex items-center gap-1 bg-amber-400 text-stone-950 text-[10px] sm:text-xs font-black px-3 py-0.5 rounded-full shadow-2xs">
-                {settings.heroBannerBadge}
-              </span>
-            )}
-            <h2 className="text-lg sm:text-2xl font-black text-white leading-tight">
-              {settings.heroBannerTitle || settings.title}
-            </h2>
-            <p className="text-xs sm:text-sm text-emerald-100 font-bold">
-              {settings.heroBannerSubtitle || settings.subtitle}
-            </p>
-            {settings.heroBannerCtaText && (
-              <div className="pt-1">
-                <a
-                  href={settings.heroBannerLink || '#catalog-products-section'}
-                  target={settings.heroBannerLink ? '_blank' : undefined}
-                  rel={settings.heroBannerLink ? 'noopener noreferrer' : undefined}
-                  className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-xs px-4 py-2 rounded-xl shadow-xs transition-transform active:scale-95"
-                >
-                  <span>{settings.heroBannerCtaText}</span>
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            )}
-          </div>
-
-          {imgConfig.url && (
-            <div className="shrink-0">
-              <img
-                src={imgConfig.url}
-                alt={settings.heroBannerTitle || 'صورة البانر'}
-                className="w-36 h-28 sm:w-48 sm:h-36 rounded-2xl object-cover border-2 border-white/25 shadow-lg"
-                style={{ objectPosition: getBannerPositionStyle(imgConfig.position) }}
-              />
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // Determine if slide has text overlay (title, description, or badge)
+  const hasTextOverlay = Boolean(
+    (current.title && current.title.trim() && current.title !== 'بانر إعلاني') ||
+    (current.description && current.description.trim()) ||
+    current.badge
+  );
 
   return (
     <div
-      className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-md my-2 sm:my-4 dir-rtl transition-all"
+      className="relative w-full h-[155px] xs:h-[185px] sm:h-[235px] md:h-[285px] lg:h-[320px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-md my-2 sm:my-4 dir-rtl select-none bg-stone-900 group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
     >
       <AnimatePresence mode="wait">
         <motion.div
           key={current.id}
-          initial={{ opacity: 0.4, scale: 0.99 }}
+          initial={{ opacity: 0.35, scale: 0.99 }}
           animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0.4 }}
-          transition={{ duration: 0.25 }}
-          className={`relative bg-gradient-to-r ${current.bgGradient} text-white p-4 sm:p-7 min-h-[155px] sm:min-h-[195px] flex items-center justify-between overflow-hidden`}
+          exit={{ opacity: 0.35 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="w-full h-full relative cursor-pointer"
+          onClick={handleAction}
         >
-        {/* Background decorative subtle shapes */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_60%)] pointer-events-none"></div>
-        <div className="absolute -left-10 -bottom-10 w-44 h-44 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
+          {/* A. Image-Based Banner Slide */}
+          {hasImage && desktopImgConfig && mobileImgConfig ? (
+            <div className="relative w-full h-full">
+              {/* Full-Bleed Fixed-Size Responsive Image */}
+              <img
+                src={desktopImgConfig.url}
+                alt={current.title || 'بانر المتجر'}
+                className={`hidden sm:block w-full h-full ${
+                  desktopImgConfig.fit === 'contain' ? 'object-contain' : 'object-cover'
+                }`}
+                style={{ objectPosition: getBannerPositionStyle(desktopImgConfig.position) }}
+                loading="lazy"
+              />
+              <img
+                src={mobileImgConfig.url || desktopImgConfig.url}
+                alt={current.title || 'بانر المتجر'}
+                className={`sm:hidden w-full h-full ${
+                  mobileImgConfig.fit === 'contain' ? 'object-contain' : 'object-cover'
+                }`}
+                style={{ objectPosition: getBannerPositionStyle(mobileImgConfig.position) }}
+                loading="lazy"
+              />
 
-        {/* Content Column */}
-        <div className="relative z-10 max-w-xl space-y-1.5 sm:space-y-2">
-          {/* Badge */}
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-2xs inline-flex items-center gap-1 ${current.badgeColor}`}
-            >
-              {current.badge}
-            </span>
-            <span className="text-[10px] sm:text-xs text-white/80 font-bold hidden sm:inline-block">
-              كروپسا مصر للحلول الزراعية
-            </span>
-          </div>
+              {/* Optional Text Overlay (rendered cleanly if title/description provided) */}
+              {hasTextOverlay && (
+                <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-stone-950/85 via-stone-950/40 to-transparent flex items-center p-4 sm:p-8 pointer-events-none">
+                  <div className="max-w-xl space-y-1.5 sm:space-y-2 pointer-events-auto">
+                    {current.badge && (
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-xs ${
+                          current.badgeColor || 'bg-amber-400 text-stone-950'
+                        }`}
+                      >
+                        {current.badge}
+                      </span>
+                    )}
 
-          {/* Title & Highlight */}
-          <h2 className="text-base sm:text-2xl font-black text-white leading-tight">
-            {current.title}
-          </h2>
-          <p className="text-xs sm:text-sm text-emerald-200 font-bold line-clamp-1">
-            {current.highlight}
-          </p>
+                    {current.title && current.title !== 'بانر إعلاني' && (
+                      <h2 className="text-base sm:text-2xl font-black text-white leading-tight drop-shadow-sm">
+                        {current.title}
+                      </h2>
+                    )}
 
-          {/* Short description */}
-          <p className="text-[11px] sm:text-xs text-white/90 line-clamp-1 font-medium hidden xs:block sm:block">
-            {current.description}
-          </p>
+                    {current.description && (
+                      <p className="text-xs sm:text-sm text-stone-200 font-bold line-clamp-2 drop-shadow-xs max-w-md">
+                        {current.description}
+                      </p>
+                    )}
 
-          {/* Action CTA Button */}
-          <div className="pt-1">
-            <button
-              onClick={handleAction}
-              className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-gray-950 font-black text-[11px] sm:text-xs px-3.5 py-1.5 rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer"
-            >
-              <span>{current.ctaText}</span>
-              <ArrowLeft className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Visual / Image Slot */}
-        <div className="hidden sm:flex items-center justify-center shrink-0 pl-2">
-          {current.imageUrl ? (
-            <img
-              src={parseBannerUrlWithSettings(current.imageUrl).url}
-              alt={current.title}
-              className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl object-cover border-2 border-white/20 shadow-md"
-              style={{ objectPosition: getBannerPositionStyle(parseBannerUrlWithSettings(current.imageUrl).position) }}
-            />
+                    {current.ctaText && (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAction();
+                          }}
+                          className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-[11px] sm:text-xs px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer"
+                        >
+                          <span>{current.ctaText}</span>
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
-            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-inner">
-              {current.icon}
+            /* B. Built-in Gradient Promo Slide (Fallback when no image is uploaded) */
+            <div
+              className={`w-full h-full bg-gradient-to-r ${current.bgGradient || 'from-[#046A47] via-[#035A3C] to-[#023E29]'} text-white p-5 sm:p-8 flex items-center justify-between overflow-hidden relative`}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_60%)] pointer-events-none" />
+              <div className="absolute -left-10 -bottom-10 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+
+              <div className="relative z-10 max-w-xl space-y-1.5 sm:space-y-2">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-2xs inline-flex items-center gap-1 ${
+                      current.badgeColor || 'bg-amber-400 text-stone-950'
+                    }`}
+                  >
+                    {current.badge}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-white/80 font-bold hidden sm:inline-block">
+                    كروپسا مصر للحلول الزراعية
+                  </span>
+                </div>
+
+                <h2 className="text-base sm:text-2xl font-black text-white leading-tight">
+                  {current.title}
+                </h2>
+                {current.highlight && (
+                  <p className="text-xs sm:text-sm text-amber-200 font-bold line-clamp-1">
+                    {current.highlight}
+                  </p>
+                )}
+                {current.description && (
+                  <p className="text-[11px] sm:text-xs text-white/90 line-clamp-2 font-medium max-w-md hidden xs:block">
+                    {current.description}
+                  </p>
+                )}
+
+                {current.ctaText && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAction();
+                      }}
+                      className="inline-flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black text-[11px] sm:text-xs px-3.5 py-1.5 rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer"
+                    >
+                      <span>{current.ctaText}</span>
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden sm:flex items-center justify-center shrink-0 pl-4">
+                <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-2xl bg-white/10 border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-inner">
+                  {current.icon || <Sparkles className="w-8 h-8 text-amber-300" />}
+                </div>
+              </div>
             </div>
           )}
-        </div>
-
-        {/* Next / Prev Controls */}
-        <div className="absolute bottom-2.5 left-3 z-20 flex items-center gap-1.5">
-          <button
-            onClick={handlePrev}
-            className="w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center cursor-pointer transition-colors"
-            title="السابق"
-          >
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={handleNext}
-            className="w-6 h-6 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center cursor-pointer transition-colors"
-            title="التالي"
-          >
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Dots Indicators */}
-        <div className="absolute bottom-2.5 right-1/2 translate-x-1/2 z-20 flex items-center gap-1.5">
-          {allSlides.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentIndex(idx)}
-              className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                idx === currentIndex ? 'w-6 bg-amber-400' : 'w-1.5 bg-white/40 hover:bg-white/70'
-              }`}
-              title={`شريحة ${idx + 1}`}
-            />
-          ))}
-        </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Navigation Controls: Next / Prev Arrows (Shown when more than 1 slide) */}
+      {slides.length > 1 && (
+        <>
+          {/* Next Button (in RTL, next arrow moves to left) */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
+            className="absolute top-1/2 -translate-y-1/2 left-2.5 sm:left-4 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 text-white backdrop-blur-sm flex items-center justify-center transition-all cursor-pointer shadow-md opacity-85 hover:opacity-100 active:scale-90"
+            title="الشريحة التالية"
+            aria-label="الشريحة التالية"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          {/* Prev Button (in RTL, prev arrow moves to right) */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
+            className="absolute top-1/2 -translate-y-1/2 right-2.5 sm:right-4 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/45 hover:bg-black/70 text-white backdrop-blur-sm flex items-center justify-center transition-all cursor-pointer shadow-md opacity-85 hover:opacity-100 active:scale-90"
+            title="الشريحة السابقة"
+            aria-label="الشريحة السابقة"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+
+          {/* Bottom Dots Navigation Indicators */}
+          <div className="absolute bottom-2.5 sm:bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/45 backdrop-blur-md px-3 py-1.5 rounded-full shadow-md">
+            {slides.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(idx);
+                }}
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  idx === activeIndex
+                    ? 'w-6 bg-amber-400'
+                    : 'w-1.5 bg-white/50 hover:bg-white/80'
+                }`}
+                title={`الانتقال إلى الشريحة ${idx + 1}`}
+                aria-label={`الانتقال إلى الشريحة ${idx + 1}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 };
