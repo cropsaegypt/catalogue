@@ -70,7 +70,15 @@ export const excelService = {
       }));
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(templateData);
+    const sanitizedData = templateData.map((row) => {
+      const clean: Record<string, any> = {};
+      for (const [k, v] of Object.entries(row)) {
+        clean[k] = typeof v === 'string' && v.length > 32000 ? v.substring(0, 32000) : v;
+      }
+      return clean;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(sanitizedData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'أسعار_المنتجات');
 

@@ -43,6 +43,23 @@ export interface CompanyExcelAnalysisResult {
   warnings: string[];
 }
 
+/**
+ * Safely sanitizes text intended for an Excel cell so it never exceeds 
+ * the ECMA-376 / Microsoft Excel specification hard limit of 32,767 characters per cell.
+ * Replaces massive raw base64 data URLs with a clean placeholder.
+ */
+function safeCellText(val: any, maxLen: number = 32000): string {
+  if (val === null || val === undefined) return '';
+  const s = String(val).trim();
+  if (s.startsWith('data:image/') || s.length > maxLen) {
+    if (s.startsWith('data:image/')) {
+      return '[صورة داخلية مدمجة Base64]';
+    }
+    return s.substring(0, maxLen);
+  }
+  return s;
+}
+
 export const companyExcelService = {
   /**
    * Export all products and packages of a specific company to a clean, formatted Excel sheet.
@@ -120,7 +137,7 @@ export const companyExcelService = {
             'سعر العبوة (جنيه)': 0,
             'عدد العبوات في الكرتونة': prod.piecesPerCarton || 12,
             'حالة العبوة': 'نشط',
-            'رابط الصورة': prod.mainImageUrl || '',
+            'رابط الصورة': safeCellText(prod.mainImageUrl),
           },
         ];
       }
@@ -142,11 +159,19 @@ export const companyExcelService = {
         'سعر العبوة (جنيه)': pkg.price,
         'عدد العبوات في الكرتونة': pkg.piecesPerCarton || prod.piecesPerCarton || 12,
         'حالة العبوة': pkg.active ? 'نشط' : 'معطل',
-        'رابط الصورة': prod.mainImageUrl || '',
+        'رابط الصورة': safeCellText(prod.mainImageUrl),
       }));
     });
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const sanitizedRows = rows.map((r) => {
+      const clean: Record<string, any> = {};
+      for (const [k, v] of Object.entries(r)) {
+        clean[k] = typeof v === 'string' ? safeCellText(v) : v;
+      }
+      return clean;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(sanitizedRows);
     worksheet['!cols'] = [
       { wch: 18 }, // كود المنتج
       { wch: 25 }, // اسم المنتج
@@ -281,6 +306,7 @@ export const companyExcelService = {
             const rawCartonPieces = parseInt(String(row['عدد العبوات في الكرتونة'] || row['Pieces Per Carton'] || row['كرتونة'] || 12), 10);
             const rawPkgActive = String(row['حالة العبوة'] || row['Package Active'] || 'نشط').trim();
             const rawImgUrl = String(row['رابط الصورة'] || row['Image URL'] || '').trim();
+            const isPlaceholderImg = !rawImgUrl || rawImgUrl.includes('[صورة') || rawImgUrl.includes('Base64');
 
             const isProdActive = !/^(معطل|لا|false|0|غير نشط|inactive)$/i.test(rawProdActive);
             const isPkgActive = !/^(معطل|لا|false|0|غير نشط|inactive)$/i.test(rawPkgActive);
@@ -342,7 +368,7 @@ export const companyExcelService = {
                 characteristics: [],
                 composition: compositionArray,
                 usage: usageArray,
-                mainImageUrl: rawImgUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=600&auto=format&fit=crop&q=80',
+                mainImageUrl: !isPlaceholderImg ? rawImgUrl : 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=600&auto=format&fit=crop&q=80',
                 displayOrder: workingProducts.length + 1,
                 active: isProdActive,
                 allowPieceOrder: true,
@@ -369,7 +395,7 @@ export const companyExcelService = {
                 usage: usageArray.length > 0 ? usageArray : matchedProduct.usage,
                 active: isProdActive,
                 piecesPerCarton: !isNaN(rawCartonPieces) && rawCartonPieces > 0 ? rawCartonPieces : matchedProduct.piecesPerCarton,
-                mainImageUrl: rawImgUrl || matchedProduct.mainImageUrl,
+                mainImageUrl: !isPlaceholderImg ? rawImgUrl : matchedProduct.mainImageUrl,
                 updatedAt: new Date().toISOString(),
               };
               workingProducts = workingProducts.map((p) => (p.id === matchedProduct!.id ? updated : p));
