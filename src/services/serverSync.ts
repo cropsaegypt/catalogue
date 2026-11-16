@@ -17,8 +17,9 @@ export interface ServerCatalogData {
 }
 
 /**
- * Strips huge base64 image strings (> 25KB) from objects so network sync payloads
- * remain lightweight (< 350KB total for hundreds of products) and never exceed Vercel limits.
+ * Strips huge base64 image strings (> 150KB) from large product payloads so network sync payloads
+ * remain lightweight and never exceed Vercel body limits.
+ * NOTE: Company logos (logoUrl) are CRITICAL identity assets and are NEVER stripped!
  */
 function sanitizeItemForNetworkSync(item: any): any {
   if (!item || typeof item !== 'object') return item;
@@ -26,10 +27,10 @@ function sanitizeItemForNetworkSync(item: any): any {
     return item.map(sanitizeItemForNetworkSync);
   }
   const copy = { ...item };
+  // Only strip large gallery images or inline background removals, NEVER logos
   const imageFields = [
     'mainImageUrl',
     'imageUrl',
-    'logoUrl',
     'desktopImageUrl',
     'mobileImageUrl',
     'heroBannerImageUrl',
@@ -40,7 +41,7 @@ function sanitizeItemForNetworkSync(item: any): any {
     if (
       typeof copy[field] === 'string' &&
       copy[field].startsWith('data:image/') &&
-      copy[field].length > 25000
+      copy[field].length > 150000
     ) {
       // Strip oversized inline data URLs during cross-device network sync
       copy[field] = '';

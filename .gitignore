@@ -11,4 +11,8 @@ coverage/
 !.env.example
 orders-store.json
 custom-catalogs-store.json
-public/uploads/
+catalog-data-store.json
+public/uploads/*
+!public/uploads/company-logos/
+!public/uploads/products/
+!public/uploads/banners/

@@ -19,6 +19,11 @@ import {
 import { firestoreSync } from './services/firestoreSync';
 import { serverSync } from './services/serverSync';
 import { auth, signInWithGoogleForCloudSync } from './services/firebase';
+import {
+  INITIAL_COMPANIES,
+  INITIAL_PRODUCTS,
+  INITIAL_PACKAGES,
+} from './data/seedData';
 
 import {
   Product,
@@ -197,10 +202,33 @@ export default function App() {
       .loadFromIndexedDb()
       .then((idbData) => {
         if (idbData.categories?.length) setCategories(idbData.categories);
-        if (idbData.companies?.length) setCompanies(idbData.companies);
+        if (idbData.companies?.length) {
+          const repaired = idbData.companies.map((c) => {
+            if (!c.logoUrl || c.logoUrl === '') {
+              const init = INITIAL_COMPANIES.find((ic) => ic.id === c.id);
+              if (init?.logoUrl) return { ...c, logoUrl: init.logoUrl };
+            }
+            return c;
+          });
+          setCompanies(repaired);
+          dbStorage.saveCompanies(repaired);
+        } else {
+          setCompanies(INITIAL_COMPANIES);
+          dbStorage.saveCompanies(INITIAL_COMPANIES);
+        }
         if (idbData.subCategories?.length) setSubCategories(idbData.subCategories);
-        if (idbData.products?.length) setProducts(idbData.products);
-        if (idbData.packages?.length) setPackages(idbData.packages);
+        if (idbData.products?.length && idbData.products.length >= INITIAL_PRODUCTS.length) {
+          setProducts(idbData.products);
+        } else {
+          setProducts(INITIAL_PRODUCTS);
+          dbStorage.saveProducts(INITIAL_PRODUCTS);
+        }
+        if (idbData.packages?.length && idbData.packages.length >= INITIAL_PACKAGES.length) {
+          setPackages(idbData.packages);
+        } else {
+          setPackages(INITIAL_PACKAGES);
+          dbStorage.savePackages(INITIAL_PACKAGES);
+        }
         if (idbData.advertisements?.length) setAdvertisements(idbData.advertisements);
         if (idbData.images?.length) setImages(idbData.images);
         if (idbData.orders?.length) setOrders(idbData.orders);
@@ -220,9 +248,9 @@ export default function App() {
     ])
       .then(([idbData, firestoreSnapRes, serverRes]) => {
         const localProducts =
-          (idbData as any)?.products?.length > 0
+          (idbData as any)?.products?.length >= INITIAL_PRODUCTS.length
             ? (idbData as any).products
-            : dbStorage.getProducts();
+            : INITIAL_PRODUCTS;
 
         // Determine best remote dataset
         const firestoreProds =
@@ -237,10 +265,12 @@ export default function App() {
         const bestRemoteData =
           firestoreProds.length >= serverProds.length ? firestoreSnapRes.data : serverRes.data;
 
-        // Case A: Local device has MORE products than remote!
-        // (This device is the active catalog editor PC holding the full products).
+        // Case A: Local device has MORE products than remote AND has at least the baseline count!
         // Immediately broadcast local catalog to central server and cloud snapshot!
-        if (localProducts.length > bestRemoteProds.length) {
+        if (
+          localProducts.length > bestRemoteProds.length &&
+          localProducts.length >= INITIAL_PRODUCTS.length
+        ) {
           const fullData = {
             ...dbStorage.getData(),
             products: localProducts,
@@ -258,12 +288,12 @@ export default function App() {
           return;
         }
 
-        // Case B: Remote has equal or MORE products (e.g. mobile loading 332 products from PC)!
+        // Case B: Remote has equal or MORE products (and at least the baseline count)!
         // Hydrate local device immediately!
         if (
           bestRemoteData &&
           bestRemoteProds.length >= localProducts.length &&
-          bestRemoteProds.length > 0
+          bestRemoteProds.length >= INITIAL_PRODUCTS.length
         ) {
           const rd = bestRemoteData;
           if (rd.categories?.length) {
@@ -271,8 +301,15 @@ export default function App() {
             dbStorage.saveCategories(rd.categories);
           }
           if (rd.companies?.length) {
-            setCompanies(rd.companies);
-            dbStorage.saveCompanies(rd.companies);
+            const repairedCompanies = rd.companies.map((c: Company) => {
+              if (!c.logoUrl || c.logoUrl === '') {
+                const init = INITIAL_COMPANIES.find((ic) => ic.id === c.id);
+                if (init?.logoUrl) return { ...c, logoUrl: init.logoUrl };
+              }
+              return c;
+            });
+            setCompanies(repairedCompanies);
+            dbStorage.saveCompanies(repairedCompanies);
           }
           if (rd.subCategories?.length) {
             setSubCategories(rd.subCategories);
@@ -315,8 +352,8 @@ export default function App() {
     const performSilentAutoSync = async () => {
       const fullData = dbStorage.getData();
       const currentProds = fullData.products || [];
-      // Safety guard: only push if this device actually has products
-      if (currentProds.length === 0) return;
+      // Safety guard: only push if this device has at least the baseline product count
+      if (currentProds.length < INITIAL_PRODUCTS.length) return;
 
       const payload = {
         ...fullData,

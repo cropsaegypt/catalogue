@@ -792,6 +792,26 @@ export function createApiApp() {
   const customCatalogsStorePath = getStoreFilePath('custom-catalogs-store.json');
   const catalogDataStorePath = getStoreFilePath('catalog-data-store.json');
 
+  function getBundledBaselineCatalog(): Record<string, any> {
+    const candidates = [
+      path.join(process.cwd(), 'public', 'catalog-snapshot.json'),
+      path.join(process.cwd(), 'dist', 'catalog-snapshot.json'),
+      path.join(__dirname, '..', 'public', 'catalog-snapshot.json'),
+      path.join(__dirname, 'public', 'catalog-snapshot.json'),
+    ];
+    for (const sp of candidates) {
+      if (fs.existsSync(sp)) {
+        try {
+          const parsed = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+          if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
+            return parsed;
+          }
+        } catch {}
+      }
+    }
+    return {};
+  }
+
   // Centralized live catalog storage across all browsers with zero cache delay
   app.get('/api/catalog/data', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -799,28 +819,41 @@ export function createApiApp() {
     res.setHeader('Expires', '0');
     res.setHeader('Surrogate-Control', 'no-store');
 
+    const baseline = getBundledBaselineCatalog();
     let data = globalCatalogMemoryCache;
-    if (!data || !data.products || data.products.length === 0) {
+    if (!data || !Array.isArray(data.products) || data.products.length === 0) {
       data = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
     }
 
-    if (!data || !data.products || data.products.length === 0) {
-      // Check static snapshot in public/ or dist/
-      const staticCandidates = [
-        path.join(process.cwd(), 'public', 'catalog-snapshot.json'),
-        path.join(process.cwd(), 'dist', 'catalog-snapshot.json'),
-      ];
-      for (const sp of staticCandidates) {
-        if (fs.existsSync(sp)) {
-          try {
-            const parsed = JSON.parse(fs.readFileSync(sp, 'utf-8'));
-            if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
-              data = parsed;
-              break;
-            }
-          } catch {}
+    const baselineProds = Array.isArray(baseline.products) ? baseline.products : [];
+    const currentProds = data && Array.isArray(data.products) ? data.products : [];
+
+    // If disk store or memory has fewer products than bundled baseline, enforce baseline!
+    if (baselineProds.length > currentProds.length) {
+      data = {
+        ...baseline,
+        ...(data || {}),
+        categories: baseline.categories || (data && data.categories),
+        companies: baseline.companies || (data && data.companies),
+        products: baselineProds,
+        packages: baseline.packages || (data && data.packages),
+        subCategories: baseline.subCategories || (data && data.subCategories),
+        advertisements: baseline.advertisements || (data && data.advertisements),
+        settings: (data && data.settings) || baseline.settings,
+      };
+      globalCatalogMemoryCache = data;
+    }
+
+    // Ensure company logos are ALWAYS preserved from baseline if missing
+    if (data && Array.isArray(data.companies) && Array.isArray(baseline.companies)) {
+      const baseCompMap = new Map(baseline.companies.map((c: any) => [c.id, c]));
+      data.companies = data.companies.map((c: any) => {
+        const base = baseCompMap.get(c.id) as any;
+        if ((!c.logoUrl || c.logoUrl === '') && base?.logoUrl) {
+          return { ...c, logoUrl: base.logoUrl };
         }
-      }
+        return c;
+      });
     }
 
     if (data && Array.isArray(data.products) && data.products.length > 0) {
@@ -845,19 +878,41 @@ export function createApiApp() {
   app.post('/api/catalog/sync', (req, res) => {
     try {
       const payload = req.body || {};
+      const baseline = getBundledBaselineCatalog();
       const existing =
         globalCatalogMemoryCache || readJsonStore<Record<string, any>>(catalogDataStorePath, {});
 
+      const baselineProds = Array.isArray(baseline.products) ? baseline.products : [];
       const incomingProds = Array.isArray(payload.products) ? payload.products : [];
       const existingProds = Array.isArray(existing.products) ? existing.products : [];
 
-      // Guard: never let an empty or smaller dataset overwrite a larger catalog
+      // Critical Guard: NEVER allow a client to downgrade products below the baseline count!
+      const minRequiredCount = Math.max(baselineProds.length, existingProds.length);
       const updatedProducts =
-        incomingProds.length >= existingProds.length ? incomingProds : existingProds;
+        incomingProds.length >= minRequiredCount
+          ? incomingProds
+          : (existingProds.length >= baselineProds.length ? existingProds : baselineProds);
+
+      // Preserve company logos if incoming payload has stripped logos
+      let updatedCompanies = Array.isArray(payload.companies)
+        ? payload.companies
+        : (existing.companies || baseline.companies || []);
+      if (Array.isArray(baseline.companies)) {
+        const baseCompMap = new Map(baseline.companies.map((c: any) => [c.id, c]));
+        updatedCompanies = updatedCompanies.map((c: any) => {
+          const base = baseCompMap.get(c.id) as any;
+          if ((!c.logoUrl || c.logoUrl === '') && base?.logoUrl) {
+            return { ...c, logoUrl: base.logoUrl };
+          }
+          return c;
+        });
+      }
 
       const updated: Record<string, any> = {
+        ...baseline,
         ...existing,
         ...payload,
+        companies: updatedCompanies,
         products: updatedProducts,
         lastSyncedAt: new Date().toISOString(),
       };
