@@ -3,7 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
-import { baselineCatalog } from './catalogSnapshot.ts';
+import { baselineCatalog } from './catalogSnapshot.js';
 
 let geminiClient: GoogleGenAI | null = null;
 let cachedWorkingModel: string | null = null;
