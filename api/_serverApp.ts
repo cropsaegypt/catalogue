@@ -3,7 +3,6 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
-import { baselineCatalog } from './catalogSnapshot.js';
 
 let geminiClient: GoogleGenAI | null = null;
 let cachedWorkingModel: string | null = null;
@@ -794,72 +793,97 @@ export function createApiApp() {
   const catalogDataStorePath = getStoreFilePath('catalog-data-store.json');
 
   function getBundledBaselineCatalog(): Record<string, any> {
-    return baselineCatalog;
+    const candidates = [
+      path.join(process.cwd(), 'public', 'catalog-snapshot.json'),
+      path.join(process.cwd(), 'dist', 'catalog-snapshot.json'),
+    ];
+    for (const sp of candidates) {
+      if (fs.existsSync(sp)) {
+        try {
+          const parsed = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+          if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
+            return parsed;
+          }
+        } catch {}
+      }
+    }
+    return {};
   }
 
   // Centralized live catalog storage across all browsers with zero cache delay
   app.get('/api/catalog/data', (_req, res) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    res.setHeader('Surrogate-Control', 'no-store');
+    try {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
 
-    const baseline = getBundledBaselineCatalog();
-    let data = globalCatalogMemoryCache;
-    if (!data || !Array.isArray(data.products) || data.products.length === 0) {
-      data = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
-    }
+      const baseline = getBundledBaselineCatalog();
+      let data = globalCatalogMemoryCache;
+      if (!data || !Array.isArray(data.products) || data.products.length === 0) {
+        data = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
+      }
 
-    const baselineProds = Array.isArray(baseline.products) ? baseline.products : [];
-    const currentProds = data && Array.isArray(data.products) ? data.products : [];
-    const baselineComps = Array.isArray(baseline.companies) ? baseline.companies : [];
-    const currentComps = data && Array.isArray(data.companies) ? data.companies : [];
+      const baselineProds = Array.isArray(baseline.products) ? baseline.products : [];
+      const currentProds = data && Array.isArray(data.products) ? data.products : [];
+      const baselineComps = Array.isArray(baseline.companies) ? baseline.companies : [];
+      const currentComps = data && Array.isArray(data.companies) ? data.companies : [];
 
-    // If disk store or memory has fewer products or companies than bundled baseline, enforce baseline!
-    if (baselineProds.length > currentProds.length || baselineComps.length > currentComps.length) {
-      data = {
-        ...baseline,
-        ...(data || {}),
-        categories: baseline.categories || (data && data.categories),
-        companies: baselineComps.length > currentComps.length ? baselineComps : (data && data.companies),
-        products: baselineProds.length > currentProds.length ? baselineProds : (data && data.products),
-        packages: baseline.packages || (data && data.packages),
-        subCategories: baseline.subCategories || (data && data.subCategories),
-        advertisements: baseline.advertisements || (data && data.advertisements),
-        settings: (data && data.settings) || baseline.settings,
-      };
-      globalCatalogMemoryCache = data;
-    }
+      // If disk store or memory has fewer products or companies than bundled baseline, enforce baseline!
+      if (baselineProds.length > currentProds.length || baselineComps.length > currentComps.length) {
+        data = {
+          ...baseline,
+          ...(data || {}),
+          categories: baseline.categories || (data && data.categories),
+          companies: baselineComps.length > currentComps.length ? baselineComps : (data && data.companies),
+          products: baselineProds.length > currentProds.length ? baselineProds : (data && data.products),
+          packages: baseline.packages || (data && data.packages),
+          subCategories: baseline.subCategories || (data && data.subCategories),
+          advertisements: baseline.advertisements || (data && data.advertisements),
+          settings: (data && data.settings) || baseline.settings,
+        };
+        globalCatalogMemoryCache = data;
+      }
 
-    // Ensure company logos are ALWAYS preserved from baseline if missing
-    if (data && Array.isArray(data.companies) && Array.isArray(baseline.companies)) {
-      const baseCompMap = new Map(baseline.companies.map((c: any) => [c.id, c]));
-      data.companies = data.companies.map((c: any) => {
-        const base = baseCompMap.get(c.id) as any;
-        if ((!c.logoUrl || c.logoUrl === '') && base?.logoUrl) {
-          return { ...c, logoUrl: base.logoUrl };
-        }
-        return c;
+      // Ensure company logos are ALWAYS preserved from baseline if missing
+      if (data && Array.isArray(data.companies) && Array.isArray(baseline.companies)) {
+        const baseCompMap = new Map(baseline.companies.map((c: any) => [c.id, c]));
+        data.companies = data.companies.map((c: any) => {
+          const base = baseCompMap.get(c.id) as any;
+          if ((!c.logoUrl || c.logoUrl === '') && base?.logoUrl) {
+            return { ...c, logoUrl: base.logoUrl };
+          }
+          return c;
+        });
+      }
+
+      if (data && Array.isArray(data.products) && data.products.length > 0) {
+        globalCatalogMemoryCache = data;
+      }
+
+      const hasData = Boolean(
+        data &&
+          typeof data === 'object' &&
+          ((Array.isArray(data.products) && data.products.length > 0) ||
+            (Array.isArray(data.categories) && data.categories.length > 0))
+      );
+
+      return res.json({
+        success: true,
+        hasData,
+        data: data || {},
+        serverTime: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      console.error('[CROPSA Server] Error in GET /api/catalog/data:', err);
+      return res.status(200).json({
+        success: false,
+        hasData: false,
+        data: {},
+        error: err?.message,
+        serverTime: new Date().toISOString(),
       });
     }
-
-    if (data && Array.isArray(data.products) && data.products.length > 0) {
-      globalCatalogMemoryCache = data;
-    }
-
-    const hasData = Boolean(
-      data &&
-        typeof data === 'object' &&
-        ((Array.isArray(data.products) && data.products.length > 0) ||
-          (Array.isArray(data.categories) && data.categories.length > 0))
-    );
-
-    return res.json({
-      success: true,
-      hasData,
-      data: data || {},
-      serverTime: new Date().toISOString(),
-    });
   });
 
   app.post('/api/catalog/sync', (req, res) => {
