@@ -3,6 +3,15 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
+import {
+  INITIAL_CATEGORIES,
+  INITIAL_COMPANIES,
+  INITIAL_SUBCATEGORIES,
+  INITIAL_PRODUCTS,
+  INITIAL_PACKAGES,
+  INITIAL_ADVERTISEMENTS,
+  INITIAL_CATALOG_SETTINGS,
+} from '../src/data/seedData';
 
 let geminiClient: GoogleGenAI | null = null;
 let cachedWorkingModel: string | null = null;
@@ -793,23 +802,17 @@ export function createApiApp() {
   const catalogDataStorePath = getStoreFilePath('catalog-data-store.json');
 
   function getBundledBaselineCatalog(): Record<string, any> {
-    const candidates = [
-      path.join(process.cwd(), 'public', 'catalog-snapshot.json'),
-      path.join(process.cwd(), 'dist', 'catalog-snapshot.json'),
-      path.join(__dirname, '..', 'public', 'catalog-snapshot.json'),
-      path.join(__dirname, 'public', 'catalog-snapshot.json'),
-    ];
-    for (const sp of candidates) {
-      if (fs.existsSync(sp)) {
-        try {
-          const parsed = JSON.parse(fs.readFileSync(sp, 'utf-8'));
-          if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
-            return parsed;
-          }
-        } catch {}
-      }
-    }
-    return {};
+    return {
+      categories: INITIAL_CATEGORIES,
+      companies: INITIAL_COMPANIES,
+      subCategories: INITIAL_SUBCATEGORIES,
+      products: INITIAL_PRODUCTS,
+      packages: INITIAL_PACKAGES,
+      advertisements: INITIAL_ADVERTISEMENTS,
+      settings: INITIAL_CATALOG_SETTINGS,
+      lastSyncedAt: new Date().toISOString(),
+      version: 2,
+    };
   }
 
   // Centralized live catalog storage across all browsers with zero cache delay
