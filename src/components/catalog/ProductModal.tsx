@@ -114,7 +114,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             </h2>
             <div className="inline-flex items-center gap-1.5 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-lg text-xs font-bold text-stone-700">
               <Building2 className="w-3.5 h-3.5 text-[#046A47]" />
-              <span>إنتاج وتوزيع شركة: {company?.name || 'كروپسا'}</span>
+              <span>إنتاج وتوزيع شركة: {company?.name || (product as any).producer || 'شركة زراعية معتمدة'}</span>
             </div>
           </div>
 

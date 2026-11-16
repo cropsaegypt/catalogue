@@ -510,7 +510,7 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     "id": "OM-001",
-    "companyId": "COMP-04",
+    "companyId": "COMP-02",
     "categoryId": "CAT-01",
     "subCategoryId": "SUBCAT-02",
     "productType": "fertilizer",

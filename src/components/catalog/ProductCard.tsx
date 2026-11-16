@@ -253,7 +253,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({
               ) : (
                 <Building2 className="w-3.5 h-3.5 text-[#046A47] shrink-0" />
               )}
-              <span className="leading-snug">{company?.name || 'كروپسا'}</span>
+              <span className="leading-snug">
+            {company?.name || (product as any).producer || 'شركة زراعية معتمدة'}
+          </span>
             </div>
           </div>
 
