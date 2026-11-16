@@ -16,25 +16,14 @@ export function getSubCategories(categories: Category[], parentId?: string): Cat
 }
 
 export function getProductMainCategoryId(product: Product, categories: Category[]): string {
-  // 1. Direct match by ID, slug, or exact name
-  const cat = categories.find(
-    (c) => c.id === product.categoryId || c.slug === product.categoryId || c.name === product.categoryId
-  );
-  if (cat?.parentId) {
-    const parent = categories.find((c) => c.id === cat.parentId);
-    return parent ? parent.id : cat.parentId;
-  }
-  if (cat) {
-    return cat.id;
-  }
-
-  // 2. Check if subCategoryId points to a category with a parentId
+  // 1. Highest Priority: If subCategoryId is set and belongs to a parent main category,
+  // that parent category is definitively the main category!
   if (product.subCategoryId) {
     const subCat = categories.find(
       (c) =>
         (c.id === product.subCategoryId ||
           c.slug === product.subCategoryId ||
-          c.name === product.subCategoryId) &&
+          c.name.trim().toLowerCase() === product.subCategoryId.trim().toLowerCase()) &&
         Boolean(c.parentId)
     );
     if (subCat?.parentId) {
@@ -43,26 +32,72 @@ export function getProductMainCategoryId(product: Product, categories: Category[
     }
   }
 
-  // 3. Fallback by productType (pesticide -> المبيدات, stimulant -> المخصبات, fertilizer -> الأسمدة)
-  if (product.productType) {
-    if (product.productType === 'pesticide') {
-      const pCat = categories.find(
-        (c) => !c.parentId && (c.slug === 'pesticides' || c.name.includes('مبيد') || c.id === 'CAT-03')
-      );
-      if (pCat) return pCat.id;
-    } else if (product.productType === 'stimulant') {
-      const sCat = categories.find(
-        (c) => !c.parentId && (c.slug === 'stimulants' || c.name.includes('مخصب') || c.id === 'CAT-02')
-      );
-      if (sCat) return sCat.id;
-    } else if (product.productType === 'fertilizer') {
-      const fCat = categories.find(
-        (c) =>
-          !c.parentId &&
-          (c.slug === 'fertilizers' || c.name.includes('سماد') || c.name.includes('أسمدة') || c.id === 'CAT-01')
-      );
-      if (fCat) return fCat.id;
-    }
+  // 2. If product.categoryId points to a subcategory with a parentId, return parent's ID
+  const directCat = categories.find(
+    (c) =>
+      c.id === product.categoryId ||
+      c.slug === product.categoryId ||
+      c.name.trim().toLowerCase() === (product.categoryId || '').trim().toLowerCase()
+  );
+  if (directCat?.parentId) {
+    const parent = categories.find((c) => c.id === directCat.parentId);
+    return parent ? parent.id : directCat.parentId;
+  }
+
+  // 3. Agronomy Type & Keywords resolution (fixes Excel imports where categoryId defaulted to CAT-01)
+  const prodName = typeof product.name === 'string' ? product.name : '';
+  const searchTags = Array.isArray(product.searchTags) ? product.searchTags.join(' ') : '';
+  const fullText = `${prodName} ${product.shortDescription || ''} ${searchTags}`.toLowerCase();
+
+  // 3a. Pesticide check
+  if (
+    product.productType === 'pesticide' ||
+    /مبيد|حشري|فطري|حشائش|نيماتودا|أكاروسي|عناككب|دودة|ديدان|بياض دقيقي|لفحة|زبول|صدأ|ذبابة|توتا أبسلوتا|pesticide|fungicide|insecticide|herbicide/i.test(fullText)
+  ) {
+    const pCat = categories.find(
+      (c) =>
+        !c.parentId &&
+        (c.slug === 'pesticides' ||
+          c.name.replace(/^(ال)/, '').includes('مبيد') ||
+          c.id === 'CAT-03')
+    );
+    if (pCat) return pCat.id;
+  }
+
+  // 3b. Stimulant check
+  if (
+    product.productType === 'stimulant' ||
+    /مخصب|محفز|أحماض|هيوميك|فولفيك|طحالب|تزهير|عقد|سيتوكينين|أوكسين|جبريلين|تحجيم|منشط جذور|stimulant/i.test(fullText)
+  ) {
+    const sCat = categories.find(
+      (c) =>
+        !c.parentId &&
+        (c.slug === 'stimulants' ||
+          c.name.replace(/^(ال)/, '').includes('مخصب') ||
+          c.id === 'CAT-02')
+    );
+    if (sCat) return sCat.id;
+  }
+
+  // 3c. Fertilizer check
+  if (
+    product.productType === 'fertilizer' ||
+    /سماد|أسمدة|سولوبوتاس|نترات|سلفات|يوريا|فوسفات|بوتاسيوم|كالسيوم|مغنيسيوم|حديد مخلبي|زنك مخلبي|عناصر كبرى|عناصر صغرى|npk|fertilizer/i.test(fullText)
+  ) {
+    const fCat = categories.find(
+      (c) =>
+        !c.parentId &&
+        (c.slug === 'fertilizers' ||
+          c.name.replace(/^(ال)/, '').includes('سماد') ||
+          c.name.replace(/^(ال)/, '').includes('أسمدة') ||
+          c.id === 'CAT-01')
+    );
+    if (fCat) return fCat.id;
+  }
+
+  // 4. Fallback to direct matched category or product.categoryId
+  if (directCat) {
+    return directCat.id;
   }
 
   return product.categoryId;
@@ -77,7 +112,7 @@ export function getProductSubCategoryId(
       (c) =>
         (c.id === product.subCategoryId ||
           c.slug === product.subCategoryId ||
-          c.name === product.subCategoryId) &&
+          c.name.trim().toLowerCase() === product.subCategoryId.trim().toLowerCase()) &&
         Boolean(c.parentId)
     );
     if (existsAsSub) return existsAsSub.id;
@@ -87,7 +122,7 @@ export function getProductSubCategoryId(
     (c) =>
       c.id === product.categoryId ||
       c.slug === product.categoryId ||
-      c.name === product.categoryId
+      c.name.trim().toLowerCase() === (product.categoryId || '').trim().toLowerCase()
   );
   if (assignedCat?.parentId) {
     return assignedCat.id;
@@ -101,23 +136,37 @@ export function getCategoryDisplayPath(
   subCategoryId: string | undefined,
   categories: Category[]
 ): { mainCategory?: Category; subCategory?: Category } {
-  const assignedCat = categories.find(
-    (c) => c.id === categoryId || c.slug === categoryId || c.name === categoryId
+  const sub = subCategoryId
+    ? categories.find(
+        (c) =>
+          (c.id === subCategoryId ||
+            c.slug === subCategoryId ||
+            c.name.trim().toLowerCase() === subCategoryId.trim().toLowerCase()) &&
+          Boolean(c.parentId)
+      )
+    : undefined;
+
+  let assignedCat = categories.find(
+    (c) =>
+      c.id === categoryId ||
+      c.slug === categoryId ||
+      c.name.trim().toLowerCase() === (categoryId || '').trim().toLowerCase()
   );
+
+  if (sub?.parentId) {
+    const main = categories.find((c) => c.id === sub.parentId);
+    return {
+      mainCategory: main || assignedCat,
+      subCategory: sub,
+    };
+  }
+
   if (assignedCat?.parentId) {
     return {
       mainCategory: categories.find((c) => c.id === assignedCat.parentId),
       subCategory: assignedCat,
     };
   }
-
-  const sub = subCategoryId
-    ? categories.find(
-        (c) =>
-          (c.id === subCategoryId || c.slug === subCategoryId || c.name === subCategoryId) &&
-          Boolean(c.parentId)
-      )
-    : undefined;
 
   return {
     mainCategory: assignedCat,
@@ -149,7 +198,16 @@ export function productMatchesCategoryFilter(
   }
 
   return selectedMainIds.some((mainId) => {
-    if (prodMainId !== mainId) return false;
+    // Normalize comparison: match either exact ID or normalized name (with/without 'ال')
+    const selectedCat = categories.find((c) => c.id === mainId);
+    const prodCat = categories.find((c) => c.id === prodMainId);
+    const namesMatch =
+      selectedCat &&
+      prodCat &&
+      selectedCat.name.replace(/^(ال)/, '').trim().toLowerCase() ===
+        prodCat.name.replace(/^(ال)/, '').trim().toLowerCase();
+
+    if (prodMainId !== mainId && !namesMatch) return false;
 
     const selectedSubsUnderThisMain = selectedSubIds.filter((subId) =>
       categories.some((c) => c.id === subId && c.parentId === mainId)
@@ -162,6 +220,7 @@ export function productMatchesCategoryFilter(
     return true;
   });
 }
+
 
 export interface CompanyAvailabilityItem {
   company: Company;
