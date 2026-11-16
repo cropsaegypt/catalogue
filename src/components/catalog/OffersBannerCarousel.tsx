@@ -94,37 +94,37 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
   const heroSlide: BannerSlide | null = settings?.heroBannerUrl
     ? {
         id: 'hero-banner-primary',
-        badge: settings.heroBannerBadge || 'عرض مميز 🔥',
+        badge: settings.heroBannerBadge?.trim() || undefined,
         badgeColor: 'bg-amber-400 text-stone-950',
-        title: settings.heroBannerTitle || '',
+        title: settings.heroBannerTitle?.trim() || undefined,
         highlight: '',
-        description: settings.heroBannerSubtitle || '',
-        ctaText: settings.heroBannerCtaText || '',
+        description: settings.heroBannerSubtitle?.trim() || undefined,
+        ctaText: settings.heroBannerCtaText?.trim() || undefined,
         bgGradient: 'from-[#046A47] via-[#035A3C] to-[#023E29]',
         imageUrl: settings.heroBannerUrl,
         mobileImageUrl: settings.heroBannerMobileUrl || settings.heroBannerUrl,
         actionType: 'link',
-        actionTarget: settings.heroBannerLink || '#catalog-products-section',
+        actionTarget: settings.heroBannerLink?.trim() || undefined,
       }
     : null;
 
-  // 2. Custom Advertisement Slides
+  // 2. Custom Advertisement Slides (Displays pure designed banners without intrusive overlays)
   const adSlides: BannerSlide[] = advertisements
     .filter((ad) => ad.active && ad.showOnline !== false)
     .map((ad, idx) => ({
       id: ad.id || `ad-${idx}`,
-      badge: 'إعلان معتمد ✨',
-      badgeColor: 'bg-emerald-400 text-gray-950',
-      title: ad.title || '',
+      badge: undefined,
+      badgeColor: undefined,
+      title: ad.title && ad.title !== 'بانر إعلاني' ? ad.title.trim() : undefined,
       highlight: '',
-      description: ad.description || '',
-      ctaText: 'مشاهدة العرض',
+      description: ad.description?.trim() || undefined,
+      ctaText: undefined,
       bgGradient: 'from-[#046A47] via-[#035237] to-[#023E29]',
       icon: <Sparkles className="w-6 h-6 text-amber-300" />,
       imageUrl: ad.desktopImageUrl || ad.mobileImageUrl,
       mobileImageUrl: ad.mobileImageUrl || ad.desktopImageUrl,
       actionType: 'link',
-      actionTarget: ad.link || '#catalog-products-section',
+      actionTarget: ad.link?.trim() || undefined,
     }));
 
   // Build unified slides list: Hero Banner first, followed by all additional advertisement slides.
@@ -162,13 +162,25 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
     return () => clearInterval(interval);
   }, [isPaused, slides.length, handleNext]);
 
+  // Determine if this slide has an explicit active link or action configured
+  const hasValidAction = Boolean(
+    current &&
+      ((current.actionType === 'category' && current.actionTarget && onSelectCategory) ||
+        (current.actionType === 'installment' && onOpenInstallmentInfo) ||
+        (current.actionType === 'link' &&
+          current.actionTarget &&
+          current.actionTarget.trim() &&
+          current.actionTarget !== '#' &&
+          current.actionTarget !== '#catalog-products-section'))
+  );
+
   const handleAction = () => {
-    if (!current) return;
+    if (!current || !hasValidAction) return;
     if (current.actionType === 'category' && current.actionTarget && onSelectCategory) {
       onSelectCategory(current.actionTarget);
     } else if (current.actionType === 'installment' && onOpenInstallmentInfo) {
       onOpenInstallmentInfo();
-    } else if (current.actionTarget) {
+    } else if (current.actionType === 'link' && current.actionTarget) {
       if (current.actionTarget.startsWith('#')) {
         const targetElement = document.querySelector(current.actionTarget);
         if (targetElement) {
@@ -189,12 +201,18 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
     ? parseBannerUrlWithSettings(current.mobileImageUrl || current.imageUrl)
     : null;
 
-  // Determine if slide has text overlay (title, description, or badge)
-  const hasTextOverlay = Boolean(
-    (current.title && current.title.trim() && current.title !== 'بانر إعلاني') ||
-    (current.description && current.description.trim()) ||
-    current.badge
-  );
+  // For custom designed image banners, show the pure clean banner image without intrusive gradients or overlays!
+  // Only show text overlay if it is the hero slide and 'text_and_image' mode is explicitly configured.
+  const allowsTextOverlay =
+    current.id === 'hero-banner-primary' && settings?.heroBannerMode === 'text_and_image';
+
+  const hasTextOverlay =
+    allowsTextOverlay &&
+    Boolean(
+      (current.title && current.title.trim() && current.title !== 'بانر إعلاني') ||
+      (current.description && current.description.trim()) ||
+      current.badge
+    );
 
   return (
     <div
@@ -211,8 +229,10 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0.35 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="w-full h-full relative cursor-pointer"
-          onClick={handleAction}
+          className={`w-full h-full relative ${
+            hasValidAction ? 'cursor-pointer' : 'cursor-default'
+          }`}
+          onClick={hasValidAction ? handleAction : undefined}
         >
           {/* A. Image-Based Banner Slide */}
           {hasImage && desktopImgConfig && mobileImgConfig ? (

@@ -90,7 +90,7 @@ export const AdvertisementManager: React.FC<AdvertisementManagerProps> = ({
     setModalTitle('');
     setModalSubtitle('');
     setModalBadge('');
-    setModalCtaText('مشاهدة العرض');
+    setModalCtaText('');
     setModalLink('');
     setModalActive(true);
     setModalShowOnline(true);
@@ -105,7 +105,7 @@ export const AdvertisementManager: React.FC<AdvertisementManagerProps> = ({
     setModalTitle(ad.title || '');
     setModalSubtitle(ad.description || '');
     setModalBadge('');
-    setModalCtaText('مشاهدة العرض');
+    setModalCtaText('');
     setModalLink(ad.link || '');
     setModalActive(ad.active);
     setModalShowOnline(ad.showOnline !== false);
@@ -144,7 +144,7 @@ export const AdvertisementManager: React.FC<AdvertisementManagerProps> = ({
       onShowToast('تم حفظ وضبط البانر الرئيسي في السلايدر بنجاح!', 'success');
       setIsModalOpen(false);
     } else {
-      const slideTitle = modalTitle.trim() || 'بانر إعلاني';
+      const slideTitle = modalTitle.trim();
 
       let updatedList: Advertisement[];
       if (editingAd) {
@@ -152,7 +152,7 @@ export const AdvertisementManager: React.FC<AdvertisementManagerProps> = ({
           a.id === editingAd.id
             ? {
                 ...a,
-                title: slideTitle,
+                title: slideTitle || undefined,
                 description: modalSubtitle.trim() || undefined,
                 desktopImageUrl: finalImageUrl,
                 mobileImageUrl: finalImageUrl,
@@ -166,7 +166,7 @@ export const AdvertisementManager: React.FC<AdvertisementManagerProps> = ({
       } else {
         const newAd: Advertisement = {
           id: 'ADV-' + Date.now(),
-          title: slideTitle,
+          title: slideTitle || undefined,
           description: modalSubtitle.trim() || undefined,
           desktopImageUrl: finalImageUrl,
           mobileImageUrl: finalImageUrl,
