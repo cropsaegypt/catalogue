@@ -97,10 +97,32 @@ function getItem<T>(key: string, defaultValue: T): T {
   }
 }
 
+function notifyCatalogChange(key: string) {
+  const syncKeys: string[] = [
+    STORAGE_KEYS.PRODUCTS,
+    STORAGE_KEYS.CATEGORIES,
+    STORAGE_KEYS.COMPANIES,
+    STORAGE_KEYS.SUBCATEGORIES,
+    STORAGE_KEYS.PACKAGES,
+    STORAGE_KEYS.ADVERTISEMENTS,
+    STORAGE_KEYS.SETTINGS,
+    STORAGE_KEYS.IMAGES,
+  ];
+  if (syncKeys.includes(key)) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PENDING_CLOUD_SYNC, '1');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('cropsa:catalog-updated', { detail: { key } }));
+      }
+    } catch {}
+  }
+}
+
 function setItem<T>(key: string, value: T): boolean {
   memoryCache[key] = value;
   // Always persist full data to high-capacity IndexedDB
   void idbStorage.set(key, value);
+  notifyCatalogChange(key);
   try {
     localStorage.setItem(key, JSON.stringify(value));
     return true;

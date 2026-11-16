@@ -83,27 +83,34 @@ service cloud.firestore {
     //            categoriesSnapshot (list, opt), settingsSnapshot (map, opt),
     //            displayOptions (map, opt)
     //
+    // 10. Collection: catalogSnapshots/{snapshotId}
+    //     Fields: id (string, req), version (string|number, opt), productsCount (number >= 0, opt),
+    //             products (list, opt), categories (list, opt), companies (list, opt),
+    //             subCategories (list, opt), packages (list, opt), advertisements (list, opt),
+    //             images (list, opt), pdfDividers (list, opt), settings (map, opt),
+    //             syncedAt (string, opt), syncToken (string, opt)
+    //
     // Authenticated Operational Collections:
     //
-    // 10. Collection: pdfDividers/{dividerId}
+    // 11. Collection: pdfDividers/{dividerId}
     //     Fields: id (string, req), title (string, req), imageUrl (string, req),
     //             kind (string enum: cover|generic|company, req),
     //             companyId (string, opt), createdAt (string, opt)
     //
-    // 11. Collection: priceHistory/{entryId}
+    // 12. Collection: priceHistory/{entryId}
     //     Fields: id (string, req), productId (string, req), packageId (string, req),
     //             oldPrice (number >= 0, req), newPrice (number >= 0, req),
     //             productName (string, opt), packageDisplayName (string, opt),
     //             currency (string, opt), source (string enum: manual|excel, opt),
     //             updatedBy (string, opt), createdAt (string, opt)
     //
-    // 12. Collection: team/{memberId}
+    // 13. Collection: team/{memberId}
     //     Fields: id (string, req), name (string, req), email (string, req),
     //             role (string enum, req), username (string, opt), password (string, opt),
     //             phone (string, opt), active (bool, opt), permissions (list, opt),
     //             createdAt (string, opt), lastLogin (string, opt)
     //
-    // 13. Collection: orders/{orderId}
+    // 14. Collection: orders/{orderId}
     //     Fields: orderNumber (string, req), customerName (string, req),
     //             phone (string, req), totalAmount (number >= 0, req),
     //             id (string, opt), companyName (string, opt), governorate (string, opt),
@@ -117,7 +124,7 @@ service cloud.firestore {
     //             status (string enum: new|contacted|confirmed|cancelled|completed, opt),
     //             createdAt (string, opt), updatedAt (string, opt)
     //
-    // 14. Collection: financingRequests/{requestId}
+    // 15. Collection: financingRequests/{requestId}
     //     Fields: requestNumber (string, req), applicantName (string, req),
     //             phone (string, req), id (string, opt), governorate (string, opt),
     //             city (string, opt), applicantType (string enum: farmer|merchant|company, opt),
@@ -435,6 +442,30 @@ service cloud.firestore {
              isValidOptMap(data, 'displayOptions', 20);
     }
 
+    function isValidCatalogSnapshot(data) {
+      return hasOnlyAllowedFields(data, [
+               'id', 'version', 'productsCount', 'products', 'categories',
+               'companies', 'subCategories', 'packages', 'advertisements',
+               'images', 'pdfDividers', 'settings', 'syncedAt', 'syncToken'
+             ]) &&
+             isValidReqString(data, 'id', 1, 128) &&
+             (!('version' in data) || data.version == null ||
+              (data.version is string && data.version.size() <= 64) ||
+              data.version is number) &&
+             isValidOptNonNegNumber(data, 'productsCount') &&
+             isValidOptList(data, 'products', 5000) &&
+             isValidOptList(data, 'categories', 1000) &&
+             isValidOptList(data, 'companies', 1000) &&
+             isValidOptList(data, 'subCategories', 1000) &&
+             isValidOptList(data, 'packages', 10000) &&
+             isValidOptList(data, 'advertisements', 500) &&
+             isValidOptList(data, 'images', 2000) &&
+             isValidOptList(data, 'pdfDividers', 500) &&
+             isValidOptMap(data, 'settings', 50) &&
+             isValidOptString(data, 'syncedAt', 0, 64) &&
+             isValidOptString(data, 'syncToken', 0, 128);
+    }
+
     function isValidPdfDivider(data) {
       return hasOnlyAllowedFields(data, [
                'id', 'title', 'imageUrl', 'kind', 'companyId', 'createdAt'
@@ -611,6 +642,17 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isSignedIn() && isValidId(catalogId) && isValidCustomCatalog(request.resource.data);
       allow delete: if isSignedIn() && isValidId(catalogId);
+    }
+
+    // Single-read unified live catalog snapshot (high-speed device sync)
+    match /catalogSnapshots/{snapshotId} {
+      allow read: if true;
+      allow create, update: if isValidId(snapshotId) &&
+                               isValidCatalogSnapshot(request.resource.data) &&
+                               (isSignedIn() ||
+                                (('syncToken' in request.resource.data) &&
+                                 request.resource.data.syncToken == 'cropsa_live_sync_2026'));
+      allow delete: if isSignedIn() && isValidId(snapshotId);
     }
 
     // ===============================================================

@@ -71,8 +71,9 @@ export const CategoryManager: React.FC<CategoryManagerProps> = ({
       };
       dbStorage.saveProducts(sanitizedProducts);
 
-      await Promise.all([
+      await Promise.allSettled([
         serverSync.syncToCentralServer(payload),
+        firestoreSync.pushSingleDocumentSnapshot(payload),
         firestoreSync.pushFullSnapshot(payload),
       ]);
 

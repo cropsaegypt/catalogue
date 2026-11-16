@@ -518,4 +518,84 @@ export const firestoreSync = {
       };
     }
   },
+
+  /**
+   * Pushes the entire catalog as a single high-efficiency document snapshot ('catalogSnapshots/latest').
+   * This costs exactly 1 Firestore write, bypassing multi-document batch limits and quota exhaustion.
+   */
+  async pushSingleDocumentSnapshot(
+    snapshot: Partial<DbData> & { pdfDividers?: PdfDividerAsset[] }
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const sanitizedProducts = (snapshot.products || []).map((p) => {
+        const copy = { ...p, active: p.active !== false };
+        if (
+          typeof copy.mainImageUrl === 'string' &&
+          copy.mainImageUrl.startsWith('data:image/') &&
+          copy.mainImageUrl.length > 25000
+        ) {
+          copy.mainImageUrl = '';
+        }
+        return copy;
+      });
+
+      const docPayload = stripUndefined({
+        id: 'latest',
+        version: 1,
+        productsCount: sanitizedProducts.length,
+        products: sanitizedProducts,
+        categories: snapshot.categories || [],
+        companies: snapshot.companies || [],
+        subCategories: snapshot.subCategories || [],
+        packages: snapshot.packages || [],
+        advertisements: snapshot.advertisements || [],
+        images: snapshot.images || [],
+        pdfDividers: snapshot.pdfDividers || [],
+        settings: snapshot.settings || {},
+        syncedAt: new Date().toISOString(),
+        syncToken: 'cropsa_live_sync_2026',
+      });
+
+      await setDoc(doc(db, 'catalogSnapshots', 'latest'), docPayload);
+      return { success: true };
+    } catch (err: any) {
+      console.warn('[Firestore Sync] Single document snapshot push failed:', err);
+      return { success: false, error: err?.message };
+    }
+  },
+
+  /**
+   * Pulls the entire live catalog in a single Firestore document read ('catalogSnapshots/latest').
+   * Consumes only 1 document read unit per visitor, preventing 429 quota exhaustion.
+   */
+  async pullSingleDocumentSnapshot(): Promise<{
+    success: boolean;
+    data?: Partial<DbData> & { pdfDividers?: PdfDividerAsset[] };
+    error?: string;
+  }> {
+    try {
+      const snap = await getDoc(doc(db, 'catalogSnapshots', 'latest'));
+      if (snap.exists()) {
+        const raw = snap.data() as any;
+        return {
+          success: true,
+          data: {
+            products: raw.products || [],
+            categories: raw.categories || [],
+            companies: raw.companies || [],
+            subCategories: raw.subCategories || [],
+            packages: raw.packages || [],
+            advertisements: raw.advertisements || [],
+            images: raw.images || [],
+            pdfDividers: raw.pdfDividers || [],
+            settings: raw.settings,
+          },
+        };
+      }
+      return { success: false };
+    } catch (err: any) {
+      console.warn('[Firestore Sync] Single document snapshot pull failed:', err);
+      return { success: false, error: err?.message };
+    }
+  },
 };

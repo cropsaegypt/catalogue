@@ -25,6 +25,8 @@ function getGeminiClient(customApiKey?: string): GoogleGenAI {
 
 const isVercelEnv = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
 
+let globalCatalogMemoryCache: Record<string, any> | null = null;
+
 function getStoreFilePath(filename: string): string {
   const baseDir = isVercelEnv ? os.tmpdir() : process.cwd();
   return path.join(baseDir, filename);
@@ -797,11 +799,45 @@ export function createApiApp() {
     res.setHeader('Expires', '0');
     res.setHeader('Surrogate-Control', 'no-store');
 
-    const data = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
+    let data = globalCatalogMemoryCache;
+    if (!data || !data.products || data.products.length === 0) {
+      data = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
+    }
+
+    if (!data || !data.products || data.products.length === 0) {
+      // Check static snapshot in public/ or dist/
+      const staticCandidates = [
+        path.join(process.cwd(), 'public', 'catalog-snapshot.json'),
+        path.join(process.cwd(), 'dist', 'catalog-snapshot.json'),
+      ];
+      for (const sp of staticCandidates) {
+        if (fs.existsSync(sp)) {
+          try {
+            const parsed = JSON.parse(fs.readFileSync(sp, 'utf-8'));
+            if (parsed && Array.isArray(parsed.products) && parsed.products.length > 0) {
+              data = parsed;
+              break;
+            }
+          } catch {}
+        }
+      }
+    }
+
+    if (data && Array.isArray(data.products) && data.products.length > 0) {
+      globalCatalogMemoryCache = data;
+    }
+
+    const hasData = Boolean(
+      data &&
+        typeof data === 'object' &&
+        ((Array.isArray(data.products) && data.products.length > 0) ||
+          (Array.isArray(data.categories) && data.categories.length > 0))
+    );
+
     return res.json({
       success: true,
-      hasData: Object.keys(data).length > 0,
-      data,
+      hasData,
+      data: data || {},
       serverTime: new Date().toISOString(),
     });
   });
@@ -809,20 +845,38 @@ export function createApiApp() {
   app.post('/api/catalog/sync', (req, res) => {
     try {
       const payload = req.body || {};
-      const existing = readJsonStore<Record<string, any>>(catalogDataStorePath, {});
+      const existing =
+        globalCatalogMemoryCache || readJsonStore<Record<string, any>>(catalogDataStorePath, {});
+
+      const incomingProds = Array.isArray(payload.products) ? payload.products : [];
+      const existingProds = Array.isArray(existing.products) ? existing.products : [];
+
+      // Guard: never let an empty or smaller dataset overwrite a larger catalog
+      const updatedProducts =
+        incomingProds.length >= existingProds.length ? incomingProds : existingProds;
 
       const updated: Record<string, any> = {
         ...existing,
         ...payload,
+        products: updatedProducts,
         lastSyncedAt: new Date().toISOString(),
       };
 
+      globalCatalogMemoryCache = updated;
       writeJsonStore(catalogDataStorePath, updated);
+
+      // In local development or server environments with writable disk, also persist static snapshot
+      try {
+        const publicSnapshotPath = path.join(process.cwd(), 'public', 'catalog-snapshot.json');
+        fs.mkdirSync(path.dirname(publicSnapshotPath), { recursive: true });
+        fs.writeFileSync(publicSnapshotPath, JSON.stringify(updated, null, 2), 'utf-8');
+      } catch {}
 
       return res.json({
         success: true,
         message: 'تم حفظ ومزامنة البيانات في السيرفر المركزي بنجاح',
         serverTime: updated.lastSyncedAt,
+        productsCount: updated.products?.length || 0,
       });
     } catch (err: any) {
       console.error('[CROPSA Server] Failed syncing catalog data:', err);

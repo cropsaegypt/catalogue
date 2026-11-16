@@ -212,205 +212,156 @@ export default function App() {
       })
       .catch(() => ({}));
 
-    // 3. Pull live catalog snapshot from Cloud Firestore (NEVER overwrite unsynced local edits or larger catalogs!)
-    Promise.all([idbHydratedPromise, firestoreSync.pullAllFromCloud()])
-      .then(([idbData, cloudRes]) => {
-        setCloudConnected(cloudRes.connected);
-        if (cloudRes.error) setCloudError(cloudRes.error);
-
-        const localProducts = (idbData as any)?.products || dbStorage.getProducts();
-        const cloudProducts = cloudRes.data?.products || [];
-        const pendingLocal = dbStorage.hasPendingCloudSync();
-
-        if (cloudRes.connected) {
-          setLastCloudSyncAt(new Date().toISOString());
-
-          // If local has MORE products than cloud, or pending local changes exist: PUSH local to cloud!
-          if (pendingLocal || localProducts.length > cloudProducts.length) {
-            void firestoreSync
-              .pushFullSnapshot({
-                ...dbStorage.getData(),
-                pdfDividers: dbStorage.getPdfDividers(),
-              })
-              .then((pushRes) => {
-                if (pushRes.success) {
-                  dbStorage.setPendingCloudSync(false);
-                  setHasUnsyncedChanges(false);
-                  setCloudError(undefined);
-                  setLastCloudSyncAt(new Date().toISOString());
-                } else if (pushRes.error) {
-                  setCloudError(pushRes.error);
-                }
-              })
-              .catch(() => {});
-            return;
-          }
-
-          // Otherwise, if cloud has equal or more data, hydrate from cloud
-          const d = cloudRes.data;
-          if (d.categories?.length) {
-            setCategories(d.categories);
-            dbStorage.saveCategories(d.categories);
-          }
-          if (d.companies?.length) {
-            setCompanies(d.companies);
-            dbStorage.saveCompanies(d.companies);
-          }
-          if (d.subCategories?.length) {
-            setSubCategories(d.subCategories);
-            dbStorage.saveSubCategories(d.subCategories);
-          }
-          if (d.products?.length && d.products.length >= localProducts.length) {
-            setProducts(d.products);
-            dbStorage.saveProducts(d.products);
-          }
-          if (d.packages?.length) {
-            setPackages(d.packages);
-            dbStorage.savePackages(d.packages);
-          }
-          if (d.advertisements?.length) {
-            setAdvertisements(d.advertisements);
-            dbStorage.saveAdvertisements(d.advertisements);
-          }
-          if (d.images?.length) {
-            setImages(d.images);
-            dbStorage.saveImages(d.images);
-          }
-          if (d.pdfDividers?.length) {
-            dbStorage.savePdfDividers(d.pdfDividers);
-          }
-          if (d.orders?.length) {
-            setOrders(d.orders);
-            dbStorage.saveOrders(d.orders);
-          }
-          if (d.financingRequests?.length) {
-            setFinancingRequests(d.financingRequests);
-            dbStorage.saveFinancingRequests(d.financingRequests);
-          }
-          if (d.teamMembers?.length) {
-            setTeamMembers(d.teamMembers);
-            dbStorage.saveTeamMembers(d.teamMembers);
-          }
-          if (d.priceHistory?.length) {
-            setPriceHistory(d.priceHistory);
-          }
-          if (d.settings) {
-            setSettings(d.settings);
-            dbStorage.saveSettings(d.settings);
-          }
-
-          // If Cloud Firestore is completely empty on first launch while authenticated, attempt initial seeding
-          if (auth.currentUser && !d.products?.length && !d.companies?.length) {
-            void firestoreSync.pushFullSnapshot({
-              ...dbStorage.getData(),
-              pdfDividers: dbStorage.getPdfDividers(),
-            });
-          }
-        }
-      })
-      .catch(() => {});
-
-    // 2.7 Centralized Server Storage Hydration (Syncs instantly across different browsers & tabs)
-    void Promise.all([idbHydratedPromise, serverSync.fetchFromCentralServer()]).then(
-      ([idbData, serverRes]) => {
-        const currentProds =
+    // 3. Centralized Dual Hydration (Firestore Single-Doc Snapshot + Central Server Storage)
+    void Promise.all([
+      idbHydratedPromise,
+      firestoreSync.pullSingleDocumentSnapshot(),
+      serverSync.fetchFromCentralServer(),
+    ])
+      .then(([idbData, firestoreSnapRes, serverRes]) => {
+        const localProducts =
           (idbData as any)?.products?.length > 0
             ? (idbData as any).products
             : dbStorage.getProducts();
-        const serverProds = serverRes.data?.products || [];
 
-        // If local has MORE products than central server, immediately seed/sync local to server!
-        if (currentProds.length > serverProds.length) {
-          void serverSync.syncToCentralServer({
+        // Determine best remote dataset
+        const firestoreProds =
+          firestoreSnapRes.success && firestoreSnapRes.data?.products
+            ? firestoreSnapRes.data.products
+            : [];
+        const serverProds =
+          serverRes.success && serverRes.data?.products ? serverRes.data.products : [];
+
+        const bestRemoteProds =
+          firestoreProds.length >= serverProds.length ? firestoreProds : serverProds;
+        const bestRemoteData =
+          firestoreProds.length >= serverProds.length ? firestoreSnapRes.data : serverRes.data;
+
+        // Case A: Local device has MORE products than remote!
+        // (This device is the active catalog editor PC holding the full products).
+        // Immediately broadcast local catalog to central server and cloud snapshot!
+        if (localProducts.length > bestRemoteProds.length) {
+          const fullData = {
             ...dbStorage.getData(),
-            products: currentProds,
+            products: localProducts,
             pdfDividers: dbStorage.getPdfDividers(),
+          };
+          void Promise.allSettled([
+            serverSync.syncToCentralServer(fullData),
+            firestoreSync.pushSingleDocumentSnapshot(fullData),
+          ]).then(() => {
+            dbStorage.setPendingCloudSync(false);
+            setHasUnsyncedChanges(false);
+            setLastCloudSyncAt(new Date().toISOString());
+            setCloudConnected(true);
           });
           return;
         }
 
-        if (serverRes.success && serverRes.hasData && serverRes.data) {
-          const sd = serverRes.data;
-          if (sd.categories?.length) { setCategories(sd.categories); dbStorage.saveCategories(sd.categories); }
-          if (sd.companies?.length) { setCompanies(sd.companies); dbStorage.saveCompanies(sd.companies); }
-          if (sd.subCategories?.length) { setSubCategories(sd.subCategories); dbStorage.saveSubCategories(sd.subCategories); }
-          if (sd.products?.length && sd.products.length >= currentProds.length) {
-            setProducts(sd.products);
-            dbStorage.saveProducts(sd.products);
+        // Case B: Remote has equal or MORE products (e.g. mobile loading 332 products from PC)!
+        // Hydrate local device immediately!
+        if (
+          bestRemoteData &&
+          bestRemoteProds.length >= localProducts.length &&
+          bestRemoteProds.length > 0
+        ) {
+          const rd = bestRemoteData;
+          if (rd.categories?.length) {
+            setCategories(rd.categories);
+            dbStorage.saveCategories(rd.categories);
           }
-          if (sd.packages?.length) { setPackages(sd.packages); dbStorage.savePackages(sd.packages); }
-          if (sd.advertisements?.length) { setAdvertisements(sd.advertisements); dbStorage.saveAdvertisements(sd.advertisements); }
-          if (sd.images?.length) { setImages(sd.images); dbStorage.saveImages(sd.images); }
-          if (sd.orders?.length) { setOrders(sd.orders); dbStorage.saveOrders(sd.orders); }
-          if (sd.financingRequests?.length) { setFinancingRequests(sd.financingRequests); dbStorage.saveFinancingRequests(sd.financingRequests); }
-          if (sd.teamMembers?.length) { setTeamMembers(sd.teamMembers); dbStorage.saveTeamMembers(sd.teamMembers); }
-          if (sd.settings) { setSettings(sd.settings); dbStorage.saveSettings(sd.settings); }
-        } else {
-          // If server storage has no catalog yet, but this browser already has products/companies, seed server immediately!
-          const localData = dbStorage.getData();
-          const effectiveProds = currentProds.length > (localData.products?.length || 0) ? currentProds : localData.products;
-          if ((effectiveProds?.length || 0) > 0 || (localData.companies?.length || 0) > 0) {
-            void serverSync.syncToCentralServer({
-              ...localData,
-              products: effectiveProds,
-              pdfDividers: dbStorage.getPdfDividers(),
-            });
+          if (rd.companies?.length) {
+            setCompanies(rd.companies);
+            dbStorage.saveCompanies(rd.companies);
           }
+          if (rd.subCategories?.length) {
+            setSubCategories(rd.subCategories);
+            dbStorage.saveSubCategories(rd.subCategories);
+          }
+          if (rd.products?.length) {
+            setProducts(rd.products);
+            dbStorage.saveProducts(rd.products);
+          }
+          if (rd.packages?.length) {
+            setPackages(rd.packages);
+            dbStorage.savePackages(rd.packages);
+          }
+          if (rd.advertisements?.length) {
+            setAdvertisements(rd.advertisements);
+            dbStorage.saveAdvertisements(rd.advertisements);
+          }
+          if (rd.images?.length) {
+            setImages(rd.images);
+            dbStorage.saveImages(rd.images);
+          }
+          if (rd.pdfDividers?.length) {
+            dbStorage.savePdfDividers(rd.pdfDividers);
+          }
+          if (rd.settings) {
+            setSettings(rd.settings);
+            dbStorage.saveSettings(rd.settings);
+          }
+          setCloudConnected(true);
+          setLastCloudSyncAt(new Date().toISOString());
         }
-      }
-    );
+      })
+      .catch(() => {});
   }, []);
 
-  // Automatic silent background synchronization when pending changes exist and device is online
+  // Automatic silent continuous background synchronization ("يعمل كدا لوحده دايما")
   useEffect(() => {
-    if (!hasUnsyncedChanges) return;
+    let debounceTimer: any = null;
 
-    const autoSyncTimer = setTimeout(() => {
-      if (dbStorage.hasPendingCloudSync()) {
-        void firestoreSync
-          .pushFullSnapshot({
-            ...dbStorage.getData(),
-            pdfDividers: dbStorage.getPdfDividers(),
-          })
-          .then((res) => {
-            if (res.success) {
-              setCloudConnected(true);
-              setCloudError(undefined);
-              setLastCloudSyncAt(new Date().toISOString());
-              dbStorage.setPendingCloudSync(false);
-              setHasUnsyncedChanges(false);
-            }
-          })
-          .catch(() => {});
-      }
-    }, 15000);
+    const performSilentAutoSync = async () => {
+      const fullData = dbStorage.getData();
+      const currentProds = fullData.products || [];
+      // Safety guard: only push if this device actually has products
+      if (currentProds.length === 0) return;
 
-    const handleOnline = () => {
-      if (dbStorage.hasPendingCloudSync()) {
-        void firestoreSync
-          .pushFullSnapshot({
-            ...dbStorage.getData(),
-            pdfDividers: dbStorage.getPdfDividers(),
-          })
-          .then((res) => {
-            if (res.success) {
-              setCloudConnected(true);
-              setCloudError(undefined);
-              setLastCloudSyncAt(new Date().toISOString());
-              dbStorage.setPendingCloudSync(false);
-              setHasUnsyncedChanges(false);
-            }
-          })
-          .catch(() => {});
+      const payload = {
+        ...fullData,
+        products: currentProds,
+        pdfDividers: dbStorage.getPdfDividers(),
+      };
+
+      try {
+        await Promise.allSettled([
+          serverSync.syncToCentralServer(payload),
+          firestoreSync.pushSingleDocumentSnapshot(payload),
+        ]);
+        dbStorage.setPendingCloudSync(false);
+        setHasUnsyncedChanges(false);
+        setLastCloudSyncAt(new Date().toISOString());
+        setCloudConnected(true);
+      } catch (e) {
+        console.warn('[Auto-Sync] Silent sync background catch:', e);
       }
     };
 
-    window.addEventListener('online', handleOnline);
+    const handleCatalogUpdated = () => {
+      setHasUnsyncedChanges(true);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        void performSilentAutoSync();
+      }, 1500);
+    };
+
+    window.addEventListener('cropsa:catalog-updated', handleCatalogUpdated);
+    window.addEventListener('online', performSilentAutoSync);
+
+    // Initial check if there were pending changes left from before refresh
+    if (dbStorage.hasPendingCloudSync()) {
+      debounceTimer = setTimeout(() => {
+        void performSilentAutoSync();
+      }, 2000);
+    }
+
     return () => {
-      clearTimeout(autoSyncTimer);
-      window.removeEventListener('online', handleOnline);
+      if (debounceTimer) clearTimeout(debounceTimer);
+      window.removeEventListener('cropsa:catalog-updated', handleCatalogUpdated);
+      window.removeEventListener('online', performSilentAutoSync);
     };
-  }, [hasUnsyncedChanges]);
+  }, []);
 
   // Live cross-browser session sync: updates even if a user has an active tab open right now
   useEffect(() => {
@@ -418,49 +369,104 @@ export default function App() {
 
     const checkServerUpdates = async () => {
       if (dbStorage.hasPendingCloudSync()) return;
-      const res = await serverSync.fetchFromCentralServer();
-      if (res.success && res.hasData && res.data) {
-        const serverTime = res.serverTime || res.data.lastSyncedAt || '';
-        if (serverTime && serverTime !== lastKnownSyncTime) {
-          lastKnownSyncTime = serverTime;
-          const sd = res.data;
-          setProducts((prev) => {
-            const currentLocalCount = Math.max(prev.length, dbStorage.getProducts().length);
-            if (sd.products && sd.products.length >= currentLocalCount) {
-              dbStorage.saveProducts(sd.products);
-              return sd.products;
-            } else if (currentLocalCount > (sd.products?.length || 0)) {
-              // Local has more products! Broadcast local to central server
-              void serverSync.syncToCentralServer({
-                ...dbStorage.getData(),
-                products: prev.length >= dbStorage.getProducts().length ? prev : dbStorage.getProducts(),
-                pdfDividers: dbStorage.getPdfDividers(),
-              });
-            }
-            return prev;
-          });
-          if (sd.companies?.length) setCompanies(sd.companies);
-          if (sd.categories?.length) setCategories(sd.categories);
-          if (sd.subCategories?.length) setSubCategories(sd.subCategories);
-          if (sd.packages?.length) setPackages(sd.packages);
-          if (sd.advertisements?.length) setAdvertisements(sd.advertisements);
-          if (sd.images?.length) setImages(sd.images);
-          if (sd.settings) setSettings(sd.settings);
+
+      // Fetch latest updates from central server or single-doc firestore snapshot
+      const [serverRes, firestoreSnapRes] = await Promise.allSettled([
+        serverSync.fetchFromCentralServer(),
+        firestoreSync.pullSingleDocumentSnapshot(),
+      ]);
+
+      const sData =
+        serverRes.status === 'fulfilled' && serverRes.value.success && serverRes.value.data
+          ? serverRes.value.data
+          : null;
+      const fData =
+        firestoreSnapRes.status === 'fulfilled' &&
+        firestoreSnapRes.value.success &&
+        firestoreSnapRes.value.data
+          ? firestoreSnapRes.value.data
+          : null;
+
+      const sCount = sData?.products?.length || 0;
+      const fCount = fData?.products?.length || 0;
+      const bestRemote = sCount >= fCount ? sData : fData;
+      if (!bestRemote || !bestRemote.products?.length) return;
+
+      const incomingProds = bestRemote.products;
+      const syncStamp =
+        (bestRemote as any).lastSyncedAt || (bestRemote as any).syncedAt || '';
+
+      setProducts((prev) => {
+        const localCount = Math.max(prev.length, dbStorage.getProducts().length);
+        if (incomingProds.length >= localCount) {
+          if (syncStamp && syncStamp !== lastKnownSyncTime) {
+            lastKnownSyncTime = syncStamp;
+          }
+          dbStorage.saveProducts(incomingProds);
+          return incomingProds;
+        } else if (localCount > incomingProds.length) {
+          // Local has more products! Broadcast local to central server & cloud
+          const payload = {
+            ...dbStorage.getData(),
+            products:
+              prev.length >= dbStorage.getProducts().length ? prev : dbStorage.getProducts(),
+            pdfDividers: dbStorage.getPdfDividers(),
+          };
+          void Promise.allSettled([
+            serverSync.syncToCentralServer(payload),
+            firestoreSync.pushSingleDocumentSnapshot(payload),
+          ]);
         }
+        return prev;
+      });
+
+      if (bestRemote.companies?.length) {
+        setCompanies(bestRemote.companies);
+        dbStorage.saveCompanies(bestRemote.companies);
+      }
+      if (bestRemote.categories?.length) {
+        setCategories(bestRemote.categories);
+        dbStorage.saveCategories(bestRemote.categories);
+      }
+      if (bestRemote.subCategories?.length) {
+        setSubCategories(bestRemote.subCategories);
+        dbStorage.saveSubCategories(bestRemote.subCategories);
+      }
+      if (bestRemote.packages?.length) {
+        setPackages(bestRemote.packages);
+        dbStorage.savePackages(bestRemote.packages);
+      }
+      if (bestRemote.advertisements?.length) {
+        setAdvertisements(bestRemote.advertisements);
+        dbStorage.saveAdvertisements(bestRemote.advertisements);
+      }
+      if (bestRemote.images?.length) {
+        setImages(bestRemote.images);
+        dbStorage.saveImages(bestRemote.images);
+      }
+      if (bestRemote.settings) {
+        setSettings(bestRemote.settings);
+        dbStorage.saveSettings(bestRemote.settings);
       }
     };
 
-    const interval = setInterval(checkServerUpdates, 8000);
+    const interval = setInterval(checkServerUpdates, 15000);
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
         void checkServerUpdates();
       }
     };
-    window.addEventListener('visibilitychange', onVisibility);
+    const onFocus = () => {
+      void checkServerUpdates();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
 
     return () => {
       clearInterval(interval);
-      window.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
     };
   }, []);
 
@@ -643,8 +649,7 @@ export default function App() {
     setIsCloudSyncing(true);
     setCloudError(undefined);
     try {
-      // Push to centralized server storage immediately (for all browsers)
-      await serverSync.syncToCentralServer({
+      const fullPayload = {
         ...dbStorage.getData(),
         products,
         packages,
@@ -659,33 +664,30 @@ export default function App() {
         priceHistory,
         settings,
         pdfDividers: dbStorage.getPdfDividers(),
-      });
+      };
 
-      const res = await firestoreSync.pushFullSnapshot({
-        ...dbStorage.getData(),
-        products,
-        packages,
-        categories,
-        companies,
-        subCategories,
-        images,
-        advertisements,
-        orders,
-        financingRequests,
-        teamMembers,
-        priceHistory,
-        settings,
-        pdfDividers: dbStorage.getPdfDividers(),
-      });
-      setCloudConnected(res.success);
-      if (res.success) {
+      // 1. Push to centralized server storage immediately (for all browsers)
+      const serverResult = await serverSync.syncToCentralServer(fullPayload);
+
+      // 2. Push high-speed unified single-doc snapshot to Cloud Firestore (zero Google auth blocker)
+      const singleDocRes = await firestoreSync.pushSingleDocumentSnapshot(fullPayload);
+
+      // 3. Attempt multi-doc collection push in background if authenticated
+      void firestoreSync.pushFullSnapshot(fullPayload).catch(() => {});
+
+      if (singleDocRes.success || serverResult.success) {
+        setCloudConnected(true);
         setLastCloudSyncAt(new Date().toISOString());
         dbStorage.setPendingCloudSync(false);
         setHasUnsyncedChanges(false);
-        addBuilderToast('تم رفع ومزامنة جميع البيانات مع Cloud Firestore بنجاح ✓', 'success');
+        addBuilderToast(
+          `تم رفع ومزامنة الكتالوج بالكامل (${products.length} منتج) لجميع الأجهزة والزوار بنجاح ✓`,
+          'success'
+        );
       } else {
-        setCloudError(res.error);
-        addBuilderToast(res.error || 'تعذر المزامنة مع السحابة', 'error');
+        const errMsg = singleDocRes.error || serverResult.error || 'تعذر المزامنة مع السحابة';
+        setCloudError(errMsg);
+        addBuilderToast(errMsg, 'error');
       }
     } finally {
       setIsCloudSyncing(false);
