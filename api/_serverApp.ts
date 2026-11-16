@@ -3,15 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
-import {
-  INITIAL_CATEGORIES,
-  INITIAL_COMPANIES,
-  INITIAL_SUBCATEGORIES,
-  INITIAL_PRODUCTS,
-  INITIAL_PACKAGES,
-  INITIAL_ADVERTISEMENTS,
-  INITIAL_CATALOG_SETTINGS,
-} from '../src/data/seedData';
+import { baselineCatalog } from './catalogSnapshot.ts';
 
 let geminiClient: GoogleGenAI | null = null;
 let cachedWorkingModel: string | null = null;
@@ -802,17 +794,7 @@ export function createApiApp() {
   const catalogDataStorePath = getStoreFilePath('catalog-data-store.json');
 
   function getBundledBaselineCatalog(): Record<string, any> {
-    return {
-      categories: INITIAL_CATEGORIES,
-      companies: INITIAL_COMPANIES,
-      subCategories: INITIAL_SUBCATEGORIES,
-      products: INITIAL_PRODUCTS,
-      packages: INITIAL_PACKAGES,
-      advertisements: INITIAL_ADVERTISEMENTS,
-      settings: INITIAL_CATALOG_SETTINGS,
-      lastSyncedAt: new Date().toISOString(),
-      version: 2,
-    };
+    return baselineCatalog;
   }
 
   // Centralized live catalog storage across all browsers with zero cache delay
@@ -830,15 +812,17 @@ export function createApiApp() {
 
     const baselineProds = Array.isArray(baseline.products) ? baseline.products : [];
     const currentProds = data && Array.isArray(data.products) ? data.products : [];
+    const baselineComps = Array.isArray(baseline.companies) ? baseline.companies : [];
+    const currentComps = data && Array.isArray(data.companies) ? data.companies : [];
 
-    // If disk store or memory has fewer products than bundled baseline, enforce baseline!
-    if (baselineProds.length > currentProds.length) {
+    // If disk store or memory has fewer products or companies than bundled baseline, enforce baseline!
+    if (baselineProds.length > currentProds.length || baselineComps.length > currentComps.length) {
       data = {
         ...baseline,
         ...(data || {}),
         categories: baseline.categories || (data && data.categories),
-        companies: baseline.companies || (data && data.companies),
-        products: baselineProds,
+        companies: baselineComps.length > currentComps.length ? baselineComps : (data && data.companies),
+        products: baselineProds.length > currentProds.length ? baselineProds : (data && data.products),
         packages: baseline.packages || (data && data.packages),
         subCategories: baseline.subCategories || (data && data.subCategories),
         advertisements: baseline.advertisements || (data && data.advertisements),
@@ -896,10 +880,14 @@ export function createApiApp() {
           ? incomingProds
           : (existingProds.length >= baselineProds.length ? existingProds : baselineProds);
 
-      // Preserve company logos if incoming payload has stripped logos
-      let updatedCompanies = Array.isArray(payload.companies)
-        ? payload.companies
-        : (existing.companies || baseline.companies || []);
+      // Critical Guard: NEVER allow a client to downgrade companies below baseline count!
+      const baselineComps = Array.isArray(baseline.companies) ? baseline.companies : [];
+      let updatedCompanies =
+        Array.isArray(payload.companies) && payload.companies.length >= baselineComps.length
+          ? payload.companies
+          : (existing.companies && existing.companies.length >= baselineComps.length
+              ? existing.companies
+              : baselineComps);
       if (Array.isArray(baseline.companies)) {
         const baseCompMap = new Map(baseline.companies.map((c: any) => [c.id, c]));
         updatedCompanies = updatedCompanies.map((c: any) => {
