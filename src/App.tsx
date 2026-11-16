@@ -311,46 +311,54 @@ export default function App() {
       .catch(() => {});
 
     // 2.7 Centralized Server Storage Hydration (Syncs instantly across different browsers & tabs)
-    void serverSync.fetchFromCentralServer().then((serverRes) => {
-      const currentProds = dbStorage.getProducts();
-      const serverProds = serverRes.data?.products || [];
+    void Promise.all([idbHydratedPromise, serverSync.fetchFromCentralServer()]).then(
+      ([idbData, serverRes]) => {
+        const currentProds =
+          (idbData as any)?.products?.length > 0
+            ? (idbData as any).products
+            : dbStorage.getProducts();
+        const serverProds = serverRes.data?.products || [];
 
-      // If local has MORE products than central server, immediately seed/sync local to server!
-      if (currentProds.length > serverProds.length) {
-        void serverSync.syncToCentralServer({
-          ...dbStorage.getData(),
-          pdfDividers: dbStorage.getPdfDividers(),
-        });
-        return;
-      }
-
-      if (serverRes.success && serverRes.hasData && serverRes.data) {
-        const sd = serverRes.data;
-        if (sd.categories?.length) { setCategories(sd.categories); dbStorage.saveCategories(sd.categories); }
-        if (sd.companies?.length) { setCompanies(sd.companies); dbStorage.saveCompanies(sd.companies); }
-        if (sd.subCategories?.length) { setSubCategories(sd.subCategories); dbStorage.saveSubCategories(sd.subCategories); }
-        if (sd.products?.length && sd.products.length >= currentProds.length) {
-          setProducts(sd.products);
-          dbStorage.saveProducts(sd.products);
-        }
-        if (sd.packages?.length) { setPackages(sd.packages); dbStorage.savePackages(sd.packages); }
-        if (sd.advertisements?.length) { setAdvertisements(sd.advertisements); dbStorage.saveAdvertisements(sd.advertisements); }
-        if (sd.images?.length) { setImages(sd.images); dbStorage.saveImages(sd.images); }
-        if (sd.orders?.length) { setOrders(sd.orders); dbStorage.saveOrders(sd.orders); }
-        if (sd.financingRequests?.length) { setFinancingRequests(sd.financingRequests); dbStorage.saveFinancingRequests(sd.financingRequests); }
-        if (sd.teamMembers?.length) { setTeamMembers(sd.teamMembers); dbStorage.saveTeamMembers(sd.teamMembers); }
-        if (sd.settings) { setSettings(sd.settings); dbStorage.saveSettings(sd.settings); }
-      } else {
-        // If server storage has no catalog yet, but this browser already has products/companies, seed server immediately!
-        const localData = dbStorage.getData();
-        if ((localData.products?.length || 0) > 0 || (localData.companies?.length || 0) > 0) {
+        // If local has MORE products than central server, immediately seed/sync local to server!
+        if (currentProds.length > serverProds.length) {
           void serverSync.syncToCentralServer({
-            ...localData,
+            ...dbStorage.getData(),
+            products: currentProds,
             pdfDividers: dbStorage.getPdfDividers(),
           });
+          return;
+        }
+
+        if (serverRes.success && serverRes.hasData && serverRes.data) {
+          const sd = serverRes.data;
+          if (sd.categories?.length) { setCategories(sd.categories); dbStorage.saveCategories(sd.categories); }
+          if (sd.companies?.length) { setCompanies(sd.companies); dbStorage.saveCompanies(sd.companies); }
+          if (sd.subCategories?.length) { setSubCategories(sd.subCategories); dbStorage.saveSubCategories(sd.subCategories); }
+          if (sd.products?.length && sd.products.length >= currentProds.length) {
+            setProducts(sd.products);
+            dbStorage.saveProducts(sd.products);
+          }
+          if (sd.packages?.length) { setPackages(sd.packages); dbStorage.savePackages(sd.packages); }
+          if (sd.advertisements?.length) { setAdvertisements(sd.advertisements); dbStorage.saveAdvertisements(sd.advertisements); }
+          if (sd.images?.length) { setImages(sd.images); dbStorage.saveImages(sd.images); }
+          if (sd.orders?.length) { setOrders(sd.orders); dbStorage.saveOrders(sd.orders); }
+          if (sd.financingRequests?.length) { setFinancingRequests(sd.financingRequests); dbStorage.saveFinancingRequests(sd.financingRequests); }
+          if (sd.teamMembers?.length) { setTeamMembers(sd.teamMembers); dbStorage.saveTeamMembers(sd.teamMembers); }
+          if (sd.settings) { setSettings(sd.settings); dbStorage.saveSettings(sd.settings); }
+        } else {
+          // If server storage has no catalog yet, but this browser already has products/companies, seed server immediately!
+          const localData = dbStorage.getData();
+          const effectiveProds = currentProds.length > (localData.products?.length || 0) ? currentProds : localData.products;
+          if ((effectiveProds?.length || 0) > 0 || (localData.companies?.length || 0) > 0) {
+            void serverSync.syncToCentralServer({
+              ...localData,
+              products: effectiveProds,
+              pdfDividers: dbStorage.getPdfDividers(),
+            });
+          }
         }
       }
-    });
+    );
   }, []);
 
   // Automatic silent background synchronization when pending changes exist and device is online
@@ -417,13 +425,15 @@ export default function App() {
           lastKnownSyncTime = serverTime;
           const sd = res.data;
           setProducts((prev) => {
-            if (sd.products && (sd.products.length >= prev.length || prev.length === 0)) {
+            const currentLocalCount = Math.max(prev.length, dbStorage.getProducts().length);
+            if (sd.products && sd.products.length >= currentLocalCount) {
               dbStorage.saveProducts(sd.products);
               return sd.products;
-            } else if (prev.length > (sd.products?.length || 0)) {
+            } else if (currentLocalCount > (sd.products?.length || 0)) {
               // Local has more products! Broadcast local to central server
               void serverSync.syncToCentralServer({
                 ...dbStorage.getData(),
+                products: prev.length >= dbStorage.getProducts().length ? prev : dbStorage.getProducts(),
                 pdfDividers: dbStorage.getPdfDividers(),
               });
             }

@@ -16,10 +16,55 @@ export function getSubCategories(categories: Category[], parentId?: string): Cat
 }
 
 export function getProductMainCategoryId(product: Product, categories: Category[]): string {
-  const cat = categories.find((c) => c.id === product.categoryId);
+  // 1. Direct match by ID, slug, or exact name
+  const cat = categories.find(
+    (c) => c.id === product.categoryId || c.slug === product.categoryId || c.name === product.categoryId
+  );
   if (cat?.parentId) {
-    return cat.parentId;
+    const parent = categories.find((c) => c.id === cat.parentId);
+    return parent ? parent.id : cat.parentId;
   }
+  if (cat) {
+    return cat.id;
+  }
+
+  // 2. Check if subCategoryId points to a category with a parentId
+  if (product.subCategoryId) {
+    const subCat = categories.find(
+      (c) =>
+        (c.id === product.subCategoryId ||
+          c.slug === product.subCategoryId ||
+          c.name === product.subCategoryId) &&
+        Boolean(c.parentId)
+    );
+    if (subCat?.parentId) {
+      const parent = categories.find((c) => c.id === subCat.parentId);
+      return parent ? parent.id : subCat.parentId;
+    }
+  }
+
+  // 3. Fallback by productType (pesticide -> المبيدات, stimulant -> المخصبات, fertilizer -> الأسمدة)
+  if (product.productType) {
+    if (product.productType === 'pesticide') {
+      const pCat = categories.find(
+        (c) => !c.parentId && (c.slug === 'pesticides' || c.name.includes('مبيد') || c.id === 'CAT-03')
+      );
+      if (pCat) return pCat.id;
+    } else if (product.productType === 'stimulant') {
+      const sCat = categories.find(
+        (c) => !c.parentId && (c.slug === 'stimulants' || c.name.includes('مخصب') || c.id === 'CAT-02')
+      );
+      if (sCat) return sCat.id;
+    } else if (product.productType === 'fertilizer') {
+      const fCat = categories.find(
+        (c) =>
+          !c.parentId &&
+          (c.slug === 'fertilizers' || c.name.includes('سماد') || c.name.includes('أسمدة') || c.id === 'CAT-01')
+      );
+      if (fCat) return fCat.id;
+    }
+  }
+
   return product.categoryId;
 }
 
@@ -28,13 +73,22 @@ export function getProductSubCategoryId(
   categories: Category[]
 ): string | undefined {
   if (product.subCategoryId) {
-    const existsAsSub = categories.some(
-      (c) => c.id === product.subCategoryId && Boolean(c.parentId)
+    const existsAsSub = categories.find(
+      (c) =>
+        (c.id === product.subCategoryId ||
+          c.slug === product.subCategoryId ||
+          c.name === product.subCategoryId) &&
+        Boolean(c.parentId)
     );
-    if (existsAsSub) return product.subCategoryId;
+    if (existsAsSub) return existsAsSub.id;
   }
 
-  const assignedCat = categories.find((c) => c.id === product.categoryId);
+  const assignedCat = categories.find(
+    (c) =>
+      c.id === product.categoryId ||
+      c.slug === product.categoryId ||
+      c.name === product.categoryId
+  );
   if (assignedCat?.parentId) {
     return assignedCat.id;
   }
@@ -47,7 +101,9 @@ export function getCategoryDisplayPath(
   subCategoryId: string | undefined,
   categories: Category[]
 ): { mainCategory?: Category; subCategory?: Category } {
-  const assignedCat = categories.find((c) => c.id === categoryId);
+  const assignedCat = categories.find(
+    (c) => c.id === categoryId || c.slug === categoryId || c.name === categoryId
+  );
   if (assignedCat?.parentId) {
     return {
       mainCategory: categories.find((c) => c.id === assignedCat.parentId),
@@ -55,11 +111,17 @@ export function getCategoryDisplayPath(
     };
   }
 
+  const sub = subCategoryId
+    ? categories.find(
+        (c) =>
+          (c.id === subCategoryId || c.slug === subCategoryId || c.name === subCategoryId) &&
+          Boolean(c.parentId)
+      )
+    : undefined;
+
   return {
     mainCategory: assignedCat,
-    subCategory: subCategoryId
-      ? categories.find((c) => c.id === subCategoryId && Boolean(c.parentId))
-      : undefined,
+    subCategory: sub,
   };
 }
 

@@ -68,28 +68,66 @@ const STORAGE_KEYS = {
   PENDING_CLOUD_SYNC: 'cropsa_pending_cloud_sync_v1',
 };
 
-// Safe JSON Parse helper
+// Safe in-memory cache to guarantee zero-latency synchronous access and prevent quota loss
+const memoryCache: Record<string, any> = {};
+
+// Safe JSON Parse helper with memory cache backing
 function getItem<T>(key: string, defaultValue: T): T {
+  if (memoryCache[key] !== undefined) {
+    return memoryCache[key] as T;
+  }
   try {
     const data = localStorage.getItem(key);
     if (!data) {
-      localStorage.setItem(key, JSON.stringify(defaultValue));
+      memoryCache[key] = defaultValue;
+      try {
+        localStorage.setItem(key, JSON.stringify(defaultValue));
+      } catch {
+        // ignore quota
+      }
       return defaultValue;
     }
-    return JSON.parse(data) as T;
+    const parsed = JSON.parse(data) as T;
+    memoryCache[key] = parsed;
+    return parsed;
   } catch (err) {
     console.error(`Error reading ${key} from storage:`, err);
+    memoryCache[key] = defaultValue;
     return defaultValue;
   }
 }
 
 function setItem<T>(key: string, value: T): boolean {
+  memoryCache[key] = value;
+  // Always persist full data to high-capacity IndexedDB
   void idbStorage.set(key, value);
   try {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch (err) {
-    console.warn(`LocalStorage quota/write warning for ${key} (saved to IndexedDB instead):`, err);
+    // If LocalStorage quota (5MB) is reached, save lightweight version (strip huge base64 images)
+    // so that all product metadata, names, counts, and prices STILL persist synchronously in LocalStorage!
+    try {
+      if (Array.isArray(value)) {
+        const lightweight = (value as any[]).map((item) => {
+          if (item && typeof item === 'object') {
+            const copy = { ...item };
+            if (
+              typeof copy.mainImageUrl === 'string' &&
+              copy.mainImageUrl.startsWith('data:image/') &&
+              copy.mainImageUrl.length > 30000
+            ) {
+              copy.mainImageUrl = '';
+            }
+            return copy;
+          }
+          return item;
+        });
+        localStorage.setItem(key, JSON.stringify(lightweight));
+      }
+    } catch {
+      console.warn(`LocalStorage quota reached for ${key}; fully persisted in memory & IndexedDB`);
+    }
     return false;
   }
 }
@@ -143,18 +181,54 @@ export const dbStorage = {
     ]);
 
     const result: Partial<DbData> = {};
-    if (categories?.length) result.categories = categories;
-    if (companies?.length) result.companies = companies;
-    if (subCategories?.length) result.subCategories = subCategories;
-    if (products?.length) result.products = products;
-    if (packages?.length) result.packages = packages;
-    if (images?.length) result.images = images;
-    if (advertisements?.length) result.advertisements = advertisements;
-    if (orders?.length) result.orders = orders;
-    if (financingRequests?.length) result.financingRequests = financingRequests;
-    if (teamMembers?.length) result.teamMembers = teamMembers;
-    if (priceHistory?.length) result.priceHistory = priceHistory;
-    if (settings) result.settings = settings;
+    if (categories?.length) {
+      result.categories = categories;
+      memoryCache[STORAGE_KEYS.CATEGORIES] = categories;
+    }
+    if (companies?.length) {
+      result.companies = companies;
+      memoryCache[STORAGE_KEYS.COMPANIES] = companies;
+    }
+    if (subCategories?.length) {
+      result.subCategories = subCategories;
+      memoryCache[STORAGE_KEYS.SUBCATEGORIES] = subCategories;
+    }
+    if (products?.length) {
+      result.products = products.map((p) => ({ ...p, active: p.active !== false }));
+      memoryCache[STORAGE_KEYS.PRODUCTS] = result.products;
+    }
+    if (packages?.length) {
+      result.packages = packages.map((p) => ({ ...p, active: p.active !== false }));
+      memoryCache[STORAGE_KEYS.PACKAGES] = result.packages;
+    }
+    if (images?.length) {
+      result.images = images;
+      memoryCache[STORAGE_KEYS.IMAGES] = images;
+    }
+    if (advertisements?.length) {
+      result.advertisements = advertisements;
+      memoryCache[STORAGE_KEYS.ADVERTISEMENTS] = advertisements;
+    }
+    if (orders?.length) {
+      result.orders = orders;
+      memoryCache[STORAGE_KEYS.ORDERS] = orders;
+    }
+    if (financingRequests?.length) {
+      result.financingRequests = financingRequests;
+      memoryCache[STORAGE_KEYS.FINANCING_REQUESTS] = financingRequests;
+    }
+    if (teamMembers?.length) {
+      result.teamMembers = teamMembers;
+      memoryCache[STORAGE_KEYS.TEAM] = teamMembers;
+    }
+    if (priceHistory?.length) {
+      result.priceHistory = priceHistory;
+      memoryCache[STORAGE_KEYS.PRICE_HISTORY] = priceHistory;
+    }
+    if (settings) {
+      result.settings = settings;
+      memoryCache[STORAGE_KEYS.SETTINGS] = settings;
+    }
     return result;
   },
   getData(): DbData {

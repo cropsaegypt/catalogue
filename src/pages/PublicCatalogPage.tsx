@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Home,
   ShoppingBag,
@@ -29,6 +29,7 @@ import {
 } from '../components/catalog/OnboardingBrowseSelector';
 import { HomeShowcaseBoxes } from '../components/catalog/HomeShowcaseBoxes';
 import { FloatingOrderBar } from '../components/catalog/FloatingOrderBar';
+import { ExitConfirmationModal } from '../components/catalog/ExitConfirmationModal';
 import { matchesProductSearch } from '../utils/agriculturalSearch';
 import {
   computeCrossFilterAvailability,
@@ -129,11 +130,103 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   });
 
   // Automatically show the Wholesale & Commercial Pricing Notice when catalog opens
-  React.useEffect(() => {
+  useEffect(() => {
     if (settings.showWholesaleNotice !== false) {
       setIsWholesaleNoticeOpen(true);
     }
   }, [settings.showWholesaleNotice]);
+
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
+  const isExitingRef = useRef(false);
+
+  // Intercept back button on mobile with marketing exit confirmation modal
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Push initial trap state into browser history
+    window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+
+    const handlePopState = () => {
+      if (isExitingRef.current) {
+        return;
+      }
+
+      // 1. If any sub-modal or drawer is open, close it first (natural back navigation UX)
+      if (isWholesaleNoticeOpen) {
+        setIsWholesaleNoticeOpen(false);
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (selectedProductModal) {
+        setSelectedProductModal(null);
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (isBasketOpen) {
+        setIsBasketOpen(false);
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (isFinancingPageOpen) {
+        setIsFinancingPageOpen(false);
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (isCompanyDirectoryOpen) {
+        setIsCompanyDirectoryOpen(false);
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (mobileSheetMode !== 'closed') {
+        setMobileSheetMode('closed');
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (isEmployeeLoginOpen) {
+        setIsEmployeeLoginOpen(false);
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (quickAddTarget) {
+        setQuickAddTarget(null);
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+
+      // 2. If at root catalog, intercept the exit!
+      window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+      setIsExitModalOpen(true);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [
+    isWholesaleNoticeOpen,
+    selectedProductModal,
+    isBasketOpen,
+    isFinancingPageOpen,
+    isCompanyDirectoryOpen,
+    mobileSheetMode,
+    isEmployeeLoginOpen,
+    quickAddTarget,
+  ]);
+
+  const handleStayInCatalog = () => {
+    setIsExitModalOpen(false);
+    addToast('منورنا يا باشمهندس! استمتع بأقوى عروض الموسم الزراعي 🔥', 'success');
+  };
+
+  const handleConfirmExit = () => {
+    isExitingRef.current = true;
+    setIsExitModalOpen(false);
+    if (window.history.length > 2) {
+      window.history.go(-2);
+    } else {
+      window.history.back();
+    }
+  };
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -419,28 +512,6 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             basketItems.length > 0 ? 'pb-36 md:pb-20' : 'pb-24 md:pb-12'
           }`}
         >
-        {/* Wholesale Commercial Pricing Notification Strip */}
-        {settings.showWholesaleNotice !== false && (
-          <div className="bg-gradient-to-l from-emerald-900 via-stone-900 to-stone-900 text-white rounded-2xl p-2.5 sm:p-3 shadow-xs border border-emerald-800/40 flex items-center justify-between gap-3 text-xs mb-3">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <span className="w-6 h-6 rounded-lg bg-amber-400 text-stone-950 font-black flex items-center justify-center shrink-0 text-xs shadow-xs">
-                %
-              </span>
-              <p className="truncate font-bold text-stone-100 text-[11.5px] sm:text-xs">
-                <span className="text-amber-300 font-black ml-1.5">أسعار تجارية معتمدة:</span>
-                الأسعار المعروضة هي أسعار الموزعين والتجار المعتمدة مبدئية بدون خصم الكميات
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsWholesaleNoticeOpen(true)}
-              className="px-3 py-1 bg-white/10 hover:bg-white/20 text-amber-300 hover:text-white rounded-xl font-black text-[11px] shrink-0 transition-colors cursor-pointer"
-            >
-              عرض التنبيه ↳
-            </button>
-          </div>
-        )}
-
         {/* Top Configurable Hero Banner (From Settings: Default Carousel / Text + Image / Full Image) */}
         {isHomeDefaultView && (
           <OffersBannerCarousel
@@ -1019,6 +1090,15 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         content={settings.wholesaleNoticeContent}
         phone={settings.phone}
         whatsAppNumber={settings.whatsApp}
+      />
+
+      {/* Mobile Back Button Marketing Exit Confirmation */}
+      <ExitConfirmationModal
+        isOpen={isExitModalOpen}
+        onStay={handleStayInCatalog}
+        onExit={handleConfirmExit}
+        whatsAppNumber={settings.whatsApp}
+        phone={settings.phone}
       />
 
       <ToastContainer
