@@ -60,28 +60,20 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
   const [subCategoryId, setSubCategoryId] = useState(product.subCategoryId || '');
   const [shortDescription, setShortDescription] = useState(product.shortDescription || '');
   const [mainImageUrl, setMainImageUrl] = useState(product.mainImageUrl || '');
+  const [imageRotation, setImageRotation] = useState<number>(product.imageRotation || 0);
   const [active, setActive] = useState(product.active !== false);
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [isRotating, setIsRotating] = useState(false);
+  const [isRotating] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isCleaningBg, setIsCleaningBg] = useState(false);
   const [originalImageBeforeClean, setOriginalImageBeforeClean] = useState<string | null>(null);
 
-  const handleRotate = async (degrees: 90 | -90 | 180) => {
-    if (!mainImageUrl || isRotating || isUploading) return;
-    setIsRotating(true);
-    try {
-      const rotated = await rotateAndUploadImage(mainImageUrl, degrees, `quick-rot-${product.id}`);
-      if (rotated) {
-        setMainImageUrl(rotated);
-        onShowToast('تم تدوير صورة المنتج وتعديلها بنجاح ✓', 'success');
-      }
-    } catch {
-      onShowToast('تعذر تدوير الصورة', 'error');
-    } finally {
-      setIsRotating(false);
-    }
+  const handleRotate = (degrees: 90 | -90 | 180) => {
+    if (!mainImageUrl) return;
+    const nextRot = (((imageRotation + degrees) % 360) + 360) % 360;
+    setImageRotation(nextRot);
+    onShowToast(`تم ضبط تدوير الصورة (${nextRot}°) بنجاح ✓`, 'success');
   };
 
   const handleCleanBg = async () => {
@@ -188,6 +180,7 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
       setSubCategoryId(product.subCategoryId || '');
       setShortDescription(product.shortDescription || '');
       setMainImageUrl(product.mainImageUrl || '');
+      setImageRotation(product.imageRotation || 0);
       setActive(product.active !== false);
 
       const outOfStockFlag = Boolean(
@@ -318,6 +311,7 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
       subCategoryId: subCategoryId || undefined,
       shortDescription: shortDescription.trim() || name.trim(),
       mainImageUrl: mainImageUrl.trim() || undefined,
+      imageRotation: imageRotation || undefined,
       isOutOfStock,
       stockQuantity: finalStockQty,
       active,
@@ -682,7 +676,12 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
             <div className="flex flex-col sm:flex-row items-center gap-4">
               <div className="relative group/qimg w-24 h-24 rounded-2xl border-2 border-stone-200 bg-[repeating-conic-gradient(#f3f4f6_0%_25%,#ffffff_0%_50%)] bg-[length:10px_10px] overflow-hidden flex items-center justify-center shrink-0 shadow-2xs">
                 {mainImageUrl ? (
-                  <img src={mainImageUrl} alt={name} className="w-full h-full object-contain p-1" />
+                  <img
+                    src={mainImageUrl}
+                    alt={name}
+                    style={imageRotation ? { transform: `rotate(${imageRotation}deg)` } : undefined}
+                    className="w-full h-full object-contain p-1 transition-transform duration-200"
+                  />
                 ) : (
                   <span className="text-xs text-stone-400 font-bold">بدون صورة</span>
                 )}
@@ -694,8 +693,8 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
                     className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover/qimg:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-[10px] font-black cursor-pointer"
                     title="اضغط لتدوير الصورة 90°"
                   >
-                    <RotateCw className={`w-4 h-4 ${isRotating ? 'animate-spin' : ''}`} />
-                    <span>تدوير 90°</span>
+                    <RotateCw className="w-4 h-4" />
+                    <span>تدوير {imageRotation ? `${imageRotation}°` : '90°'}</span>
                   </button>
                 )}
               </div>
@@ -737,8 +736,8 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
                         className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 rounded-xl text-xs font-black cursor-pointer transition-colors flex items-center gap-1.5 disabled:opacity-50"
                         title="تدوير الصورة 90° لليمين لضبط الاستقامة الأفقية/الرأسية"
                       >
-                        <RotateCw className={`w-3.5 h-3.5 ${isRotating ? 'animate-spin' : ''}`} />
-                        <span>{isRotating ? 'جاري التدوير...' : 'تدوير 90°'}</span>
+                        <RotateCw className="w-3.5 h-3.5" />
+                        <span>{imageRotation ? `تدوير (${imageRotation}°)` : 'تدوير 90°'}</span>
                       </button>
 
                       <button

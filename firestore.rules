@@ -37,7 +37,7 @@ service cloud.firestore {
     //            shortDescription (string, opt), description (string, opt),
     //            characteristics (list, opt), composition (list, opt), usage (list, opt),
     //            applicationRate (string, opt), mainImageId (string, opt),
-    //            mainImageUrl (string, opt), searchTags (list, opt),
+    //            mainImageUrl (string, opt), imageRotation (number 0..360, opt), searchTags (list, opt),
     //            costPrice (number, opt), stockQuantity (number, opt), minStockAlert (number, opt),
     //            galleryImageIds (list, opt), displayOrder (number, opt),
     //            active (bool, opt), featured (bool, opt), isOutOfStock (bool, opt),
@@ -269,7 +269,7 @@ service cloud.firestore {
                'id', 'companyId', 'categoryId', 'subCategoryId', 'productType',
                'secondaryCategoryIds', 'name', 'shortDescription', 'description',
                'characteristics', 'composition', 'usage', 'applicationRate',
-               'mainImageId', 'mainImageUrl', 'searchTags', 'costPrice',
+               'mainImageId', 'mainImageUrl', 'imageRotation', 'searchTags', 'costPrice',
                'stockQuantity', 'minStockAlert', 'galleryImageIds', 'displayOrder',
                'active', 'featured', 'isOutOfStock', 'allowPieceOrder', 'allowCartonOrder',
                'piecesPerCarton', 'createdAt', 'updatedAt'
@@ -290,6 +290,8 @@ service cloud.firestore {
              isValidOptString(data, 'applicationRate', 0, 2000) &&
              isValidOptString(data, 'mainImageId', 0, 128) &&
              isValidOptString(data, 'mainImageUrl', 0, 950000) &&
+             (!('imageRotation' in data) || data.imageRotation == null ||
+              (data.imageRotation is number && data.imageRotation >= 0 && data.imageRotation <= 360)) &&
              isValidOptList(data, 'searchTags', 200) &&
              isValidOptNonNegNumber(data, 'costPrice') &&
              isValidOptNonNegNumber(data, 'stockQuantity') &&

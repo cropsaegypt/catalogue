@@ -1718,6 +1718,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                       <img
                         src={safeImgSrc}
                         alt={product.name}
+                        style={product.imageRotation ? { transform: `rotate(${product.imageRotation}deg)` } : undefined}
                         onError={(e) => {
                           e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
                         }}
@@ -1800,6 +1801,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                     <img
                       src={safeImgSrc}
                       alt={product.name}
+                      style={product.imageRotation ? { transform: `rotate(${product.imageRotation}deg)` } : undefined}
                       onError={(e) => {
                         e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
                       }}
@@ -2272,6 +2274,7 @@ export const PdfGeneratorView: React.FC<PdfGeneratorViewProps> = ({
                       <img
                         src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=100&auto=format&fit=crop&q=80'}
                         alt={p.name}
+                        style={p.imageRotation ? { transform: `rotate(${p.imageRotation}deg)` } : undefined}
                         className="max-h-full max-w-full object-contain"
                       />
                     </div>

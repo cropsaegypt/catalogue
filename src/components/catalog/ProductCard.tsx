@@ -185,6 +185,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={imgSrc}
           alt={product.name}
+          style={product.imageRotation ? { transform: `rotate(${product.imageRotation}deg)` } : undefined}
           onError={(e) => {
             e.currentTarget.src = FALLBACK_BOTTLE_SVG_DATA_URL;
           }}

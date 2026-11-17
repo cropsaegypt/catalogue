@@ -581,6 +581,7 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                                 <img
                                   src={prod.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=200&auto=format&fit=crop&q=80'}
                                   alt={prod.name}
+                                  style={prod.imageRotation ? { transform: `rotate(${prod.imageRotation}deg)` } : undefined}
                                   className="max-h-full max-w-full object-contain"
                                 />
                               </div>

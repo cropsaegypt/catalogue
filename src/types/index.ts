@@ -71,6 +71,7 @@ export interface Product {
   applicationRate?: string;
   mainImageId?: string;
   mainImageUrl?: string;
+  imageRotation?: number; // زاوية دوران الصورة (0, 90, 180, 270)
   searchTags?: string[]; // وسوم بحث مخفية للآفات والأمراض والمحاصيل والأغراض الزراعية
   costPrice?: number; // سعر التكلفة
   stockQuantity?: number; // المخزون الحالي للمنتج

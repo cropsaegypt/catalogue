@@ -913,10 +913,26 @@ export function createApiApp() {
 
       // Critical Guard: NEVER allow a client to downgrade products below the baseline count!
       const minRequiredCount = baselineProds.length;
-      const updatedProducts =
+      let updatedProducts =
         Array.isArray(payload.products) && incomingProds.length >= minRequiredCount
           ? incomingProds
           : (existingProds.length >= baselineProds.length ? existingProds : baselineProds);
+
+      if (Array.isArray(baseline.products) || existingProds.length > 0) {
+        const baseProdMap = new Map((baseline.products || []).map((p: any) => [p.id, p]));
+        const existProdMap = new Map(existingProds.map((p: any) => [p.id, p]));
+        updatedProducts = updatedProducts.map((p: any) => {
+          const fallback = (baseProdMap.get(p.id) || existProdMap.get(p.id)) as any;
+          let fixed = p;
+          if ((!p.mainImageUrl || p.mainImageUrl === '') && fallback?.mainImageUrl) {
+            fixed = { ...fixed, mainImageUrl: fallback.mainImageUrl };
+          }
+          if (p.imageRotation === undefined && typeof fallback?.imageRotation === 'number') {
+            fixed = { ...fixed, imageRotation: fallback.imageRotation };
+          }
+          return fixed;
+        });
+      }
 
       // Critical Guard: NEVER allow a client to downgrade companies below baseline count!
       const baselineComps = Array.isArray(baseline.companies) ? baseline.companies : [];

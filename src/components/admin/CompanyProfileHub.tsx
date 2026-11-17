@@ -140,28 +140,23 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
   const [rotatingProdId, setRotatingProdId] = useState<string | null>(null);
 
-  const handleFastRotate = async (e: React.MouseEvent, targetProduct: Product) => {
+  const handleFastRotate = (e: React.MouseEvent, targetProduct: Product) => {
     e.stopPropagation();
     if (!targetProduct.mainImageUrl || rotatingProdId === targetProduct.id) return;
     setRotatingProdId(targetProduct.id);
     try {
-      const rotated = await rotateAndUploadImage(
-        targetProduct.mainImageUrl,
-        90,
-        `comp-rot-${targetProduct.id}`
+      const currentRot = targetProduct.imageRotation || 0;
+      const nextRot = (((currentRot + 90) % 360) + 360) % 360;
+      const updatedProduct: Product = {
+        ...targetProduct,
+        imageRotation: nextRot,
+        updatedAt: new Date().toISOString(),
+      };
+      const updatedProductsList = products.map((p) =>
+        p.id === updatedProduct.id ? updatedProduct : p
       );
-      if (rotated) {
-        const updatedProduct: Product = {
-          ...targetProduct,
-          mainImageUrl: rotated,
-          updatedAt: new Date().toISOString(),
-        };
-        const updatedProductsList = products.map((p) =>
-          p.id === updatedProduct.id ? updatedProduct : p
-        );
-        if (onSaveProducts) onSaveProducts(updatedProductsList);
-        onShowToast(`تم تدوير صورة "${targetProduct.name}" 90° وحفظها بنجاح ✓`, 'success');
-      }
+      if (onSaveProducts) onSaveProducts(updatedProductsList);
+      onShowToast(`تم تدوير صورة "${targetProduct.name}" 90° وحفظها بنجاح (${nextRot}°) ✓`, 'success');
     } catch {
       onShowToast('تعذر تدوير الصورة', 'error');
     } finally {
@@ -816,6 +811,7 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
                         <img
                           src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=300&auto=format&fit=crop&q=80'}
                           alt={p.name}
+                          style={p.imageRotation ? { transform: `rotate(${p.imageRotation}deg)` } : undefined}
                           className={`max-h-full max-w-full object-contain transition-transform duration-200 group-hover:scale-105 ${
                             isOutOfStock ? 'opacity-60 grayscale-[30%]' : ''
                           }`}

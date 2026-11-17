@@ -276,6 +276,7 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
                                         'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=200&auto=format&fit=crop&q=80'
                                       }
                                       alt={product.name}
+                                      style={product.imageRotation ? { transform: `rotate(${product.imageRotation}deg)` } : undefined}
                                       className="max-h-full max-w-full object-contain"
                                     />
                                   </div>

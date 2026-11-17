@@ -152,6 +152,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 <img
                   src={currentImage}
                   alt={product.name}
+                  style={product.imageRotation && currentImage === product.mainImageUrl ? { transform: `rotate(${product.imageRotation}deg)` } : undefined}
                   className={`max-h-full max-w-full object-contain group-hover:scale-105 transition-transform duration-300 ${
                     isOutOfStock ? 'opacity-65 grayscale-[35%]' : ''
                   }`}

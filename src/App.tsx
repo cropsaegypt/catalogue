@@ -434,19 +434,56 @@ export default function App() {
         (bestRemote as any).lastSyncedAt || (bestRemote as any).syncedAt || '';
 
       setProducts((prev) => {
-        const localCount = Math.max(prev.length, dbStorage.getProducts().length);
-        if (incomingProds.length >= localCount) {
-          if (syncStamp && syncStamp !== lastKnownSyncTime) {
-            lastKnownSyncTime = syncStamp;
+        // Build map of current local products
+        const localList = prev.length >= dbStorage.getProducts().length ? prev : dbStorage.getProducts();
+        const localMap = new Map(localList.map((p) => [p.id, p]));
+        let hasLocalEditsToPush = false;
+        let hasChanges = false;
+
+        const merged: Product[] = incomingProds.map((remoteP) => {
+          const localP = localMap.get(remoteP.id);
+          if (!localP) {
+            hasChanges = true;
+            return remoteP;
           }
-          dbStorage.saveProducts(incomingProds);
-          return incomingProds;
-        } else if (localCount > incomingProds.length) {
-          // Local has more products! Broadcast local to central server & cloud
+          localMap.delete(remoteP.id);
+
+          const localTime = localP.updatedAt ? new Date(localP.updatedAt).getTime() : 0;
+          const remoteTime = remoteP.updatedAt ? new Date(remoteP.updatedAt).getTime() : 0;
+
+          // If local version was edited more recently, NEVER overwrite it!
+          if (localTime > remoteTime) {
+            hasLocalEditsToPush = true;
+            return localP;
+          }
+
+          // Preserve local imageRotation if remote does not have it yet
+          if (localP.imageRotation !== undefined && remoteP.imageRotation === undefined) {
+            hasLocalEditsToPush = true;
+            return { ...remoteP, imageRotation: localP.imageRotation };
+          }
+
+          // If remote is strictly newer, accept remote changes
+          if (remoteTime > localTime) {
+            hasChanges = true;
+            return remoteP;
+          }
+
+          // If timestamps are identical, preserve local product properties to prevent UI jitter
+          return localP;
+        });
+
+        // Any local products that are not present on remote at all must be preserved
+        for (const remaining of localMap.values()) {
+          merged.push(remaining);
+          hasLocalEditsToPush = true;
+          hasChanges = true;
+        }
+
+        if (hasLocalEditsToPush) {
           const payload = {
             ...dbStorage.getData(),
-            products:
-              prev.length >= dbStorage.getProducts().length ? prev : dbStorage.getProducts(),
+            products: merged,
             pdfDividers: dbStorage.getPdfDividers(),
           };
           void Promise.allSettled([
@@ -454,6 +491,12 @@ export default function App() {
             firestoreSync.pushSingleDocumentSnapshot(payload),
           ]);
         }
+
+        if (hasChanges || merged.length !== prev.length) {
+          dbStorage.saveProducts(merged);
+          return merged;
+        }
+
         return prev;
       });
 
@@ -534,6 +577,10 @@ export default function App() {
     dbStorage.addAuditLog('تحديث المنتجات', 'Product', 'تم حفظ تعديلات قائمة المنتجات');
     void trackCloudWrite(firestoreSync.syncCollection('products', updatedProducts));
     void serverSync.syncToCentralServer({ products: updatedProducts });
+    void firestoreSync.pushSingleDocumentSnapshot({
+      ...dbStorage.getData(),
+      products: updatedProducts,
+    });
   };
 
   const handleSaveSubCategories = (updatedSubs: CompanySubCategory[]) => {

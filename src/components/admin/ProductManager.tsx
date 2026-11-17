@@ -68,26 +68,21 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
   const [rotatingProdId, setRotatingProdId] = useState<string | null>(null);
 
-  const handleFastRotate = async (e: React.MouseEvent, targetProduct: Product) => {
+  const handleFastRotate = (e: React.MouseEvent, targetProduct: Product) => {
     e.stopPropagation();
     if (!targetProduct.mainImageUrl || rotatingProdId === targetProduct.id) return;
     setRotatingProdId(targetProduct.id);
     try {
-      const rotated = await rotateAndUploadImage(
-        targetProduct.mainImageUrl,
-        90,
-        `prod-rot-${targetProduct.id}`
-      );
-      if (rotated) {
-        const updatedProduct: Product = {
-          ...targetProduct,
-          mainImageUrl: rotated,
-          updatedAt: new Date().toISOString(),
-        };
-        const updatedList = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
-        onSaveProducts(updatedList);
-        onShowToast(`تم تدوير صورة "${targetProduct.name}" 90° وحفظها بنجاح ✓`, 'success');
-      }
+      const currentRot = targetProduct.imageRotation || 0;
+      const nextRot = (((currentRot + 90) % 360) + 360) % 360;
+      const updatedProduct: Product = {
+        ...targetProduct,
+        imageRotation: nextRot,
+        updatedAt: new Date().toISOString(),
+      };
+      const updatedList = products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p));
+      onSaveProducts(updatedList);
+      onShowToast(`تم تدوير صورة "${targetProduct.name}" 90° وحفظها بنجاح (${nextRot}°) ✓`, 'success');
     } catch {
       onShowToast('تعذر تدوير الصورة', 'error');
     } finally {
@@ -591,6 +586,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                           <img
                             src={p.mainImageUrl || 'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=100&auto=format&fit=crop&q=80'}
                             alt={p.name}
+                            style={p.imageRotation ? { transform: `rotate(${p.imageRotation}deg)` } : undefined}
                             className={`w-9 h-9 object-contain rounded-lg border border-[#D4D1C5] bg-white p-0.5 ${
                               isOutOfStock ? 'opacity-60 grayscale-[30%]' : ''
                             }`}

@@ -110,6 +110,7 @@ export const QuickAddQuantityModal: React.FC<QuickAddQuantityModalProps> = ({
                   'https://images.unsplash.com/photo-1628102491629-778571d893a3?w=400&auto=format&fit=crop&q=80'
                 }
                 alt={product.name}
+                style={product.imageRotation ? { transform: `rotate(${product.imageRotation}deg)` } : undefined}
                 className="w-full h-full object-contain"
               />
             </div>
