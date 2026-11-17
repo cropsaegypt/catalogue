@@ -871,6 +871,17 @@ export function createApiApp() {
         });
       }
 
+      // Ensure advertisements with active banners are preserved from baseline if empty or broken
+      const baselineAds = Array.isArray(baseline.advertisements) ? baseline.advertisements : [];
+      const currentAds = data && Array.isArray(data.advertisements) ? data.advertisements : [];
+      if (
+        baselineAds.length > currentAds.length ||
+        currentAds.length === 0 ||
+        currentAds.some((a: any) => !a.desktopImageUrl && !a.mobileImageUrl)
+      ) {
+        data.advertisements = baselineAds;
+      }
+
       if (data && Array.isArray(data.products) && data.products.length > 0) {
         globalCatalogMemoryCache = data;
       }
