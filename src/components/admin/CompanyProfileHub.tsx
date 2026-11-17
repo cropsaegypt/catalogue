@@ -22,6 +22,8 @@ import {
   ToggleRight,
   Filter,
   TrendingUp,
+  Eye,
+  EyeOff,
   X,
   RotateCw,
 } from 'lucide-react';
@@ -63,6 +65,7 @@ interface CompanyProfileHubProps {
   onSaveImages: (images: CompanyImage[]) => void;
   onAddImportLog: (log: any) => void;
   onShowToast: (msg: string, type: 'success' | 'error') => void;
+  onToggleCompanyActive?: (companyId: string) => void;
 }
 
 export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
@@ -82,6 +85,7 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
   onSaveImages,
   onAddImportLog,
   onShowToast,
+  onToggleCompanyActive,
 }) => {
   const [activeTab, setActiveTab] = useState<
     'products' | 'subcategories' | 'add_product' | 'catalog_images' | 'prices' | 'excel' | 'history'
@@ -525,15 +529,45 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
           </div>
         </div>
 
-        {/* Quick Stats Pills */}
-        <div className="flex items-center gap-2 text-xs font-bold">
-          <span className="bg-gray-100 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700">
+        {/* Visibility Status & Quick Stats */}
+        <div className="flex flex-wrap items-center gap-2">
+          {onToggleCompanyActive && (
+            <button
+              type="button"
+              onClick={() => onToggleCompanyActive(company.id)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black border transition-all cursor-pointer shadow-2xs ${
+                company.active !== false
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'
+              }`}
+              title={
+                company.active !== false
+                  ? 'الشركة ظاهرة بالكتالوج العام - انقر لإيقاف ظهورها'
+                  : 'الشركة متوقفة ومخفية - انقر لتفعيل ظهورها بالكتالوج'
+              }
+            >
+              {company.active !== false ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>ظاهرة بالكتالوج (نشطة)</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-rose-600" />
+                  <span>مخفية من الكتالوج (متوقفة)</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Quick Stats Pills */}
+          <span className="bg-gray-100 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-bold">
             {companySubs.length} أقسام فرعية
           </span>
-          <span className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-[#046A47]">
+          <span className="bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200 text-[#046A47] text-xs font-bold">
             {companyProducts.length} منتجات
           </span>
-          <span className="bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-amber-800">
+          <span className="bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-amber-800 text-xs font-bold">
             {companyPackages.length} عبوات
           </span>
         </div>

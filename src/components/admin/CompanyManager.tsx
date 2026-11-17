@@ -13,6 +13,7 @@ import {
   Package as PackageIcon,
   Search,
   Eye,
+  EyeOff,
   CheckCircle2,
   AlertCircle,
   X,
@@ -285,11 +286,29 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
     }
   };
 
+  const handleToggleCompanyActive = (id: string) => {
+    const updated = companies.map((c) => {
+      if (c.id === id) {
+        const nextActive = c.active === false ? true : false;
+        return { ...c, active: nextActive, updatedAt: new Date().toISOString() };
+      }
+      return c;
+    });
+    onSaveCompanies(updated);
+    const targetComp = updated.find((c) => c.id === id);
+    if (targetComp?.active !== false) {
+      onShowToast(`تم تفعيل ظهور شركة "${targetComp?.name || ''}" في الكتالوج`, 'success');
+    } else {
+      onShowToast(`تم إيقاف ظهور شركة "${targetComp?.name || ''}" وإخفاؤها من الكتالوج`, 'success');
+    }
+  };
+
   // If a specific company profile hub is active, render the dedicated hub!
   if (activeCompanyHub) {
+    const liveActiveCompany = companies.find((c) => c.id === activeCompanyHub.id) || activeCompanyHub;
     return (
       <CompanyProfileHub
-        company={activeCompanyHub}
+        company={liveActiveCompany}
         categories={categories}
         subCategories={subCategories}
         products={products}
@@ -305,6 +324,7 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
         onSaveImages={onSaveImages}
         onAddImportLog={onAddImportLog}
         onShowToast={onShowToast}
+        onToggleCompanyActive={handleToggleCompanyActive}
       />
     );
   }
@@ -339,7 +359,9 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
           return (
             <div
               key={comp.id}
-              className="bg-[#FAF8F5] rounded-3xl border border-[#E5E2D9] p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4"
+              className={`bg-[#FAF8F5] rounded-3xl border ${
+                comp.active === false ? 'border-rose-300 ring-1 ring-rose-200/50' : 'border-[#E5E2D9]'
+              } p-5 shadow-xs hover:shadow-md transition-shadow flex flex-col justify-between space-y-4`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -351,7 +373,18 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                     )}
                   </div>
                   <div>
-                    <h3 className="font-black text-lg text-[#2D2D24]">{comp.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-lg text-[#2D2D24]">{comp.name}</h3>
+                      {comp.active === false ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 border border-rose-200">
+                          مخفية (متوقفة)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                          ظاهرة
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-[#5A5A40] font-medium mt-0.5">{comp.description || 'لا يوجد وصف متاح'}</p>
                     <span className="text-[11px] font-bold text-[#046A47] block mt-1">
                       إجمالي المنتجات المتاحة: {compProdsCount} منتجات
@@ -360,6 +393,26 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCompanyActive(comp.id)}
+                    className={`p-2 rounded-xl transition-all cursor-pointer ${
+                      comp.active !== false
+                        ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800'
+                        : 'bg-rose-100 hover:bg-rose-200 text-rose-800'
+                    }`}
+                    title={
+                      comp.active !== false
+                        ? 'الشركة ظاهرة بالكتالوج - اضغط لإيقاف ظهورها'
+                        : 'الشركة متوقفة ومخفية - اضغط لتفعيل ظهورها بالكتالوج'
+                    }
+                  >
+                    {comp.active !== false ? (
+                      <Eye className="w-4 h-4 text-emerald-700" />
+                    ) : (
+                      <EyeOff className="w-4 h-4 text-rose-700" />
+                    )}
+                  </button>
                   <button
                     onClick={() => openEditModal(comp)}
                     className="p-2 bg-[#E5E2D9] hover:bg-[#D4D1C5] text-[#2D2D24] rounded-xl"

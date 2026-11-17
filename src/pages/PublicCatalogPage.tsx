@@ -317,6 +317,10 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   const activeProducts = products.filter((p) => {
     if (p.active === false) return false;
 
+    // If parent company is explicitly deactivated / stopped, hide its products from the public catalog
+    const parentCompany = companies.find((c) => c.id === p.companyId);
+    if (parentCompany && parentCompany.active === false) return false;
+
     const { mainCategory, subCategory } = getCategoryDisplayPath(
       p.categoryId,
       p.subCategoryId,

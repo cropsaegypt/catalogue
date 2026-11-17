@@ -882,6 +882,14 @@ export function createApiApp() {
         data.advertisements = baselineAds;
       }
 
+      // Ensure heroBannerUrl is always preserved from baseline if missing or empty
+      if (data && (!data.settings || !data.settings.heroBannerUrl)) {
+        data.settings = {
+          ...(data.settings || {}),
+          heroBannerUrl: baseline.settings?.heroBannerUrl || '/uploads/banners/banner-1-desktop.jpg',
+        };
+      }
+
       if (data && Array.isArray(data.products) && data.products.length > 0) {
         globalCatalogMemoryCache = data;
       }

@@ -442,7 +442,12 @@ export const dbStorage = {
 
   // Advertisements
   getAdvertisements(): Advertisement[] {
-    return getItem<Advertisement[]>(STORAGE_KEYS.ADVERTISEMENTS, INITIAL_ADVERTISEMENTS);
+    const ads = getItem<Advertisement[]>(STORAGE_KEYS.ADVERTISEMENTS, INITIAL_ADVERTISEMENTS);
+    if (!ads || !Array.isArray(ads) || ads.length === 0 || ads.every((a) => !a.desktopImageUrl && !a.mobileImageUrl)) {
+      this.saveAdvertisements(INITIAL_ADVERTISEMENTS);
+      return INITIAL_ADVERTISEMENTS;
+    }
+    return ads;
   },
   saveAdvertisements(ads: Advertisement[]): void {
     setItem(STORAGE_KEYS.ADVERTISEMENTS, ads);
@@ -478,7 +483,13 @@ export const dbStorage = {
 
   // Catalog Settings
   getCatalogSettings(): CatalogSettings {
-    return getItem<CatalogSettings>(STORAGE_KEYS.SETTINGS, INITIAL_CATALOG_SETTINGS);
+    const settings = getItem<CatalogSettings>(STORAGE_KEYS.SETTINGS, INITIAL_CATALOG_SETTINGS);
+    if (!settings || !settings.heroBannerUrl) {
+      const merged = { ...INITIAL_CATALOG_SETTINGS, ...(settings || {}), heroBannerUrl: INITIAL_CATALOG_SETTINGS.heroBannerUrl };
+      this.saveCatalogSettings(merged);
+      return merged;
+    }
+    return settings;
   },
   saveCatalogSettings(settings: CatalogSettings): void {
     setItem(STORAGE_KEYS.SETTINGS, settings);

@@ -15,6 +15,12 @@ import {
   SlidersHorizontal,
   Loader2,
   RotateCw,
+  Calendar,
+  CheckSquare,
+  Square,
+  X,
+  Ban,
+  Check,
 } from 'lucide-react';
 
 import { Product, Package, Company, Category, CompanyImage, CompanySubCategory } from '../../types';
@@ -72,6 +78,105 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   // Quick Edit Modal State & 1-Click Stock Toggle
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
   const [rotatingProdId, setRotatingProdId] = useState<string | null>(null);
+
+  // Multi-select & Batch Actions State
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+
+  const handleToggleSelectAll = () => {
+    if (selectedProductIds.length === filteredProducts.length && filteredProducts.length > 0) {
+      setSelectedProductIds([]);
+    } else {
+      setSelectedProductIds(filteredProducts.map((p) => p.id));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleClearSelection = () => {
+    setSelectedProductIds([]);
+  };
+
+  const handleBatchOutOfStock = (markOutOfStock: boolean) => {
+    if (selectedProductIds.length === 0) return;
+    const selectedSet = new Set(selectedProductIds);
+
+    const updatedProducts = products.map((p) => {
+      if (selectedSet.has(p.id)) {
+        return {
+          ...p,
+          isOutOfStock: markOutOfStock,
+          stockQuantity: markOutOfStock ? 0 : 50,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return p;
+    });
+
+    const updatedPackages = packages.map((pkg) => {
+      if (selectedSet.has(pkg.productId)) {
+        return {
+          ...pkg,
+          isOutOfStock: markOutOfStock,
+          stockQuantity: markOutOfStock ? 0 : 50,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return pkg;
+    });
+
+    onSaveProducts(updatedProducts);
+    onSavePackages(updatedPackages);
+    onShowToast(
+      markOutOfStock
+        ? `تم إخراج ${selectedProductIds.length} منتج من المخزون بنجاح`
+        : `تم توفير ${selectedProductIds.length} منتج في المخزون بنجاح`,
+      'success'
+    );
+  };
+
+  const handleBatchSetMarketPrice = () => {
+    if (selectedProductIds.length === 0) return;
+    const selectedSet = new Set(selectedProductIds);
+
+    // Setting package price to 0 activates "مربوط بسعر اليوم" in ProductCard
+    const updatedPackages = packages.map((pkg) => {
+      if (selectedSet.has(pkg.productId)) {
+        return {
+          ...pkg,
+          price: 0,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return pkg;
+    });
+
+    onSavePackages(updatedPackages);
+    onShowToast(`تم ربط ${selectedProductIds.length} منتج بسعر اليوم (سعر متغير)`, 'success');
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedProductIds.length === 0) return;
+    if (
+      !confirm(
+        `هل أنت متأكد من حذف ${selectedProductIds.length} منتجات وكافة عبواتها نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`
+      )
+    ) {
+      return;
+    }
+    const selectedSet = new Set(selectedProductIds);
+
+    const remainingProducts = products.filter((p) => !selectedSet.has(p.id));
+    const remainingPackages = packages.filter((pkg) => !selectedSet.has(pkg.productId));
+
+    onSaveProducts(remainingProducts);
+    onSavePackages(remainingPackages);
+    setSelectedProductIds([]);
+    onShowToast(`تم حذف ${selectedSet.size} منتج وعبواته بنجاح`, 'success');
+  };
 
   // Agronomic Intelligent Subcategory Classifier State
   const [isClassifierModalOpen, setIsClassifierModalOpen] = useState(false);
@@ -597,12 +702,93 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         </div>
       </div>
 
+      {/* Batch Actions Bar (Visible when products are selected) */}
+      {selectedProductIds.length > 0 && (
+        <div className="bg-[#2D2D24] text-white p-4 rounded-3xl shadow-lg border border-[#3E3E32] flex flex-wrap items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-3">
+            <span className="bg-amber-400 text-stone-950 font-black text-xs px-3.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-xs">
+              <CheckSquare className="w-4 h-4" />
+              <span>تم تحديد {selectedProductIds.length} منتج</span>
+            </span>
+            <span className="text-xs text-stone-300 font-medium hidden sm:inline">
+              (من أصل {filteredProducts.length} معروضين)
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Out of Stock Button */}
+            <button
+              type="button"
+              onClick={() => handleBatchOutOfStock(true)}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="إخراج كافة المنتجات المحددة وعبواتها من المخزون (نفذت الكمية)"
+            >
+              <Ban className="w-3.5 h-3.5 text-rose-200" />
+              <span>إخراج من المخزون</span>
+            </button>
+
+            {/* In Stock Button */}
+            <button
+              type="button"
+              onClick={() => handleBatchOutOfStock(false)}
+              className="bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="إعادة تعيين المنتجات المحددة كمتوفرة بالمخزون"
+            >
+              <Check className="w-3.5 h-3.5 text-emerald-200" />
+              <span>توفير بالمخزون</span>
+            </button>
+
+            {/* Set Market Price Button */}
+            <button
+              type="button"
+              onClick={handleBatchSetMarketPrice}
+              className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              title="ربط أسعار المنتجات المحددة بسعر اليوم (سعر متغير)"
+            >
+              <Calendar className="w-3.5 h-3.5 text-stone-950" />
+              <span>ضبط بسعر اليوم</span>
+            </button>
+
+            {/* Delete Selected Button */}
+            <button
+              type="button"
+              onClick={handleBatchDelete}
+              className="bg-stone-800 hover:bg-red-700 text-stone-200 hover:text-white font-bold text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-700 hover:border-red-600 shadow-xs"
+              title="حذف المنتجات المحددة وعبواتها نهائياً"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>حذف المحدد</span>
+            </button>
+
+            {/* Clear Selection */}
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="text-stone-400 hover:text-white text-xs font-bold px-2 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1"
+              title="إلغاء التحديد"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>إلغاء</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <div className="bg-[#FAF8F5] rounded-3xl border border-[#E5E2D9] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-right text-sm">
             <thead className="bg-[#2D2D24] text-[#F9F8F6] text-xs font-bold">
               <tr>
+                <th className="p-3.5 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={filteredProducts.length > 0 && selectedProductIds.length === filteredProducts.length}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded text-[#046A47] focus:ring-[#046A47] cursor-pointer accent-[#046A47]"
+                    title="تحديد أو إلغاء تحديد الكل"
+                  />
+                </th>
                 <th className="p-3.5">الكود (ID)</th>
                 <th className="p-3.5">اسم المنتج</th>
                 <th className="p-3.5">الشركة</th>
@@ -620,14 +806,31 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                 const isOutOfStock = Boolean(
                   p.isOutOfStock || (typeof p.stockQuantity === 'number' && p.stockQuantity <= 0)
                 );
+                const isSelected = selectedProductIds.includes(p.id);
 
                 return (
                   <tr
                     key={p.id}
                     onClick={() => setQuickEditProduct(p)}
-                    className="hover:bg-[#F1EFEC] transition-colors cursor-pointer group"
+                    className={`hover:bg-[#F1EFEC] transition-colors cursor-pointer group ${
+                      isSelected ? 'bg-amber-50/80 border-r-4 border-r-amber-500' : ''
+                    }`}
                     title="اضغط للتعديل السريع والتحكم في المخزون"
                   >
+                    <td
+                      className="p-3.5 w-10 text-center"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleSelectOne(p.id);
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleSelectOne(p.id)}
+                        className="w-4 h-4 rounded text-[#046A47] focus:ring-[#046A47] cursor-pointer accent-[#046A47]"
+                      />
+                    </td>
                     <td className="p-3.5 font-mono text-xs font-bold text-[#2D2D24]">{p.id}</td>
                     <td className="p-3.5">
                       <div className="flex items-center gap-2">
