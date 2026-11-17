@@ -436,7 +436,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowPieceOrder": true,
     "productType": "pesticide",
     "displayOrder": 1,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "createdAt": "2026-11-15T16:02:33.144Z",
     "updatedAt": "2026-11-15T16:02:33.144Z",
     "applicationRate": "200 سم / 100 لتر ماء",
@@ -532,7 +532,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "name": "لمبادا 10%",
     "id": "PRD-شركة-3144-2",
     "shortDescription": "مبيد حشري بيروثرويدي يعمل كسم معدي وبالملامسة",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "companyId": "COMP-01",
     "allowPieceOrder": true,
     "description": "مبيد حشري بيروثرويدي يعمل كسم معدي وبالملامسة لمنع غلق قناة الصوديوم ومكافحة الحشرات.",
@@ -591,7 +591,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "shortDescription": "مبيد حشري أكاروسي ينتمي لمجموعة الافرمكتين",
     "description": "مبيد حشري أكاروسي ينتمي لمجموعة الافرمكتين لمكافحة الأكاروسات والحلم وصانعات الأنفاق.",
     "name": "برماكتين",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "mainImageUrl": "/uploads/products/prod-3.png",
     "composition": [
       "ابامكتين 1.8%"
@@ -608,7 +608,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "applicationRate": "200 سم / 100 لتر ماء",
     "description": "مبيد حشري جهازي يعمل بالملامسة والسم المعدي لمكافحة الآفات الحشرية الثاقبة الماصة.",
     "displayOrder": 4,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "composition": [
       "ايميداكلوب ريد 48%"
     ],
@@ -690,7 +690,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "productType": "pesticide",
     "categoryId": "CAT-759728",
     "allowCartonOrder": true,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "composition": [
       "بيتا سيفلوثرين 5%"
     ],
@@ -744,7 +744,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "productType": "pesticide",
     "name": "ديفوس",
     "shortDescription": "مبيد حشري فوسفوري عضوي",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "usage": [],
     "characteristics": [
       "مبيد حشري فوسفوري عضوي يعمل بالملامسة وكذلك له تأثير تنفسي لمكافحة الحشرات الزاحفة"
@@ -796,7 +796,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "companyId": "COMP-01",
     "categoryId": "CAT-759728",
     "shortDescription": "مبيد حشري يستهدف الديدان",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "id": "PRD-شركة-3159-7",
     "name": "جيتانو",
     "applicationRate": "200 سم / 100 لتر ماء",
@@ -851,7 +851,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "updatedAt": "2026-11-15T16:02:33.159Z",
     "allowCartonOrder": true,
     "shortDescription": "مبيد حشري يعمل بالملامسة وكسَم معدي",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "name": "لمبا سيف"
   },
   {
@@ -1076,7 +1076,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "description": "يعمل كمانع انبات أو مانع انبثاق لبذور الحشائش الحولية الضارة للمحاصيل الزراعية.",
     "companyId": "COMP-01",
     "applicationRate": "2 لتر/ فدان",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "displayOrder": 13,
     "allowPieceOrder": true,
     "productType": "pesticide",
@@ -1205,7 +1205,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "active": true,
     "name": "جرنستار",
     "description": "مبيد حشائش لمقاومة الحشائش عريضة الاوراق في القمح مثل السلق والخبازه السليق والحميص والشعير... بعد الإنبات ف القمح.",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "mainImageUrl": "/uploads/products/prod-15.png",
     "composition": [
       "ترابينيرون ميثيل 75%"
@@ -1248,7 +1248,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ],
     "productType": "pesticide",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "name": "أسيتا مور",
     "active": true,
     "allowCartonOrder": true,
@@ -1274,7 +1274,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "يحتوى كل كيلوجرام على 480 جرام بنتاجون"
     ],
     "allowCartonOrder": true,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "companyId": "COMP-01",
     "allowPieceOrder": true,
     "productType": "pesticide",
@@ -1317,7 +1317,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "مكافحة العنكبوتا الاحمر في محصول الطماطم",
       "معدل الاستخدام 20 سم / فدان"
     ],
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "applicationRate": "20 سم / فدان",
     "allowPieceOrder": true,
     "searchTags": [
@@ -1405,7 +1405,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "createdAt": "2026-11-15T16:02:33.168Z",
     "allowCartonOrder": true,
     "description": "مبيد حشري أكاروسي ذو كفاءة عالية في اختراق الأوراق لمكافحة الآفات",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "characteristics": [
       "مبيد حشري أكاروسي ينتمي لمجموعة الافرمكتين Avermectin",
       "يعمل بالملامسة وسم معدي له خاصية النفاذية Translaminar",
@@ -1427,7 +1427,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "يستخدم لمكافحة الحشرات الطائرة"
     ],
     "shortDescription": "مبيد حشري بيروثرويدي ذو فاعلية عالية",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "searchTags": [
       "مبيد حشري",
       "حشرات طائرة",
@@ -1496,7 +1496,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "composition": [
       "دلتامثرين 5%"
     ],
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "description": "مبيد حشري ذو كفاءة عالية في طرد ومكافحة آفات الصحة العامة",
     "displayOrder": 21,
     "allowPieceOrder": true,
@@ -1557,7 +1557,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "updatedAt": "2026-11-15T16:02:33.175Z",
     "allowCartonOrder": true,
     "description": "مبيد حشري مركب لصعق ومكافحة آفات الصحة العامة والحشرات",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "characteristics": [
       "مبيد حشري يعمل كسم معدي وبالملامسة لمكافحة مدي واسع من آفات الصحة العامة",
       "يحتوي علي خليط من المجموعة البيروثروبدية من مادتي دلتامثرين ذات التأثير القوي والسريع ومادة إس بيوآثرين ذات الصعق الفوري"
@@ -1838,7 +1838,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "createdAt": "2026-11-15T16:14:02.157Z",
     "updatedAt": "2026-11-15T16:14:02.157Z",
     "displayOrder": 28,
-    "subCategoryId": "SUB-814298",
+    "subCategoryId": "SUB-729901",
     "name": "سترايك - 1 لتر",
     "usage": [
       "علاج نيماتودا الجذور والأوراق"
@@ -2045,7 +2045,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "بطاطس",
       "عنب"
     ],
-    "subCategoryId": "SUB-814298",
+    "subCategoryId": "SUB-800564",
     "piecesPerCarton": 1,
     "allowCartonOrder": false,
     "name": "بوديوم 75%",
@@ -2114,7 +2114,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "usage": [
       "مكافحة الفطريات المسببة لعفن الجذور وموت البادرات في جميع المحاصيل الزراعية."
     ],
-    "subCategoryId": "SUB-814298",
+    "subCategoryId": "SUB-800564",
     "description": "مبيد فطري متخصص لمكافحة أعفان الجذور وموت البادرات.",
     "allowPieceOrder": true,
     "createdAt": "2026-11-15T16:14:02.181Z",
@@ -2156,7 +2156,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "بطاطس",
       "عنب"
     ],
-    "subCategoryId": "SUB-814298",
+    "subCategoryId": "SUB-800564",
     "productType": "pesticide",
     "name": "اوكتان 72%",
     "updatedAt": "2026-11-15T16:14:02.186Z",
@@ -2812,7 +2812,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "مبيد ذو خصائص إنتقالية من أوراق النباتات إلى أنسجة الجذور ومن المجموعة الجذرية إلى ساق وأوراق النبات",
       "يستخدم لمكافحة نيماتودا تعقد الجذور نيماتودا التدهور البطئ تقرح الجذور في جميع أطوارها ( بيض وبرقات ) والحشرات الثاقبة الماصة الضارة للنباتات."
     ],
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "searchTags": [
       "نيماتودا",
       "تعقد الجذور",
@@ -2891,7 +2891,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ],
     "allowCartonOrder": true,
     "productType": "pesticide",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "createdAt": "2026-11-15T21:48:47.316Z",
     "updatedAt": "2026-11-15T21:48:47.316Z",
     "mainImageUrl": "/uploads/products/prod-47.png",
@@ -2971,7 +2971,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "عنكبوت أحمر",
       "فراولة"
     ],
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "companyId": "COMP-09",
     "shortDescription": "NEMA KILL 40% مبيد نيماتودي وحشري جهازي",
     "id": "PRD-الوا-7338-3",
@@ -3062,7 +3062,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ],
     "shortDescription": "NANO POWER PLUS لمكافحة النيماتودا وأعفان الجذور",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "applicationRate": "التسميد الأرضي: 1 / 2 لتر / للفدان"
   },
   {
@@ -3083,7 +3083,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "محملة على جزيئات نانو"
     ],
     "active": true,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "description": "مبيد حشري ونيماتودي واسع المدى لحماية المحاصيل الزراعية المتنوعة.",
     "shortDescription": "Killer مبيد نيماتودي وحشري قوي المفعول يعمل بالجهازية والملامسة",
     "companyId": "COMP-09",
@@ -3188,7 +3188,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "shortDescription": "FALCON 24% مبيد نيماتودي وحشري قوي المفعول",
     "id": "PRD-الوا-7373-6",
     "displayOrder": 51,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "allowCartonOrder": true
   },
   {
@@ -3433,7 +3433,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "يعمل المركب للقضاء على المتأخرة والبياض الزغبي في محاصيل القرعيات والبصل",
       "يعمل علي تعطيل النشاط الإنزيمي للميكروبات الممرضة وأيضاً يعمل على تثبيط عملية التنفس ويوقف إنتشار المرض ويقضي علية"
     ],
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "mainImageUrl": "/uploads/products/prod-55.png"
   },
   {
@@ -4083,7 +4083,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "displayOrder": 66,
     "name": "اسباركلينز 38%",
     "companyId": "COMP-09",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "active": true,
     "allowCartonOrder": true,
     "usage": [
@@ -4184,7 +4184,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "عفن",
       "مبيد فطري"
     ],
-    "productType": "pesticide",
+    "productType": "stimulant",
     "displayOrder": 68,
     "name": "زوكسی مورف - Zoxy morph",
     "allowCartonOrder": true,
@@ -4410,7 +4410,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "description": "مبيد حشري فعال لمكافحة الحشرات الثاقبة الماصة",
     "updatedAt": "2026-11-15T21:48:47.486Z",
     "createdAt": "2026-11-15T21:48:47.486Z",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "usage": [
       "يستخدم لمكافحة الحشرات الثاقبة الماصة وذبابة الفاكهة"
     ],
@@ -4471,7 +4471,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "مركب مصنع بأحدث التقنيات العالمية والمحتوى على جزيئات النانو من عناصر مختلفة",
       "مركب صراعي التأثير يستخدم لمكافحة أنواع مختلفة من حرشفيات الأجنحة في جميع الأعمار الرقابية بالإضافة إلى تأثيرة على البيض من خلال إتلاف الجهاز العصبي للآفة"
     ],
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "categoryId": "CAT-759728",
     "allowCartonOrder": true,
     "searchTags": [
@@ -4530,7 +4530,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "active": true,
     "mainImageUrl": "/uploads/products/prod-74.png",
     "productType": "pesticide",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "id": "PRD-الوا-7508-29",
     "categoryId": "CAT-759728",
     "allowCartonOrder": true,
@@ -4608,7 +4608,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ],
     "applicationRate": "100 سم / 200 لتر ماء",
     "displayOrder": 75,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "shortDescription": "مبيد حشري فائق الجودة يستخدم لمكافحة الدودة والمن والتربس على العديد من المحاصيل الزراعية",
     "active": true,
     "id": "PRD-الوا-7512-30"
@@ -4662,7 +4662,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "updatedAt": "2026-11-15T21:48:47.518Z",
     "piecesPerCarton": 24,
     "displayOrder": 76,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "active": true,
     "allowCartonOrder": true
   },
@@ -4760,7 +4760,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "productType": "pesticide",
     "createdAt": "2026-11-15T21:48:47.529Z",
     "updatedAt": "2026-11-15T21:48:47.529Z",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "allowCartonOrder": true,
     "active": true,
     "mainImageUrl": "/uploads/products/prod-78.png",
@@ -4788,7 +4788,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "piecesPerCarton": 24,
     "description": "مبيد للقضاء على العنكبوت الأحمر والأكاروسات باستخدام تقنية النانو.",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "searchTags": [
       "عنكبوت",
       "أكاروس",
@@ -4879,7 +4879,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ],
     "categoryId": "CAT-759728",
     "productType": "pesticide",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "companyId": "COMP-09",
     "allowCartonOrder": true,
     "usage": [
@@ -4897,7 +4897,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "displayOrder": 81,
     "applicationRate": "يستخدم بمعدل ٢٠٠ سم/٢٠٠ لتر",
     "allowCartonOrder": true,
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "name": "جروزا",
     "allowPieceOrder": true,
     "shortDescription": "مركب واسع المدى ممتد المفعول ذو قوة لمكافحة جميع أنواع الأكاروسات والحشرات الماصة",
@@ -4963,7 +4963,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "updatedAt": "2026-11-15T21:48:47.559Z",
     "displayOrder": 82,
     "applicationRate": "يستخدم بمعدل ٢٠٠ سم / ٢٠٠ لتر",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "categoryId": "CAT-759728",
     "searchTags": [
       "بيفنازات",
@@ -5020,7 +5020,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "updatedAt": "2026-11-15T21:48:47.565Z",
     "displayOrder": 83,
     "applicationRate": "يستخدم بمعدل ٢٠٠ سم / ٢٠٠ لتر",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "categoryId": "CAT-759728",
     "searchTags": [
       "ابامكتين",
@@ -5067,7 +5067,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "mainImageUrl": "/uploads/products/prod-83.png",
     "active": true,
     "companyId": "COMP-09",
-    "productType": "stimulant",
+    "productType": "pesticide",
     "allowCartonOrder": true
   },
   {
@@ -5082,7 +5082,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الوا-7570-39",
     "createdAt": "2026-11-15T21:48:47.570Z",
     "updatedAt": "2026-11-15T21:48:47.570Z",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "allowCartonOrder": true,
     "usage": [
       "يستخدم رش بمعدل ٥٠0 سم / الفدان ويعاد الرش حسب حالة النبات",
@@ -5190,7 +5190,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "active": true,
     "shortDescription": "سماد سائل تام الذوبان في الماء مصنع من نسب مدروسة بعناية فائقة ومتوازية من مستخلص طحالب سبيرولينا والعناصر الصغرى",
     "name": "نانو جرين",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "searchTags": [
       "طحالب",
       "حديد",
@@ -5631,7 +5631,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowPieceOrder": true,
     "piecesPerCarton": 12,
     "mainImageUrl": "/uploads/products/prod-92.png",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "characteristics": [
       "يحتوي على نسبة عالية من أندول بيوتريك أسيد المسؤول عن بناء الشعيرات الجذرية",
       "يحتوي على نفتالين إسبتيك أسيد لبناء التفريعات الجذرية الرئيسية",
@@ -5686,7 +5686,7 @@ export const INITIAL_PRODUCTS: Product[] = [
       "نيتروجين 15%",
       "محمل على جزيئات نانو"
     ],
-    "productType": "pesticide",
+    "productType": "stimulant",
     "usage": [
       "الرش الورقى: بمعدل ٢ سم / ١ لتر مياه",
       "التسميد الأرضي: بمعدل ٢ لتر / للفدان"
@@ -5848,7 +5848,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "usage": [
       "التسميد الأرضي: 3 / 5 لتر / للفدان"
     ],
-    "allowPieceOrder": true
+    "allowPieceOrder": true,
+    "subCategoryId": "SUB-685005"
   },
   {
     "mainImageUrl": "/uploads/products/prod-96.png",
@@ -5911,11 +5912,12 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الوا-7635-51",
     "description": "سماد متعادل معلق بتقنية النانو لجميع مراحل النمو",
     "productType": "fertilizer",
-    "name": "نانو سسبنشن (متعادل العناصر - NPK 20-20-20)"
+    "name": "نانو سسبنشن (متعادل العناصر - NPK 20-20-20)",
+    "subCategoryId": "SUB-685005"
   },
   {
     "displayOrder": 97,
-    "productType": "pesticide",
+    "productType": "fertilizer",
     "composition": [
       "نيتروجين 6%",
       "فسفور 6%",
@@ -5974,7 +5976,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "usage": [
       "التسميد الأرضي: 3 / 5 لتر / للفدان"
     ],
-    "id": "PRD-الوا-7640-52"
+    "id": "PRD-الوا-7640-52",
+    "subCategoryId": "SUB-685005"
   },
   {
     "name": "Higher Grow (أعلى نمو)",
@@ -6033,7 +6036,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "createdAt": "2026-11-15T21:48:47.649Z",
     "updatedAt": "2026-11-15T21:48:47.649Z",
     "applicationRate": "التسميد الأرضي: 3 / 5 لتر / للفدان",
-    "categoryId": "CAT-02"
+    "categoryId": "CAT-02",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-الوا-7654-54",
@@ -6078,7 +6082,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     ],
     "applicationRate": "التسميد الأرضي: 3 / 5 لتر / للفدان",
     "categoryId": "CAT-02",
-    "productType": "pesticide",
+    "productType": "fertilizer",
     "composition": [
       "نيتروجين 10%",
       "فسفور 50%",
@@ -6089,7 +6093,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "description": "سماد عالي الفسفور لتحفيز التزهير ونمو الجذور.",
     "active": true,
     "updatedAt": "2026-11-15T21:48:47.654Z",
-    "createdAt": "2026-11-15T21:48:47.654Z"
+    "createdAt": "2026-11-15T21:48:47.654Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "companyId": "COMP-09",
@@ -6211,7 +6216,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "id": "PRD-الوا-7658-56",
     "createdAt": "2026-11-15T21:48:47.658Z",
-    "updatedAt": "2026-11-15T21:48:47.658Z"
+    "updatedAt": "2026-11-15T21:48:47.658Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "allowPieceOrder": true,
@@ -6332,7 +6338,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "createdAt": "2026-11-15T21:48:47.686Z",
     "updatedAt": "2026-11-15T21:48:47.686Z",
     "shortDescription": "مركب مغذي عام ورافع إجهاد",
-    "productType": "pesticide",
+    "productType": "fertilizer",
     "name": "ديور (أقوى مركب مغذي عام ورافع إجهاد)",
     "description": "مركب مغذي عام ورافع إجهاد غني بالعناصر الكبرى والصغرى والسيتوكينين لتحسين العقد وتحجيم الثمار ومقاومة الإجهاد البيئي.",
     "allowCartonOrder": true,
@@ -6400,7 +6406,8 @@ export const INITIAL_PRODUCTS: Product[] = [
       "موالح",
       "فاكهة",
       "ملوحة"
-    ]
+    ],
+    "subCategoryId": "SUB-675865"
   },
   {
     "allowCartonOrder": true,
@@ -6413,7 +6420,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "active": true,
     "createdAt": "2026-11-15T21:48:47.691Z",
     "updatedAt": "2026-11-15T21:48:47.691Z",
-    "productType": "pesticide",
+    "productType": "fertilizer",
     "mainImageUrl": "/uploads/products/prod-105.png",
     "piecesPerCarton": 12,
     "description": "سماد بوتاسيوم عالي التركيز مع فسفور وطحالب اسبيرولينا وسكريات كحولية لتحجيم وتلوين الثمار.",
@@ -6469,7 +6476,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "companyId": "COMP-03",
     "categoryId": "CAT-759728",
     "subCategoryId": "SUB-800564",
-    "productType": "fertilizer",
+    "productType": "pesticide",
     "name": "فايكنج",
     "shortDescription": "مبيد وقائي وعلاجي للأمراض الفطرية والبكتيرية",
     "description": "فايكنج مركب يحتوي على النحاس والزنك المحمل على الأحماض الكربوكسيلية و يعالج نقص عنصري الزنك والنحاس فايكنج له تأثير وقائي وعلاجي للأمراض الفطرية والبكتيرية من خلال قدرته النفاذة لطبقات الورقة",
@@ -6645,7 +6652,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-شركة-1183-4",
     "companyId": "COMP-03",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "productType": "pesticide",
     "name": "اجريصول",
     "shortDescription": "مبيد نيماتودا فطري بكثيري من مكونات طبيعية",
@@ -6762,7 +6769,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-شركة-1196-6",
     "companyId": "COMP-03",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "ترافيك",
     "shortDescription": "مبيد للوقاية من العناكب وصناعات الأنفاق والتربس والذبابة البيضاء",
@@ -6819,7 +6826,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-شركة-1206-7",
     "companyId": "COMP-03",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "productType": "pesticide",
     "name": "كاس تيم بلس",
     "shortDescription": "مبيد ومقوي للجذور ضد النيماتودا وحماية الشعيرات الجذرية",
@@ -7185,7 +7192,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2028-1",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "أترامكاتين 1.8%",
     "shortDescription": "مبيد حشري يحتوي على خليط من مركبين للفتك بالأفة وشلل الأفة والقضاء عليها",
@@ -7243,7 +7250,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2044-2",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "لمبادا 5%",
     "shortDescription": "مبيد واسع النطاق فعال كسم معوي وله مفعول أقل عن طريق الملامسة",
@@ -7297,7 +7304,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2056-3",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "كلور اكس",
     "shortDescription": "مبيد حشري فوسفوري عضوي يستخدم على نطاق واسع في مكافحة الآفات الحشرية",
@@ -7349,7 +7356,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2065-4",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "لمبادا 10%",
     "shortDescription": "مبيد يؤثر على حوالي 10% من البيض فلا يففقس ويؤثر على العذاري",
@@ -7401,7 +7408,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2075-5",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "سويتش جراند 13%",
     "shortDescription": "مبيد حشري واسع المدى يحتوي على مواد فعالة تثبت دخول ايقونات الصوديوم للخليه العصبية",
@@ -7453,7 +7460,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2082-6",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "بروكلينت جراند",
     "shortDescription": "مبيد حشري قوي المفعول يحتوي على المادة الفعاله إيماميكتن بنزوات",
@@ -7543,7 +7550,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2111-8",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "لينو 5%",
     "shortDescription": "مبيد حشري مانع إنسلاخ يعمل علي تثبيط تكوين طبقة الكيتين فتتوقف عملية الانسلاخ",
@@ -8040,7 +8047,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2164-17",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "productType": "pesticide",
     "name": "نيما ستوب",
     "shortDescription": "مركب طبيعي لمكافحة النيماتودا",
@@ -8152,7 +8159,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-بايو-2175-19",
     "companyId": "COMP-17",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "هيبتور",
     "shortDescription": "مبيد حشائش لمكافحة الهالوك",
@@ -8266,7 +8273,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-3977-2",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "اسيتا زد 20%",
     "shortDescription": "مبيد حشري جهازي بالملامسة والمعدة لمكافحة الحشرات الثاقبة الماصة.",
@@ -8316,7 +8323,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-3984-3",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "لمبادا 5%",
     "shortDescription": "مبيد حشري لمقاومة الندوة المبكرة والحشرات الطائرة والمن والتربس.",
@@ -8375,7 +8382,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-3990-4",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "إيفر - زد 72%",
     "shortDescription": "مبيد حشري قوي لمكافحة الحشرات الطائرة والمن والتربس وذبابة الفاكهة.",
@@ -8424,7 +8431,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-3997-5",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "بيلارميت",
     "shortDescription": "مبيد حشري لمكافحة دودة ورق القطن ودودة الذرة الشامية.",
@@ -8471,7 +8478,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-4003-6",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "يورو ماك 1.8% أبابمكتين",
     "shortDescription": "مبيد لمكافحة العناكب والأكاروسات.",
@@ -8509,7 +8516,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-4008-7",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "استرا زد 5.7%",
     "shortDescription": "مبيد حشري ذو فاعلية عالية ومنخفض الدرجة السمية ومحافظ على البيئة.",
@@ -8562,7 +8569,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-4013-8",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "ملاثيون 57 / أميكو",
     "shortDescription": "مبيد حشري للقضاء على المن والذبابة البيضاء والنمل والصراصير.",
@@ -8664,7 +8671,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-4035-10",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "يوروسات 48%",
     "shortDescription": "من أقوى المبيدات التي تكافح الحشائش الحولية والمعمرة التي تصيب حدائق الفاكهة",
@@ -8715,7 +8722,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-4039-11",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "ويد كيلر",
     "shortDescription": "مبيد حشائش خصيصًا لمكافحة الحشائش النجيلية الحولية والمعمرة بعد الإنبات",
@@ -8823,7 +8830,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-زين-4049-13",
     "companyId": "COMP-14",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "ريزولوكس تي 50%",
     "shortDescription": "مبيد فطري لمكافحة الحشائش النجيلية الحولية والمعمرة والأمراض",
@@ -8880,7 +8887,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-ايجي-7239-1",
     "companyId": "COMP-18",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "إيجلز فري بروتيكت",
     "shortDescription": "مجموعة من الزيوت الطبيعية والمميزة والتي تعمل على عزل أنسجة النبات عن الفطريات والحشرات بكافة أطورها",
@@ -8943,7 +8950,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-ايجي-7259-2",
     "companyId": "COMP-18",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "سلفو",
     "shortDescription": "مبيد وقائي يقضي على بيض الأكاروسات في مرحلته الأولى",
@@ -9006,7 +9013,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-ايجي-7266-3",
     "companyId": "COMP-18",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "فيدا",
     "shortDescription": "مبيد بالملامسة والبالع، يخترق الطبقة الخارجية للحشارة ويقضي عليها فور تغذيتها على النبات المعامل",
@@ -9078,7 +9085,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-ايجي-7276-4",
     "companyId": "COMP-18",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "RPK سوسة النخيل",
     "shortDescription": "مركب ذو فعالية عالية يوفر حماية شاملة للنخيل من الإصابة بسوسة النخيل الحمراء",
@@ -9396,7 +9403,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-كفر -2374-3",
     "companyId": "COMP-07",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "كانجلودا 15%",
     "shortDescription": "مبيد حشري قوي يقاوم العديد من الافات الحشرية",
@@ -9511,7 +9518,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-كفر -2397-5",
     "companyId": "COMP-07",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "كفروزوكس 10%",
     "shortDescription": "مبيد أكاروسي يؤثر عن طريق الملامسة وكسم معدي علي جميع اطوار الحشرة",
@@ -9626,7 +9633,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-كفر -2423-7",
     "companyId": "COMP-07",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "اورجامكتين EC 1.8%",
     "shortDescription": "المبيد الامثل في مكافحة الاكاروس (العناكب) يعمل بالملامسة وكسم معدي",
@@ -10405,7 +10412,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7619-1",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "جولد",
     "shortDescription": "مركب طبيعي لمكافحة العناكب وصانعات الانفاق في العديد من المحاصيل الزراعية",
@@ -10518,7 +10525,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7664-3",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "تافابان",
     "shortDescription": "مبيد حشري فوسفوري عضوي فعال بالملامسة، وسم معدى وأيضاً عن طريق التبخير",
@@ -10574,7 +10581,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7689-4",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "بيريبان ايه",
     "shortDescription": "مبيد حشري فوسفوري عضوي ذو تأثير ثلاثي بالملامسة وسم معدي وبالتنفس",
@@ -10632,7 +10639,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7705-5",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "سوبر الفا",
     "shortDescription": "مبيد حشري بيرثرويدي غير جهازي يتميز بتأثيره العريض ضد مدى واسع من الآفات",
@@ -10688,7 +10695,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7711-6",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "باشا",
     "shortDescription": "مبيد حشري غير جهازي واسع النطاق له القدرة على النفاذية داخل أنسجة النباتات",
@@ -10741,7 +10748,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7721-7",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "كورد",
     "shortDescription": "مبيد حشري فوسفوري عضوي ذو تأثير ثلاثي بالملامسة وسم معدي وبالتنفس",
@@ -10798,7 +10805,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7727-8",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "ملاتوكس",
     "shortDescription": "ملاتوكس مبيد حشري فوسفوري عضوي فعال بالملامسة وسم معدى وأيضاً عن طريق التبخير",
@@ -10856,7 +10863,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7737-9",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "برنس",
     "shortDescription": "مبيد أكاروسي غير جهازي ذو تأثير ثنائي بالملامسة وكسم معدي",
@@ -10909,7 +10916,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7749-10",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "كابريس",
     "shortDescription": "مبيد حشري يعمل كمانع انسلاخ على دودة ورق القطن",
@@ -10960,7 +10967,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7753-11",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "دايموتكس",
     "shortDescription": "مبيد حشري وأكاروسي فسفورى جهازي يعمل بالملامسة وكسم معدى",
@@ -11078,7 +11085,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7765-13",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "هلب ستار",
     "shortDescription": "مبيد حشري وأكاروسي غير جهازي دو اثر باقى و ذو كفاءة عالية",
@@ -11183,7 +11190,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7793-15",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "سوباركيل",
     "shortDescription": "مبيد حشري بيرثرويدي غير جهازي يتميز بتأثيره العريض ضد مدى واسع من الآفات",
@@ -11235,7 +11242,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7799-16",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "سولانو",
     "shortDescription": "مبيد حشري أكاروسي غير جهازي مانع للانسلاخ له تأثير منظم للنمو على الحشرات والأكاروسات",
@@ -11291,7 +11298,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7804-17",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-814298",
     "productType": "pesticide",
     "name": "كابيتول",
     "shortDescription": "مبيد حشري و عناكيبي 24 % مركز",
@@ -11766,7 +11773,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7932-25",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-729901",
     "productType": "pesticide",
     "name": "نيمابروب",
     "shortDescription": "مبيد نيماتودى حديث جهازى وبالملامسة غير تدخيني للتربة",
@@ -11827,7 +11834,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7937-26",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "بارون",
     "shortDescription": "مبيد حشائش جهازى غير اختيارى بعد الانبات على هيئة سائل مركز قابل للذوبان",
@@ -11883,7 +11890,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7947-27",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "تورنادو",
     "shortDescription": "مبيد حشائش إختيارى يعمل بالملامسة ويمتص بسهولة داخل أوراق وجذور النباتات",
@@ -11941,7 +11948,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7952-28",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "ألدو",
     "shortDescription": "مبيد حشائش فعال متخصص يقضى على الزمير والحشائش النجيليه الحوليه في القمح",
@@ -11988,7 +11995,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7957-29",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "ديموند",
     "shortDescription": "مبيد حشائش جهازي إختياري يستخدم بعد ظهور الحشائش وله تأثير جهازي لضمان القضاء على الحشائش",
@@ -12042,7 +12049,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7967-30",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "روكسان",
     "shortDescription": "مبيد حشائش سريع ومميت للحشائش الحولية العريضة وضد الأجزاء الخضراء",
@@ -12103,7 +12110,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7972-31",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "سوليبال",
     "shortDescription": "مبيد بيئداً اختيارياً بالملامسة لمكافحة الحشائش العريضة والأوراق والنجيلية",
@@ -12161,7 +12168,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-الهي-7976-32",
     "companyId": "COMP-13",
     "categoryId": "CAT-759728",
-    "subCategoryId": "SUB-800564",
+    "subCategoryId": "SUB-825081",
     "productType": "pesticide",
     "name": "برومو بلس",
     "shortDescription": "مبيد حشائش اختيارى بالملامسة لمكافحة الحشائش العريضة في القمح والشعير والكتان",
@@ -12265,7 +12272,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T22:31:24.650Z",
-    "updatedAt": "2026-11-15T22:31:24.650Z"
+    "updatedAt": "2026-11-15T22:31:24.650Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-شركة-4650-2",
@@ -12319,7 +12327,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T22:31:24.650Z",
-    "updatedAt": "2026-11-15T22:31:24.650Z"
+    "updatedAt": "2026-11-15T22:31:24.650Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-شركة-4670-3",
@@ -12929,7 +12938,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T22:31:24.730Z",
-    "updatedAt": "2026-11-15T22:31:24.730Z"
+    "updatedAt": "2026-11-15T22:31:24.730Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-شركة-4736-13",
@@ -12988,7 +12998,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-15T22:31:24.736Z",
-    "updatedAt": "2026-11-15T22:31:24.736Z"
+    "updatedAt": "2026-11-15T22:31:24.736Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-شركة-4736-14",
@@ -13106,7 +13117,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:07:55.165Z",
-    "updatedAt": "2026-11-15T23:07:55.165Z"
+    "updatedAt": "2026-11-15T23:07:55.165Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-كفر -5204-2",
@@ -13164,7 +13176,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:07:55.204Z",
-    "updatedAt": "2026-11-15T23:07:55.204Z"
+    "updatedAt": "2026-11-15T23:07:55.204Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-كفر -5215-3",
@@ -13213,7 +13226,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:07:55.215Z",
-    "updatedAt": "2026-11-15T23:07:55.215Z"
+    "updatedAt": "2026-11-15T23:07:55.215Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-كفر -5226-4",
@@ -13317,7 +13331,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:07:55.240Z",
-    "updatedAt": "2026-11-15T23:07:55.240Z"
+    "updatedAt": "2026-11-15T23:07:55.240Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-كفر -5240-6",
@@ -13357,7 +13372,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:07:55.240Z",
-    "updatedAt": "2026-11-15T23:07:55.240Z"
+    "updatedAt": "2026-11-15T23:07:55.240Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-كفر -5240-7",
@@ -13525,7 +13541,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:07:55.240Z",
-    "updatedAt": "2026-11-15T23:07:55.240Z"
+    "updatedAt": "2026-11-15T23:07:55.240Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7366-1",
@@ -13586,7 +13603,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:15:37.366Z",
-    "updatedAt": "2026-11-15T23:15:37.366Z"
+    "updatedAt": "2026-11-15T23:15:37.366Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7409-2",
@@ -13649,7 +13667,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:15:37.409Z",
-    "updatedAt": "2026-11-15T23:15:37.409Z"
+    "updatedAt": "2026-11-15T23:15:37.409Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7410-3",
@@ -13709,7 +13728,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:15:37.410Z",
-    "updatedAt": "2026-11-15T23:15:37.410Z"
+    "updatedAt": "2026-11-15T23:15:37.410Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7437-4",
@@ -13820,7 +13840,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:15:37.443Z",
-    "updatedAt": "2026-11-15T23:15:37.443Z"
+    "updatedAt": "2026-11-15T23:15:37.443Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7462-6",
@@ -13882,7 +13903,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:15:37.462Z",
-    "updatedAt": "2026-11-15T23:15:37.462Z"
+    "updatedAt": "2026-11-15T23:15:37.462Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7479-7",
@@ -13946,7 +13968,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:15:37.479Z",
-    "updatedAt": "2026-11-15T23:15:37.479Z"
+    "updatedAt": "2026-11-15T23:15:37.479Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7479-8",
@@ -14004,7 +14027,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.479Z",
-    "updatedAt": "2026-11-15T23:15:37.479Z"
+    "updatedAt": "2026-11-15T23:15:37.479Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-اجرو-7479-9",
@@ -14128,7 +14152,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.479Z",
-    "updatedAt": "2026-11-15T23:15:37.479Z"
+    "updatedAt": "2026-11-15T23:15:37.479Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7479-11",
@@ -14320,7 +14345,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.491Z",
-    "updatedAt": "2026-11-15T23:15:37.491Z"
+    "updatedAt": "2026-11-15T23:15:37.491Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7491-14",
@@ -14381,7 +14407,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.491Z",
-    "updatedAt": "2026-11-15T23:15:37.491Z"
+    "updatedAt": "2026-11-15T23:15:37.491Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7491-15",
@@ -14447,7 +14474,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.491Z",
-    "updatedAt": "2026-11-15T23:15:37.491Z"
+    "updatedAt": "2026-11-15T23:15:37.491Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7491-16",
@@ -14569,7 +14597,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.491Z",
-    "updatedAt": "2026-11-15T23:15:37.491Z"
+    "updatedAt": "2026-11-15T23:15:37.491Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-اجرو-7496-18",
@@ -14676,7 +14705,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.496Z",
-    "updatedAt": "2026-11-15T23:15:37.496Z"
+    "updatedAt": "2026-11-15T23:15:37.496Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اجرو-7496-20",
@@ -14783,7 +14813,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.496Z",
-    "updatedAt": "2026-11-15T23:15:37.496Z"
+    "updatedAt": "2026-11-15T23:15:37.496Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-اجرو-7501-22",
@@ -14817,7 +14848,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.501Z",
-    "updatedAt": "2026-11-15T23:15:37.501Z"
+    "updatedAt": "2026-11-15T23:15:37.501Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-اجرو-7507-23",
@@ -14917,13 +14949,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.512Z",
-    "updatedAt": "2026-11-15T23:15:37.512Z"
+    "updatedAt": "2026-11-15T23:15:37.512Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-شركة-0157-1",
     "companyId": "COMP-03",
     "categoryId": "CAT-01",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "شوت كاس",
     "shortDescription": "مخصب ياتي في صورة حبيبات دقيقة متناهية الصغر مصنعة بتقنية متقدمة",
     "description": "شوت كاس مخصب عالي الكفاءة لتحفيز النمو الخضري والتزهير.",
@@ -15727,7 +15760,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:21:39.175Z",
-    "updatedAt": "2026-11-15T23:21:39.175Z"
+    "updatedAt": "2026-11-15T23:21:39.175Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-نوفا-9183-5",
@@ -15944,7 +15978,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "id": "PRD-نوفا-9223-9",
     "companyId": "COMP-05",
     "categoryId": "CAT-01",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "نوفاندول",
     "shortDescription": "مساعد طبيعى وفعال على تبكير الإنتاجية وتنشيط الانقسامات",
     "description": "مركب طبيعي لتنشيط الجذور وزيادة الانقسامات المرستيمية.",
@@ -16041,7 +16075,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:21:39.232Z",
-    "updatedAt": "2026-11-15T23:21:39.232Z"
+    "updatedAt": "2026-11-15T23:21:39.232Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-نوفا-9242-11",
@@ -16198,7 +16233,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-15T23:21:39.248Z",
-    "updatedAt": "2026-11-15T23:21:39.248Z"
+    "updatedAt": "2026-11-15T23:21:39.248Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-نوفا-9248-14",
@@ -16397,7 +16433,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:21:39.268Z",
-    "updatedAt": "2026-11-15T23:21:39.268Z"
+    "updatedAt": "2026-11-15T23:21:39.268Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-نوفا-9268-18",
@@ -16455,7 +16492,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:21:39.268Z",
-    "updatedAt": "2026-11-15T23:21:39.268Z"
+    "updatedAt": "2026-11-15T23:21:39.268Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-نوفا-9268-19",
@@ -16510,7 +16548,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:21:39.268Z",
-    "updatedAt": "2026-11-15T23:21:39.268Z"
+    "updatedAt": "2026-11-15T23:21:39.268Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-بايو-8048-1",
@@ -16573,7 +16612,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.048Z",
-    "updatedAt": "2026-11-15T23:23:28.048Z"
+    "updatedAt": "2026-11-15T23:23:28.048Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-بايو-8070-2",
@@ -16625,7 +16665,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.070Z",
-    "updatedAt": "2026-11-15T23:23:28.070Z"
+    "updatedAt": "2026-11-15T23:23:28.070Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-بايو-8079-3",
@@ -16674,7 +16715,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.079Z",
-    "updatedAt": "2026-11-15T23:23:28.079Z"
+    "updatedAt": "2026-11-15T23:23:28.079Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-بايو-8094-4",
@@ -16781,7 +16823,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.101Z",
-    "updatedAt": "2026-11-15T23:23:28.101Z"
+    "updatedAt": "2026-11-15T23:23:28.101Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-بايو-8107-6",
@@ -16832,7 +16875,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.107Z",
-    "updatedAt": "2026-11-15T23:23:28.107Z"
+    "updatedAt": "2026-11-15T23:23:28.107Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-بايو-8114-7",
@@ -16882,7 +16926,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.114Z",
-    "updatedAt": "2026-11-15T23:23:28.114Z"
+    "updatedAt": "2026-11-15T23:23:28.114Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-بايو-8127-8",
@@ -16986,7 +17031,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.133Z",
-    "updatedAt": "2026-11-15T23:23:28.133Z"
+    "updatedAt": "2026-11-15T23:23:28.133Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-بايو-8142-10",
@@ -17048,7 +17094,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.142Z",
-    "updatedAt": "2026-11-15T23:23:28.142Z"
+    "updatedAt": "2026-11-15T23:23:28.142Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-بايو-8151-11",
@@ -17154,7 +17201,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:23:28.158Z",
-    "updatedAt": "2026-11-15T23:23:28.158Z"
+    "updatedAt": "2026-11-15T23:23:28.158Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-زين-6693-1",
@@ -17314,13 +17362,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-15T23:28:06.718Z",
-    "updatedAt": "2026-11-15T23:28:06.718Z"
+    "updatedAt": "2026-11-15T23:28:06.718Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-زين-6751-4",
     "companyId": "COMP-14",
     "categoryId": "CAT-01",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "طحالب بحرية",
     "shortDescription": "غنية بالهرمونات الطبيعية والعناصر الصغرى لزيادة النمو الخضري والإزهار",
     "description": "مستخلص طحالب بحرية نقي لزيادة النمو الخضري والإزهار وتحسين الحيوية.",
@@ -17412,7 +17461,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-15T23:28:06.765Z",
-    "updatedAt": "2026-11-15T23:28:06.765Z"
+    "updatedAt": "2026-11-15T23:28:06.765Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-زين-6765-6",
@@ -17472,7 +17522,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:28:06.765Z",
-    "updatedAt": "2026-11-15T23:28:06.765Z"
+    "updatedAt": "2026-11-15T23:28:06.765Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-زين-6765-7",
@@ -17540,7 +17591,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-15T23:28:06.765Z",
-    "updatedAt": "2026-11-15T23:28:06.765Z"
+    "updatedAt": "2026-11-15T23:28:06.765Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-زين-6771-8",
@@ -17922,7 +17974,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:30:29.746Z",
-    "updatedAt": "2026-11-15T23:30:29.746Z"
+    "updatedAt": "2026-11-15T23:30:29.746Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-ايجي-9746-2",
@@ -18180,7 +18233,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:30:29.785Z",
-    "updatedAt": "2026-11-15T23:30:29.785Z"
+    "updatedAt": "2026-11-15T23:30:29.785Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-ايجي-9794-6",
@@ -18236,7 +18290,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:30:29.794Z",
-    "updatedAt": "2026-11-15T23:30:29.794Z"
+    "updatedAt": "2026-11-15T23:30:29.794Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-ايجي-9805-7",
@@ -18553,7 +18608,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:30:29.833Z",
-    "updatedAt": "2026-11-15T23:30:29.833Z"
+    "updatedAt": "2026-11-15T23:30:29.833Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-ايجي-9833-12",
@@ -18623,7 +18679,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:30:29.833Z",
-    "updatedAt": "2026-11-15T23:30:29.833Z"
+    "updatedAt": "2026-11-15T23:30:29.833Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-ايجي-9833-13",
@@ -18690,7 +18747,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:30:29.833Z",
-    "updatedAt": "2026-11-15T23:30:29.833Z"
+    "updatedAt": "2026-11-15T23:30:29.833Z",
+    "subCategoryId": "SUB-675865"
   },
   {
     "id": "PRD-ايجي-9833-14",
@@ -18825,7 +18883,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:30:29.833Z",
-    "updatedAt": "2026-11-15T23:30:29.833Z"
+    "updatedAt": "2026-11-15T23:30:29.833Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-ايجي-9833-16",
@@ -18893,7 +18952,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:30:29.833Z",
-    "updatedAt": "2026-11-15T23:30:29.833Z"
+    "updatedAt": "2026-11-15T23:30:29.833Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اورك-1622-1",
@@ -19062,7 +19122,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:31:41.653Z",
-    "updatedAt": "2026-11-15T23:31:41.653Z"
+    "updatedAt": "2026-11-15T23:31:41.653Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اورك-1661-4",
@@ -19170,7 +19231,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:31:41.669Z",
-    "updatedAt": "2026-11-15T23:31:41.669Z"
+    "updatedAt": "2026-11-15T23:31:41.669Z",
+    "subCategoryId": "SUB-685005"
   },
   {
     "id": "PRD-اورك-1669-6",
@@ -19222,7 +19284,8 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:31:41.669Z",
-    "updatedAt": "2026-11-15T23:31:41.669Z"
+    "updatedAt": "2026-11-15T23:31:41.669Z",
+    "subCategoryId": "SUB-685005"
   }
 ];
 

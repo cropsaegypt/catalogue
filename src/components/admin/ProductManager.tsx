@@ -216,7 +216,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         return {
           ...p,
           categoryId: prop.suggestedCategoryId,
-          subCategoryId: prop.suggestedSubCategoryId,
+          subCategoryId: prop.suggestedSubCategoryId || undefined,
           productType: nextType,
           updatedAt: new Date().toISOString(),
         };
