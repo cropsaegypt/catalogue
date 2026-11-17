@@ -106,16 +106,21 @@ export function getProductMainCategoryId(product: Product, categories: Category[
     }
   }
 
-  // 2. If product.categoryId points to a subcategory with a parentId, return parent's ID
+  // 2. Direct match on product.categoryId:
+  // If product.categoryId points to a subcategory with a parentId, return parent's ID.
+  // If it points directly to an established Main Category (e.g. CAT-01, CAT-02, CAT-759728), return it!
   const directCat = categories.find(
     (c) =>
       c.id === product.categoryId ||
       c.slug === product.categoryId ||
       c.name.trim().toLowerCase() === (product.categoryId || '').trim().toLowerCase()
   );
-  if (directCat?.parentId) {
-    const parent = categories.find((c) => c.id === directCat.parentId);
-    return parent ? parent.id : directCat.parentId;
+  if (directCat) {
+    if (directCat.parentId) {
+      const parent = categories.find((c) => c.id === directCat.parentId);
+      return parent ? parent.id : directCat.parentId;
+    }
+    return directCat.id;
   }
 
   // 3. Agronomy Type & Keywords resolution (fixes Excel imports where categoryId defaulted to CAT-01)

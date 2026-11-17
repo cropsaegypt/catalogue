@@ -114,17 +114,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </span>
       );
     }
-    if (product.productType === 'pesticide') {
+    // Check categoryId first so fertilizers/stimulants never get mislabeled by stale productType
+    if (product.categoryId === 'CAT-02' || product.productType === 'fertilizer') {
       return (
-        <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded-lg">
-          مبيد معتمد
+        <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-black px-2 py-0.5 rounded-lg">
+          سماد ومغذي
         </span>
       );
     }
-    if (product.productType === 'stimulant') {
+    if (product.categoryId === 'CAT-01' || product.productType === 'stimulant') {
       return (
         <span className="bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-black px-2 py-0.5 rounded-lg">
           مخصب سائل
+        </span>
+      );
+    }
+    if (product.categoryId === 'CAT-759728' || product.productType === 'pesticide') {
+      return (
+        <span className="bg-rose-50 text-rose-700 border border-rose-200 text-[10px] font-black px-2 py-0.5 rounded-lg">
+          مبيد معتمد
         </span>
       );
     }

@@ -198,10 +198,26 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     const updatedProducts = products.map((p) => {
       if (proposalMap.has(p.id)) {
         const prop = proposalMap.get(p.id)!;
+        const targetCat = prop.suggestedCategoryId;
+        let nextType: 'pesticide' | 'fertilizer' | 'stimulant' = 'pesticide';
+        if (
+          targetCat === 'CAT-02' ||
+          prop.suggestedCategoryName.includes('أسمدة') ||
+          prop.suggestedCategoryName.includes('سماد')
+        ) {
+          nextType = 'fertilizer';
+        } else if (
+          targetCat === 'CAT-01' ||
+          prop.suggestedCategoryName.includes('مخصب')
+        ) {
+          nextType = 'stimulant';
+        }
+
         return {
           ...p,
           categoryId: prop.suggestedCategoryId,
           subCategoryId: prop.suggestedSubCategoryId,
+          productType: nextType,
           updatedAt: new Date().toISOString(),
         };
       }
