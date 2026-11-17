@@ -11,10 +11,14 @@ import {
   ArrowLeft,
   AlertCircle,
   HelpCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { Product, Category, CompanySubCategory } from '../../types';
 import { AgronomicClassificationProposal } from '../../utils/agronomicClassifier';
-import { getUnifiedSubCategoriesForSelection } from '../../utils/categoryHierarchy';
+import {
+  getMainCategories,
+  getUnifiedSubCategoriesForSelection,
+} from '../../utils/categoryHierarchy';
 
 interface AgronomicClassifierModalProps {
   isOpen: boolean;
@@ -37,29 +41,43 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
 }) => {
   const [proposals, setProposals] = useState<AgronomicClassificationProposal[]>(initialProposals);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterConfidence, setFilterConfidence] = useState<'all' | 'high' | 'medium'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'category_and_sub' | 'sub_only'>('all');
   const [isApplying, setIsApplying] = useState(false);
+
+  // Available main categories
+  const mainCategories = useMemo(() => getMainCategories(categories), [categories]);
 
   // Sync when initial proposals change
   React.useEffect(() => {
     setProposals(initialProposals);
   }, [initialProposals]);
 
+  const categoryChangeCount = useMemo(
+    () => proposals.filter((p) => p.isCategoryChanged).length,
+    [proposals]
+  );
+  const subOnlyCount = useMemo(
+    () => proposals.filter((p) => !p.isCategoryChanged).length,
+    [proposals]
+  );
+
   // Filtered list
   const filteredProposals = useMemo(() => {
     return proposals.filter((p) => {
-      if (filterConfidence !== 'all' && p.confidence !== filterConfidence) return false;
+      if (filterType === 'category_and_sub' && !p.isCategoryChanged) return false;
+      if (filterType === 'sub_only' && p.isCategoryChanged) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.trim().toLowerCase();
       return (
         p.product.name.toLowerCase().includes(q) ||
         p.product.id.toLowerCase().includes(q) ||
         p.companyName.toLowerCase().includes(q) ||
+        p.suggestedCategoryName.toLowerCase().includes(q) ||
         p.suggestedSubCategoryName.toLowerCase().includes(q) ||
         p.detectedKeywords.some((k) => k.toLowerCase().includes(q))
       );
     });
-  }, [proposals, searchQuery, filterConfidence]);
+  }, [proposals, searchQuery, filterType]);
 
   const selectedCount = useMemo(() => proposals.filter((p) => p.selected).length, [proposals]);
 
@@ -77,6 +95,33 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
     );
   };
 
+  const changeCategory = (productId: string, newCatId: string, newCatName: string) => {
+    setProposals((prev) =>
+      prev.map((p) => {
+        if (p.product.id === productId) {
+          // Resolve subcategories available under the new main category
+          const options = getUnifiedSubCategoriesForSelection(
+            categories,
+            newCatId,
+            p.product.companyId,
+            subCategories
+          );
+          const firstSub = options.length > 0 ? options[0] : null;
+
+          return {
+            ...p,
+            suggestedCategoryId: newCatId,
+            suggestedCategoryName: newCatName,
+            suggestedSubCategoryId: firstSub ? firstSub.id : p.suggestedSubCategoryId,
+            suggestedSubCategoryName: firstSub ? firstSub.name : p.suggestedSubCategoryName,
+            isCategoryChanged: newCatId !== p.currentCategoryId,
+          };
+        }
+        return p;
+      })
+    );
+  };
+
   const changeSubCategory = (productId: string, newSubId: string, newSubName: string) => {
     setProposals((prev) =>
       prev.map((p) =>
@@ -85,6 +130,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
               ...p,
               suggestedSubCategoryId: newSubId,
               suggestedSubCategoryName: newSubName,
+              isSubCategoryChanged: newSubId !== p.currentSubCategoryId,
             }
           : p
       )
@@ -92,7 +138,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
   };
 
   const handleConfirm = () => {
-    const approved = proposals.filter((p) => p.selected && p.suggestedSubCategoryId);
+    const approved = proposals.filter((p) => p.selected);
     if (approved.length === 0) return;
     setIsApplying(true);
     try {
@@ -107,7 +153,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 dir-rtl animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+      <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
         {/* Header */}
         <div className="p-5 sm:p-6 bg-[#FAF8F5] border-b border-[#E5E2D9] flex items-start justify-between gap-4 shrink-0">
           <div className="space-y-1.5">
@@ -117,18 +163,20 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
               </div>
               <div>
                 <h3 className="text-lg sm:text-xl font-black text-stone-900">
-                  المصنّف الزراعي الذكي للأقسام الفرعية
+                  المصنّف الزراعي الذكي للأقسام الرئيسية والفرعية
                 </h3>
                 <p className="text-xs text-stone-600 font-medium">
-                  فحص دقيق للمركبات الزراعية ومطابقة المواد الفعالة والاستخدامات بالأقسام الفرعية المناسبة
+                  فحص دقيق للمركبات الزراعية ومطابقة المواد الفعالة والاستخدامات لضبط القسم الرئيسي (مبيدات / أسمدة / مخصبات) والأقسام الفرعية المناسبة
                 </p>
               </div>
             </div>
 
-            {/* Safety Guarantee Banner */}
-            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-1 rounded-xl text-xs font-bold mt-1">
+            {/* Safety Guarantee & Confirmation Notice */}
+            <div className="inline-flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-1 rounded-xl text-xs font-bold mt-1">
               <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-              <span>ضمان الأمان: الشركات المصنعة والأقسام الرئيسية محمية 100% ولن تتغير نهائياً.</span>
+              <span>
+                ضمان الأمان: الشركات المصنعة ثابتة ومحمية 100%. لن يتم تطبيق أي تعديل إلا بعد مراجعتك وتأكيدك بالزر أدناه.
+              </span>
             </div>
           </div>
 
@@ -141,18 +189,45 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
           </button>
         </div>
 
-        {/* Stats & Search Toolbar */}
+        {/* Filter Pills, Stats & Search Toolbar */}
         <div className="p-4 bg-white border-b border-stone-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2 sm:gap-4 text-xs font-bold">
-            <span className="bg-stone-100 text-stone-800 px-3 py-1.5 rounded-xl border border-stone-200">
-              إجمالي المنتجات المفحوصة: <strong className="text-stone-900 font-black">{totalProductsCount}</strong>
-            </span>
-            <span className="bg-amber-50 text-amber-900 px-3 py-1.5 rounded-xl border border-amber-200">
-              تعديلات مقترحة: <strong className="text-amber-700 font-black">{proposals.length}</strong>
-            </span>
-            <span className="bg-emerald-50 text-emerald-900 px-3 py-1.5 rounded-xl border border-emerald-200">
-              محددة للتطبيق: <strong className="text-emerald-700 font-black">{selectedCount}</strong>
-            </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFilterType('all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                filterType === 'all'
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+              }`}
+            >
+              الكل ({proposals.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType('category_and_sub')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                filterType === 'category_and_sub'
+                  ? 'bg-amber-500 text-stone-950 shadow-xs'
+                  : 'bg-amber-50 text-amber-900 border border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              <span>🔄 تعديل قسم رئيسي + فرعي</span>
+              <span className="bg-amber-200 text-amber-950 px-1.5 py-0.2 rounded-full text-[10px]">
+                {categoryChangeCount}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterType('sub_only')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                filterType === 'sub_only'
+                  ? 'bg-stone-900 text-white shadow-xs'
+                  : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+              }`}
+            >
+              تعديل قسم فرعي فقط ({subOnlyCount})
+            </button>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -196,7 +271,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
               </div>
               <p className="text-sm font-bold text-stone-800">
                 {proposals.length === 0
-                  ? 'رائع! جميع منتجات الكتالوج مصنفة زراعياً بدقة ولا يوجد أي منتج بحاجة لتعديل.'
+                  ? 'رائع! جميع منتجات الكتالوج مصنفة زراعياً بأقسامها الرئيسية والفرعية بدقة تامة.'
                   : 'لا توجد نتائج مطابقة لبحثك الحالي.'}
               </p>
             </div>
@@ -207,17 +282,17 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                   <tr>
                     <th className="p-3 w-10 text-center">#</th>
                     <th className="p-3">المنتج</th>
-                    <th className="p-3">الشركة المصنعة (ثابتة)</th>
-                    <th className="p-3">القسم الفرعي الحالي</th>
-                    <th className="p-3 text-emerald-800 font-black">القسم الفرعي المقترح ⬅</th>
+                    <th className="p-3">الشركة المصنعة</th>
+                    <th className="p-3">التصنيف الحالي</th>
+                    <th className="p-3 text-emerald-800 font-black">التصنيف المقترح ⬅</th>
                     <th className="p-3">القرائن الزراعية المكتشفة</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
                   {filteredProposals.map((item) => {
-                    const availableOptions = getUnifiedSubCategoriesForSelection(
+                    const availableSubOptions = getUnifiedSubCategoriesForSelection(
                       categories,
-                      item.product.categoryId,
+                      item.suggestedCategoryId,
                       item.product.companyId,
                       subCategories
                     );
@@ -234,7 +309,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                             type="checkbox"
                             checked={item.selected}
                             onChange={() => toggleSelect(item.product.id)}
-                            className="rounded text-[#046A47] focus:ring-[#046A47] w-4 h-4 cursor-pointer"
+                            className="rounded text-[#046A47] focus:ring-[#046A47] w-4 h-4 cursor-pointer accent-[#046A47]"
                           />
                         </td>
                         <td className="p-3 font-bold text-stone-900">
@@ -267,33 +342,66 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                           </span>
                         </td>
                         <td className="p-3">
-                          <span className="text-stone-500 font-medium">
-                            {item.currentSubCategoryName === 'غير محدد' ? (
-                              <span className="text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200 text-[10.5px] font-bold">
-                                غير محدد
-                              </span>
-                            ) : (
-                              item.currentSubCategoryName
-                            )}
-                          </span>
+                          <div className="space-y-1">
+                            <span className="inline-block bg-stone-100 text-stone-700 px-2 py-0.5 rounded text-[11px] font-bold border border-stone-200">
+                              {item.currentCategoryName}
+                            </span>
+                            <span className="block text-[10.5px] text-stone-500 font-medium">
+                              ↳ {item.currentSubCategoryName}
+                            </span>
+                          </div>
                         </td>
                         <td className="p-3">
-                          <div className="flex items-center gap-1.5">
+                          <div className="space-y-1.5">
+                            {/* Main Category Dropdown Selector */}
+                            <div className="flex items-center gap-1">
+                              <select
+                                value={item.suggestedCategoryId}
+                                onChange={(e) => {
+                                  const selCat = mainCategories.find((c) => c.id === e.target.value);
+                                  changeCategory(
+                                    item.product.id,
+                                    e.target.value,
+                                    selCat?.name || e.target.value
+                                  );
+                                }}
+                                className={`text-xs font-black rounded-xl px-2 py-1 border cursor-pointer ${
+                                  item.isCategoryChanged
+                                    ? 'bg-amber-100 border-amber-300 text-amber-950 font-black'
+                                    : 'bg-stone-100 border-stone-300 text-stone-800'
+                                }`}
+                              >
+                                {mainCategories.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+
+                              {item.isCategoryChanged && (
+                                <span className="bg-amber-400 text-stone-950 text-[10px] font-black px-1.5 py-0.5 rounded-full shrink-0">
+                                  نقل قسم رئيسي
+                                </span>
+                              )}
+                            </div>
+
+                            {/* SubCategory Dropdown Selector */}
                             <select
                               value={item.suggestedSubCategoryId}
                               onChange={(e) => {
-                                const selectedOption = availableOptions.find((o) => o.id === e.target.value);
+                                const selSub = availableSubOptions.find((o) => o.id === e.target.value);
                                 changeSubCategory(
                                   item.product.id,
                                   e.target.value,
-                                  selectedOption?.name || e.target.value
+                                  selSub?.name || e.target.value
                                 );
                               }}
-                              className="bg-emerald-50 border border-emerald-300 text-[#046A47] font-black rounded-xl px-2.5 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#046A47] cursor-pointer"
+                              className="bg-emerald-50 border border-emerald-300 text-[#046A47] font-black rounded-xl px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#046A47] cursor-pointer w-full max-w-xs block"
                             >
-                              {availableOptions.map((opt) => (
+                              <option value="">-- بدون قسم فرعي --</option>
+                              {availableSubOptions.map((opt) => (
                                 <option key={opt.id} value={opt.id}>
-                                  {opt.name}
+                                  ↳ {opt.name}
                                 </option>
                               ))}
                             </select>
@@ -320,37 +428,45 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 sm:p-5 bg-[#FAF8F5] border-t border-[#E5E2D9] flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-2 text-xs text-stone-600 font-medium">
-            <HelpCircle className="w-4 h-4 text-stone-400" />
-            <span>
-              يمكنك استثناء أي منتج عبر إزالة علامة الاختيار، أو تعديل القسم المقترح من القائمة المنسدلة مباشرة.
-            </span>
+        {/* Footer & Final Confirmation Action */}
+        <div className="p-4 bg-[#FAF8F5] border-t border-[#E5E2D9] flex flex-wrap items-center justify-between gap-3 shrink-0">
+          <div className="text-xs text-stone-600 font-bold">
+            <span>تم تحديد </span>
+            <strong className="text-emerald-800 text-sm font-black">{selectedCount}</strong>
+            <span> من أصل {proposals.length} منتج بحاجة لتصحيح</span>
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={onClose}
               disabled={isApplying}
-              className="flex-1 sm:flex-none px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+              className="px-4 py-2 border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
             >
-              إلغاء
+              إلغاء التراجع
             </button>
 
             <button
               type="button"
               onClick={handleConfirm}
               disabled={selectedCount === 0 || isApplying}
-              className="flex-1 sm:flex-none px-5 py-2.5 bg-[#046A47] hover:bg-[#035237] disabled:opacity-50 text-white rounded-xl text-xs font-black shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-all"
+              className={`px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-2 shadow-xs transition-transform active:scale-95 cursor-pointer ${
+                selectedCount > 0 && !isApplying
+                  ? 'bg-[#046A47] hover:bg-[#035237] text-white'
+                  : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+              }`}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>
-                {isApplying
-                  ? 'جاري الحفظ والتطبيق...'
-                  : `تأكيد وتطبيق التصنيفات (${selectedCount} منتج) ✓`}
-              </span>
+              {isApplying ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>جاري تطبيق التعديلات...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                  <span>اعتماد وتطبيق التصنيفات المحددة ({selectedCount}) ✓</span>
+                </>
+              )}
             </button>
           </div>
         </div>

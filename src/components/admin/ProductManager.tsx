@@ -194,12 +194,14 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   };
 
   const handleApplyAgronomicProposals = (approvedProposals: AgronomicClassificationProposal[]) => {
-    const updateMap = new Map(approvedProposals.map((p) => [p.product.id, p.suggestedSubCategoryId]));
+    const proposalMap = new Map(approvedProposals.map((p) => [p.product.id, p]));
     const updatedProducts = products.map((p) => {
-      if (updateMap.has(p.id)) {
+      if (proposalMap.has(p.id)) {
+        const prop = proposalMap.get(p.id)!;
         return {
           ...p,
-          subCategoryId: updateMap.get(p.id),
+          categoryId: prop.suggestedCategoryId,
+          subCategoryId: prop.suggestedSubCategoryId,
           updatedAt: new Date().toISOString(),
         };
       }
@@ -207,7 +209,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     });
     onSaveProducts(updatedProducts);
     onShowToast(
-      `تم تطبيق التصنيف الزراعي وتحديث الأقسام الفرعية لـ ${approvedProposals.length} منتج بنجاح ✓`,
+      `تم اعتماد وتطبيق التصنيف الزراعي وتحديث الأقسام لـ ${approvedProposals.length} منتج بنجاح ✓`,
       'success'
     );
   };

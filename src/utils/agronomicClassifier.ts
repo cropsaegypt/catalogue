@@ -1,13 +1,26 @@
 import { Product, Category, CompanySubCategory, Company } from '../types';
-import { getUnifiedSubCategoriesForSelection, getUnifiedSubCategoryName } from './categoryHierarchy';
+import {
+  getMainCategories,
+  getUnifiedSubCategoriesForSelection,
+  getUnifiedSubCategoryName,
+} from './categoryHierarchy';
 
 export interface AgronomicClassificationProposal {
   product: Product;
   companyName: string;
+  // Current classification
+  currentCategoryId: string;
+  currentCategoryName: string;
   currentSubCategoryId?: string;
   currentSubCategoryName: string;
+  // Suggested classification
+  suggestedCategoryId: string;
+  suggestedCategoryName: string;
   suggestedSubCategoryId: string;
   suggestedSubCategoryName: string;
+  // Analysis & Flags
+  isCategoryChanged: boolean;
+  isSubCategoryChanged: boolean;
   detectedKeywords: string[];
   reason: string;
   confidence: 'high' | 'medium';
@@ -15,13 +28,13 @@ export interface AgronomicClassificationProposal {
 }
 
 /**
- * Analyzes products across the catalog using agronomic domain intelligence.
- * Evaluates active ingredient, target diseases/pests, crop usage, and composition
- * to suggest the most accurate subcategory.
+ * Analyzes products across the catalog using specialized agronomic domain intelligence.
+ * Evaluates active ingredient, target diseases/pests, crop usage, and chemical composition
+ * to suggest both the correct Main Category (مبيدات / أسمدة / مخصبات) and the appropriate Subcategory.
  *
  * CRITICAL SAFETY INVARIANT:
  * NEVER alters companyId or manufacturer under any circumstances!
- * Only proposes updates to subCategoryId.
+ * Only proposes updates to categoryId and subCategoryId.
  */
 export function analyzeProductsForAgronomicSubCategories(
   products: Product[],
@@ -30,11 +43,31 @@ export function analyzeProductsForAgronomicSubCategories(
   companies: Company[]
 ): AgronomicClassificationProposal[] {
   const compMap = new Map(companies.map((c) => [c.id, c.name]));
+  const catMap = new Map(categories.map((c) => [c.id, c.name]));
+
+  // Resolve standard main categories dynamically
+  const pesticideCat = categories.find((c) => !c.parentId && c.name.includes('مبيد'));
+  const fertCat = categories.find(
+    (c) => !c.parentId && (c.name.includes('أسمدة') || c.name.includes('سماد'))
+  );
+  const stimCat = categories.find((c) => !c.parentId && c.name.includes('مخصب'));
+
+  // Standard subcategories
+  const subFungicide = categories.find((c) => c.name.includes('فطر'));
+  const subInsecticide = categories.find((c) => c.name.includes('حشر'));
+  const subHerbicide = categories.find((c) => c.name.includes('حشائش'));
+  const subNematicide = categories.find((c) => c.name.includes('نيماتود'));
+  const subCompoundFert = categories.find((c) => c.name.includes('مركب'));
+  const subSingleFert = categories.find(
+    (c) => c.name.includes('احادي') || c.name.includes('أحادي')
+  );
+
   const proposals: AgronomicClassificationProposal[] = [];
 
   for (const product of products) {
     const companyName = compMap.get(product.companyId) || 'شركة زراعية';
 
+    // Comprehensive text extraction (avoiding searchTags to prevent contamination from automated generic tags)
     const fullText = [
       product.name || '',
       product.shortDescription || '',
@@ -42,170 +75,204 @@ export function analyzeProductsForAgronomicSubCategories(
       (product.characteristics || []).join(' '),
       (product.composition || []).join(' '),
       (product.usage || []).join(' '),
-      (product.searchTags || []).join(' '),
     ]
+      .filter(Boolean)
       .join(' ')
       .toLowerCase();
 
-    // Available subcategory choices for this product:
-    const availableOptions = getUnifiedSubCategoriesForSelection(
-      categories,
-      product.categoryId,
-      product.companyId,
-      subCategories
-    );
+    // 1. Diagnostic Indicators
+    const isFungicide =
+      /مبيد فطري|مبيدات فطرية|فطرية وقائية|فطرية علاجية|بياض دقيقي|بياض زغبي|أعفان ثمار|عفن رمادي|أعفان جذور|صدأ|أصداء|تبقع أوراق|ندوة مبكرة|ندوة متأخرة|لفحة|جرب|فيوزاريوم|بيثيوم|ريزوكتونيا|بوتريتس|مانكوزيب|ميتالاكسيل|أزوكسيستروبين|دايفينوكونازول|ثيرام|كربندازيم|كبريت ميكروني|هيدروكسيد نحاس|أكسيكلورور|كبريتات نحاس|جلوكونات نحاس|فوستيل ألومنيوم|دايمثومورف/i.test(
+        fullText
+      );
 
-    let suggestedSubId = '';
+    const isInsecticide =
+      /مبيد حشري|مبيدات حشرية|مبيد أكاروسي|مبيد عناكبي|دودة ورق|ديدان ثمار|ثاقبات|ذبابة بيضاء|ذبابة الفاكهة|تربس|(?:المن\b|حشرة المن)|توتا أبسلوتا|خنافس|سوسة النخيل|أكاروس|عنكبوت أحمر|عناكب|صانعات أنفاق|جاسيد|نطاط|إمامكتين|كلوربيريفوس|أبامكتين|لامبدا|ثياميثوكسام|إميداكلوبريد|ألفاسايبرمثرين|دلتا مثرين|أسيتامبريد|إندوكساكارب/i.test(
+        fullText
+      );
+
+    const isHerbicide =
+      /مبيد حشائش|مبيدات حشائش|مكافحة الحشائش|حشائش عريضة|حشائش رفيعة|هالوك|حامول|نجيل|جلايفوسات|أوكسي فلورفين|بروباموكارب|تراي بيورين|متربيوزين/i.test(
+        fullText
+      );
+
+    const isNematicide =
+      /مبيد نيماتود|مبيدات نيماتود|مبيد نيماتودي|نيماتود|تعقد الجذور|ديدان ثعبانية|أوكساميل|فيودان|فوستيزات|فينا ميفوس|فلوينسلفون/i.test(
+        fullText
+      );
+
+    const isCompoundFert =
+      /\bnpk\b|\b\d{1,2}[-\/]\d{1,2}[-\/]\d{1,2}\b|سماد مركب|أسمدة مركبة|سماد متوازن|تسميد متوازن|سماد بودر|سماد كريستال|عالي الفوسفور|عالي الفسفور|عالي البوتاسيوم|عالي النيتروجين/i.test(
+        fullText
+      );
+
+    const isSingleFert =
+      /سماد أحادي|أسمدة أحادية|احادي|أحادي|سوبر فوسفات|سلفات نشادر|يوريا|نترات كالسيوم|سلفات بوتاسيوم|سلفات ماغنسيوم|نترات نشادر|حديد مخلبي|زنك مخلبي|منجنيز مخلبي|بورون|عناصر صغرى/i.test(
+        fullText
+      );
+
+    const isBiostimulant =
+      /أحماض أمينية|طحالب بحرية|مستخلص طحالب|مستخلص بحري|سيتوكينين|أوكسين|جبرلين|هيوميك|فولفيك|منشط جذور|مخصب ورقي|مخصبات ورقية|مخصب حيوي|منشط نمو/i.test(
+        fullText
+      );
+
+    const pesticideCluesCount = [isFungicide, isInsecticide, isHerbicide, isNematicide].filter(
+      Boolean
+    ).length;
+
+    let suggestedCatId = product.categoryId;
+    let suggestedSubId = product.subCategoryId || '';
     let suggestedSubName = '';
     const detected: string[] = [];
     let reason = '';
 
-    // 1. Fungicide (فطري / وقائي / علاجي)
+    // A. Pesticides Category & Subcategory Analysis
     if (
-      /فطر|بياض|أعفان|عفن|صدأ|تبقع|ندوة|لفحة|جرب|فيوزاريوم|بيثيوم|ريزوكتونيا|بوتريتس|أصداء|مانكوزيب|ميتالاكسيل|أزوكسيستروبين|دايفينوكونازول|ثيرام|كربندازيم|كبريت ميكروني|هيدروكسيد نحاس|أكسيكلورور/i.test(
-        fullText
-      )
+      pesticideCluesCount > 0 &&
+      !fullText.includes('سماد') &&
+      !fullText.includes('أسمدة') &&
+      !isCompoundFert
     ) {
-      const match = availableOptions.find((o) => o.name.includes('فطر'));
-      if (match) {
-        suggestedSubId = match.id;
-        suggestedSubName = match.name;
+      if (pesticideCat) suggestedCatId = pesticideCat.id;
+
+      if (isFungicide && !isInsecticide && !isHerbicide) {
+        if (subFungicide) {
+          suggestedSubId = subFungicide.id;
+          suggestedSubName = subFungicide.name;
+        }
         detected.push('مكافحة فطريات', 'أعفان / بياض / لفحة');
-        reason = 'مركب ذو فاعلية ضد الفطريات والأعفان وأمراض المجموع الخضري والجذري';
-      }
-    }
-    // 2. Insecticide & Acaricide (حشري / عناكب / ديدان)
-    else if (
-      /حشر|دودة|ديدان|ذبابة|تربس|من|توتا|خنافس|سوسة|أكاروس|عنكبوت|صانعات أنفاق|جاسيد|توتا أبسلوتا|حفار|نطاط|إمامكتين|كلوربيريفوس|أبامكتين|لامبدا|ثياميثوكسام|إميداكلوبريد|ألفاسايبرمثرين|دلتا مثرين/i.test(
-        fullText
-      )
-    ) {
-      const match = availableOptions.find(
-        (o) => o.name.includes('حشر') || o.name.includes('أكاروس') || o.name.includes('عناكب')
-      );
-      if (match) {
-        suggestedSubId = match.id;
-        suggestedSubName = match.name;
+        reason = 'مركب وقائي/علاجي لمكافحة الفطريات وأمراض المجموع الخضري والجذري';
+      } else if (isInsecticide && !isFungicide && !isHerbicide) {
+        if (subInsecticide) {
+          suggestedSubId = subInsecticide.id;
+          suggestedSubName = subInsecticide.name;
+        }
         detected.push('مكافحة حشرات', 'ديدان / ثواقب / عناكب');
-        reason = 'مركب متخصص في مكافحة الآفات الحشرية والديدان والذباب والعناكب';
-      }
-    }
-    // 3. Herbicide (مبيدات حشائش)
-    else if (
-      /حشائش|حشيشة|عريضة|رفيعة|هالوك|حامول|نجيل|جلايفوسات|أوكسي فلورفين|بروباموكارب|تراي بيورين|متربيوزين/i.test(
-        fullText
-      )
-    ) {
-      const match = availableOptions.find((o) => o.name.includes('حشائش'));
-      if (match) {
-        suggestedSubId = match.id;
-        suggestedSubName = match.name;
+        reason = 'مبيد حشري لمكافحة الآفات الحشرية والديدان والأكاروسات';
+      } else if (isHerbicide) {
+        if (subHerbicide) {
+          suggestedSubId = subHerbicide.id;
+          suggestedSubName = subHerbicide.name;
+        }
         detected.push('إبادة حشائش', 'عريضة / رفيعة / نجيل');
         reason = 'مبيد حشائش متخصص لاختيار ومكافحة الحشائش الحولية والمعمرة';
-      }
-    }
-    // 4. Nematicide (مبيدات نيماتودا)
-    else if (/نيماتود|عقد جذرية|ديدان ثعبانية|أوكساميل|فيودان|فوستيزات/i.test(fullText)) {
-      const match = availableOptions.find((o) => o.name.includes('نيماتود'));
-      if (match) {
-        suggestedSubId = match.id;
-        suggestedSubName = match.name;
+      } else if (isNematicide) {
+        if (subNematicide) {
+          suggestedSubId = subNematicide.id;
+          suggestedSubName = subNematicide.name;
+        }
         detected.push('مكافحة نيماتودا', 'تعقد الجذور');
         reason = 'مركب نيماتودي لمكافحة الديدان الثعبانية وحماية الشعيرات الجذرية';
       }
     }
-    // 5. Compound Fertilizer / NPK (أسمدة مركبة)
-    else if (
-      /مركب|npk|متوازن|عالي الفوسفور|عالي البوتاسيوم|عالي النيتروجين|20-20-20|19-19-19|10-50-10|12-12-36|سماد بودر|سماد كريستال/i.test(
-        fullText
-      )
-    ) {
-      const match = availableOptions.find(
-        (o) =>
-          o.name.includes('مركب') ||
-          o.name.toLowerCase().includes('npk') ||
-          o.name.includes('أسمدة بودر')
-      );
-      if (match) {
-        suggestedSubId = match.id;
-        suggestedSubName = match.name;
+    // If already in Pesticides, refine subcategory
+    else if (pesticideCat && product.categoryId === pesticideCat.id && pesticideCluesCount > 0) {
+      suggestedCatId = pesticideCat.id;
+      if (isFungicide && !isInsecticide && !isHerbicide) {
+        if (subFungicide) {
+          suggestedSubId = subFungicide.id;
+          suggestedSubName = subFungicide.name;
+        }
+        detected.push('مبيد فطري');
+        reason = 'مركب فطري مسجل ضمن المبيدات';
+      } else if (isInsecticide && !isFungicide && !isHerbicide) {
+        if (subInsecticide) {
+          suggestedSubId = subInsecticide.id;
+          suggestedSubName = subInsecticide.name;
+        }
+        detected.push('مبيد حشري / عناكب');
+        reason = 'مركب حشري أو عناكبي مسجل ضمن المبيدات';
+      } else if (isHerbicide) {
+        if (subHerbicide) {
+          suggestedSubId = subHerbicide.id;
+          suggestedSubName = subHerbicide.name;
+        }
+        detected.push('مبيد حشائش');
+        reason = 'مبيد حشائش مسجل ضمن المبيدات';
+      } else if (isNematicide) {
+        if (subNematicide) {
+          suggestedSubId = subNematicide.id;
+          suggestedSubName = subNematicide.name;
+        }
+        detected.push('مبيد نيماتودا');
+        reason = 'مبيد نيماتودي متخصص';
+      }
+    }
+    // B. Fertilizers Category & Subcategory Analysis
+    else if (isCompoundFert || isSingleFert) {
+      if (fertCat) suggestedCatId = fertCat.id;
+
+      if (isCompoundFert) {
+        if (subCompoundFert) {
+          suggestedSubId = subCompoundFert.id;
+          suggestedSubName = subCompoundFert.name;
+        }
         detected.push('سماد NPK', 'تسميد متوازن');
-        reason = 'سماد يحتوي على عناصر غذائية كبرى (نيتروجين - فوسفور - بوتاسيوم)';
+        reason = 'سماد يحتوي على عناصر كبرى (نيتروجين - فوسفور - بوتاسيوم)';
+      } else if (isSingleFert) {
+        if (subSingleFert) {
+          suggestedSubId = subSingleFert.id;
+          suggestedSubName = subSingleFert.name;
+        }
+        detected.push('سماد أحادي', 'عناصر صغرى مخلبية');
+        reason = 'سماد أحادي أو مغذيات صغرى مخلبية لتعويض نقص العناصر';
       }
     }
-    // 6. Single / Micronutrient Fertilizer (أسمدة أحادية وعناصر صغرى)
-    else if (
-      /احادي|أحادي|سوبر فوسفات|سلفات نشادر|يوريا|نترات كالسيوم|حديد|زنك|منجنيز|بورون|مخلبي|عناصر صغرى|هيوميك|فولفيك|سلفات ماغنسيوم/i.test(
-        fullText
-      )
-    ) {
-      const match = availableOptions.find(
-        (o) =>
-          o.name.includes('احادي') ||
-          o.name.includes('أحادي') ||
-          o.name.includes('عناصر') ||
-          o.name.includes('صغرى')
-      );
-      if (match) {
-        suggestedSubId = match.id;
-        suggestedSubName = match.name;
-        detected.push('سماد أحادي', 'عناصر صغرى / مخلبية');
-        reason = 'مركب تسميد أحادي أو مغذيات صغرى مخلبية لتعويض نقص العناصر';
-      }
-    }
-    // 7. Foliar & Biostimulants (مخصبات ورقية ومحفزات نمو)
-    else if (
-      /مخصب|محفز|أحماض أمينية|طحالب|سيتوكينين|أوكسين|جبرلين|تحجيم|تزهير|تلوين|منشط جذور|مستخلص بحري/i.test(
-        fullText
-      )
-    ) {
-      const match = availableOptions.find(
-        (o) =>
-          o.name.includes('مخصب') ||
-          o.name.includes('محفز') ||
-          o.name.includes('ورق') ||
-          o.name.includes('سائل')
-      );
-      if (match) {
-        suggestedSubId = match.id;
-        suggestedSubName = match.name;
-        detected.push('مخصب حيوي', 'أحماض أمينية / تحجيم');
-        reason = 'محفز نمو ورقي وتنشيط مناعي للتحجيم والتزهير ومقاومة الإجهاد';
-      }
-    }
-    // 8. Match Company-Specific Custom Subcategories
-    else {
+    // C. Biostimulants & Foliar Category Analysis
+    else if (isBiostimulant) {
+      if (stimCat) suggestedCatId = stimCat.id;
+      detected.push('مخصب حيوي', 'أحماض أمينية / طحالب');
+      reason = 'محفز نمو ورقي وتنشيط مناعي للتحجيم والتزهير ومقاومة الإجهاد';
+
+      // Check for company specific stimulant subcategories
       const compSubs = subCategories.filter(
         (s) => s.companyId === product.companyId && s.active !== false
       );
-      for (const s of compSubs) {
-        const tokens = s.name.split(/\s+/).filter((w) => w.length > 3);
-        const matchedToken = tokens.find((t) => fullText.includes(t.toLowerCase()));
-        if (matchedToken) {
-          suggestedSubId = s.id;
-          suggestedSubName = s.name;
-          detected.push(matchedToken);
-          reason = `مطابقة مع قسم شركة "${s.name}"`;
-          break;
-        }
+      const matchSub = compSubs.find((s) => /مخصب|أحماض|ورق|سائل/i.test(s.name));
+      if (matchSub) {
+        suggestedSubId = matchSub.id;
+        suggestedSubName = matchSub.name;
       }
     }
 
-    // Only propose if we found a valid suggestion AND it differs from the product's current subcategory
-    if (suggestedSubId && suggestedSubId !== product.subCategoryId) {
-      const currentName =
+    // Resolve human-readable subcategory name if ID is assigned
+    if (suggestedSubId && !suggestedSubName) {
+      suggestedSubName =
+        getUnifiedSubCategoryName(suggestedSubId, categories, subCategories) || 'قسم فرعي';
+    }
+
+    const isCategoryChanged = suggestedCatId !== product.categoryId;
+    const isSubCategoryChanged =
+      Boolean(suggestedSubId) && suggestedSubId !== product.subCategoryId;
+
+    // Propose update if EITHER Main Category OR Subcategory changes
+    if (isCategoryChanged || isSubCategoryChanged) {
+      const currentCatName = catMap.get(product.categoryId) || 'غير محدد';
+      const suggestedCatName = catMap.get(suggestedCatId) || currentCatName;
+      const currentSubName =
         getUnifiedSubCategoryName(product.subCategoryId, categories, subCategories) ||
         'غير محدد';
+
       proposals.push({
         product,
         companyName,
+        currentCategoryId: product.categoryId,
+        currentCategoryName: currentCatName,
         currentSubCategoryId: product.subCategoryId,
-        currentSubCategoryName: currentName,
-        suggestedSubCategoryId: suggestedSubId,
-        suggestedSubCategoryName: suggestedSubName,
+        currentSubCategoryName: currentSubName,
+        suggestedCategoryId: suggestedCatId,
+        suggestedCategoryName: suggestedCatName,
+        suggestedSubCategoryId: suggestedSubId || product.subCategoryId || '',
+        suggestedSubCategoryName: suggestedSubName || currentSubName,
+        isCategoryChanged,
+        isSubCategoryChanged,
         detectedKeywords: detected,
-        reason,
-        confidence: detected.length >= 2 ? 'high' : 'medium',
+        reason:
+          reason ||
+          (isCategoryChanged
+            ? 'تصحيح القسم الرئيسي بناءً على التحليل الزراعي'
+            : 'تصحيح القسم الفرعي'),
+        confidence: detected.length >= 2 || isCategoryChanged ? 'high' : 'medium',
         selected: true,
       });
     }
