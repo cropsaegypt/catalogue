@@ -36,8 +36,29 @@ import {
   IslamicFinancingRequest,
 } from '../types';
 
-import { ShieldCheck, Lock, User, KeyRound, LogIn, Sparkles, ArrowRight, LogOut, Cloud, RefreshCw, Download, Upload } from 'lucide-react';
+import { ShieldCheck, Lock, User, KeyRound, LogIn, Sparkles, ArrowRight, LogOut, Cloud, RefreshCw, Download, Upload, Menu } from 'lucide-react';
 import { canAccessAdminTab, getFirstAllowedTab, hasDashboardAccess } from '../utils/permissions';
+import { BrandLogoMark } from '../components/common/BrandLogoMark';
+
+const TAB_LABELS: Record<AdminTab, string> = {
+  overview: 'لوحة الإحصائيات',
+  products: 'المنتجات والعبوات',
+  categories: 'الأقسام الرئيسية',
+  companies: 'الشركات والموردين',
+  prices: 'الأسعار والتعديلات',
+  excel: 'استيراد إكسيل',
+  ai_catalog: 'استخراج ذكي (AI)',
+  orders: 'الطلبيات والتقسيط',
+  financing: 'التمويل الإسلامي',
+  showcases: 'مربعات الرئيسية',
+  advertisements: 'بانرات الرئيسية',
+  gallery: 'معرض الصور',
+  pdf: 'توليد PDF',
+  settings: 'إعدادات الكتالوج',
+  team: 'فريق العمل',
+  audit: 'سجل الأمان',
+  layout: 'تخطيط الصفحة',
+};
 
 interface AdminPageProps {
   products: Product[];
@@ -137,6 +158,26 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [loginError, setLoginError] = useState('');
 
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Collapsible sidebar state & Mobile drawer state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cropsa_admin_sidebar_collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  const handleToggleSidebarCollapse = () => {
+    setIsSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cropsa_admin_sidebar_collapsed', next ? '1' : '0');
+      } catch {}
+      return next;
+    });
+  };
 
   const firstAllowedTab = getFirstAllowedTab(currentUser);
   useEffect(() => {
@@ -326,21 +367,78 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D24] flex dir-rtl">
-      {/* Sidebar */}
-      <AdminSidebar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onLogout={onLogout}
-        onBackToCatalog={onBackToCatalog}
-        pendingOrdersCount={pendingOrdersCount}
-        pendingFinancingCount={pendingFinancingCount}
-        currentUser={currentUser}
-        logoUrl={settings.logoUrl}
-      />
+    <div className="min-h-screen bg-[#F9F8F6] text-[#2D2D24] flex flex-col lg:flex-row dir-rtl overflow-x-hidden w-full relative">
+      {/* Mobile Top App Bar (Only visible on screens < lg) */}
+      <div className="lg:hidden sticky top-0 z-40 bg-[#181C18] text-white px-3.5 py-2.5 flex items-center justify-between border-b border-emerald-950/60 shadow-md">
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setIsMobileNavOpen(true)}
+            className="p-2 bg-stone-800 hover:bg-stone-700 text-white rounded-xl cursor-pointer transition-colors shadow-2xs"
+            title="فتح القائمة الجانبية"
+          >
+            <Menu className="w-5 h-5 text-emerald-400" />
+          </button>
+          <div className="flex items-center gap-2 cursor-pointer" onClick={onBackToCatalog}>
+            <BrandLogoMark
+              logoUrl={settings.logoUrl}
+              alt="CROPSA"
+              sizeClassName="w-8 h-8 rounded-lg"
+              fallbackClassName="bg-emerald-700 text-white font-black text-xs"
+              fallbackText="CR"
+            />
+            <span className="font-black text-xs tracking-tight">كروپسا مصر</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-bold bg-emerald-900/80 text-emerald-200 border border-emerald-700/60 px-2.5 py-1 rounded-lg">
+            {TAB_LABELS[activeTab] || 'الإدارة'}
+          </span>
+          <button
+            type="button"
+            onClick={onBackToCatalog}
+            className="text-[11px] font-bold text-stone-300 hover:text-white px-2 py-1 rounded-lg hover:bg-stone-800 transition-colors"
+          >
+            الكتالوج
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Backdrop */}
+      {isMobileNavOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 lg:hidden transition-opacity"
+          onClick={() => setIsMobileNavOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Drawer (Fixed on mobile, static collapsible on desktop) */}
+      <div
+        className={`fixed inset-y-0 right-0 z-50 lg:static lg:z-auto transition-transform duration-300 ${
+          isMobileNavOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <AdminSidebar
+          activeTab={activeTab}
+          onTabChange={(tab) => {
+            setActiveTab(tab);
+            setIsMobileNavOpen(false);
+          }}
+          onLogout={onLogout}
+          onBackToCatalog={onBackToCatalog}
+          pendingOrdersCount={pendingOrdersCount}
+          pendingFinancingCount={pendingFinancingCount}
+          currentUser={currentUser}
+          logoUrl={settings.logoUrl}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={handleToggleSidebarCollapse}
+          onCloseMobile={() => setIsMobileNavOpen(false)}
+        />
+      </div>
 
       {/* Main Admin Dashboard Body */}
-      <main className="flex-1 p-8 overflow-y-auto max-w-7xl mx-auto">
+      <main className="flex-1 min-w-0 max-w-full overflow-x-hidden p-3.5 sm:p-5 lg:p-8 overflow-y-auto">
         {activeTab === 'overview' && (!currentUser || canAccessAdminTab(currentUser, 'overview')) && (
           <AdminOverview
             products={products}
