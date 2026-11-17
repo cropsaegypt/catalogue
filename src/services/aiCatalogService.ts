@@ -1,13 +1,16 @@
-import { ExtractedProductItem, ExtractedPackage, Category } from '../types';
+import { ExtractedProductItem, ExtractedPackage, Category, CompanySubCategory } from '../types';
 import { getAgriculturalProductImage } from '../utils/agriculturalImages';
 import { removeProductBackground } from '../utils/imageBackgroundRemoval';
 import { uploadDataUrlToFirebaseStorage } from './firebase';
 import { inferAgronomySearchTags } from '../utils/agriculturalSearch';
-import { getMainCategories } from '../utils/categoryHierarchy';
+import { getMainCategories, getSubCategories } from '../utils/categoryHierarchy';
 
 export interface CatalogExtractionRequest {
   companyName: string;
+  companyId?: string;
   existingCategories: string[];
+  existingSubCategories?: string[];
+  subCategories?: CompanySubCategory[];
   files?: Array<{ data: string; mimeType: string; name?: string; pageText?: string }>;
   fileData?: string;
   mimeType?: string;
@@ -217,6 +220,16 @@ export const aiCatalogService = {
     const mainCats = getMainCategories(categories);
     const categoryNames = (mainCats.length > 0 ? mainCats : categories).map((c) => c.name);
 
+    // Build subcategory names from child categories + company subcategories
+    const childCats = getSubCategories(categories);
+    const compSubs = (params.subCategories || []).filter(
+      (s) => !params.companyId || s.companyId === params.companyId
+    );
+    const subCategoryNames = [
+      ...childCats.map((c) => c.name),
+      ...compSubs.map((s) => s.name),
+    ].filter(Boolean);
+
     let response: Response;
     try {
       response = await fetch('/api/gemini/extract-catalog', {
@@ -227,6 +240,7 @@ export const aiCatalogService = {
         body: JSON.stringify({
           companyName: params.companyName,
           existingCategories: categoryNames,
+          existingSubCategories: subCategoryNames,
           files: params.files || [],
           fileData: params.fileData,
           mimeType: params.mimeType,
@@ -290,10 +304,87 @@ export const aiCatalogService = {
               (p.categoryName || '').toLowerCase().includes(c.name.toLowerCase())
           );
 
-        const resolvedMainCategoryId = matchedCat?.parentId
+        let resolvedMainCategoryId = matchedCat?.parentId
           ? matchedCat.parentId
           : matchedCat?.id || mainCats[0]?.id || categories[0]?.id || '';
-        const resolvedSubCategoryId = matchedCat?.parentId ? matchedCat.id : undefined;
+
+        // 2. Resolve Subcategory: First check p.subCategoryName from AI
+        let resolvedSubCategoryId: string | undefined = matchedCat?.parentId ? matchedCat.id : undefined;
+        const subCatName = (p.subCategoryName || '').trim().toLowerCase();
+
+        if (subCatName) {
+          const matchedChild = childCats.find(
+            (c) =>
+              c.name.toLowerCase() === subCatName ||
+              c.name.toLowerCase().includes(subCatName) ||
+              subCatName.includes(c.name.toLowerCase())
+          );
+          if (matchedChild) {
+            resolvedSubCategoryId = matchedChild.id;
+            if (matchedChild.parentId) resolvedMainCategoryId = matchedChild.parentId;
+          } else {
+            const matchedCompSub = compSubs.find(
+              (s) =>
+                s.name.toLowerCase() === subCatName ||
+                s.name.toLowerCase().includes(subCatName) ||
+                subCatName.includes(s.name.toLowerCase())
+            );
+            if (matchedCompSub) {
+              resolvedSubCategoryId = matchedCompSub.id;
+            }
+          }
+        }
+
+        // 3. Fallback Agronomic Intelligent Classifier if subcategory still not resolved
+        const fullDetectionText = `${p.name || ''} ${p.shortDescription || ''} ${p.description || ''} ${(p.usage || []).join(' ')} ${(p.characteristics || []).join(' ')} ${(p.composition || []).join(' ')} ${p.categoryName || ''}`.toLowerCase();
+
+        if (!resolvedSubCategoryId) {
+          if (/فطر|بياض|أعفان|عفن|صدأ|تبقع|ندوة|لفحة|جرب/.test(fullDetectionText)) {
+            const fSub = childCats.find((c) => c.name.includes('فطر')) || compSubs.find((s) => s.name.includes('فطر'));
+            if (fSub) {
+              resolvedSubCategoryId = fSub.id;
+              if ('parentId' in fSub && fSub.parentId) resolvedMainCategoryId = fSub.parentId;
+            }
+          } else if (/حشر|دودة|ديدان|ذبابة|تربس|من|توتا|خنافس|سوسة|أكاروس|عنكبوت/.test(fullDetectionText)) {
+            const iSub = childCats.find((c) => c.name.includes('حشر')) || compSubs.find((s) => s.name.includes('حشر'));
+            if (iSub) {
+              resolvedSubCategoryId = iSub.id;
+              if ('parentId' in iSub && iSub.parentId) resolvedMainCategoryId = iSub.parentId;
+            }
+          } else if (/حشائش|حشيشة|عريضة|رفيعة|هالوك|حامول/.test(fullDetectionText)) {
+            const wSub = childCats.find((c) => c.name.includes('حشائش')) || compSubs.find((s) => s.name.includes('حشائش'));
+            if (wSub) {
+              resolvedSubCategoryId = wSub.id;
+              if ('parentId' in wSub && wSub.parentId) resolvedMainCategoryId = wSub.parentId;
+            }
+          } else if (/نيماتود|عقد جذر/.test(fullDetectionText)) {
+            const nSub = childCats.find((c) => c.name.includes('نيماتود')) || compSubs.find((s) => s.name.includes('نيماتود'));
+            if (nSub) {
+              resolvedSubCategoryId = nSub.id;
+              if ('parentId' in nSub && nSub.parentId) resolvedMainCategoryId = nSub.parentId;
+            }
+          } else if (/مركب|npk|متوازن|عالي الفوسفور|عالي البوتاسيوم/.test(fullDetectionText)) {
+            const cSub = childCats.find((c) => c.name.includes('مركب')) || compSubs.find((s) => s.name.includes('مركب'));
+            if (cSub) {
+              resolvedSubCategoryId = cSub.id;
+              if ('parentId' in cSub && cSub.parentId) resolvedMainCategoryId = cSub.parentId;
+            }
+          } else if (/احادي|أحادي|سوبر فوسفات|سلفات نشادر|يوريا/.test(fullDetectionText)) {
+            const sSub = childCats.find((c) => c.name.includes('احادي') || c.name.includes('أحادي')) || compSubs.find((s) => s.name.includes('احادي') || s.name.includes('أحادي'));
+            if (sSub) {
+              resolvedSubCategoryId = sSub.id;
+              if ('parentId' in sSub && sSub.parentId) resolvedMainCategoryId = sSub.parentId;
+            }
+          } else if (compSubs.length > 0) {
+            for (const s of compSubs) {
+              const keywords = s.name.split(/\s+/).filter((w) => w.length > 3);
+              if (keywords.some((k) => fullDetectionText.includes(k.toLowerCase()))) {
+                resolvedSubCategoryId = s.id;
+                break;
+              }
+            }
+          }
+        }
 
         const packages: ExtractedPackage[] = (p.packages || []).map((pkg: any, pIdx: number) => ({
           id: `PKG-EXT-${Date.now()}-${idx}-${pIdx}`,

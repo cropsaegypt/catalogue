@@ -20,7 +20,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { Product, Package, Company, Category, CompanySubCategory } from '../../types';
-import { getMainCategories, getSubCategories } from '../../utils/categoryHierarchy';
+import { getMainCategories, getSubCategories, getUnifiedSubCategoriesForSelection } from '../../utils/categoryHierarchy';
 import { getAgriculturalProductImage, AGRICULTURAL_PRESET_IMAGES } from '../../utils/agriculturalImages';
 import { rotateAndUploadImage } from '../../utils/imageRotation';
 import { aiCatalogService } from '../../services/aiCatalogService';
@@ -229,7 +229,7 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
 
   // Main Categories and Subcategories for selected category
   const mainCategories = getMainCategories(categories);
-  const subCats = getSubCategories(categories, categoryId);
+  const subCats = getUnifiedSubCategoriesForSelection(categories, categoryId, companyId, subCategories);
 
   // Toggle Out of Stock
   const handleToggleStock = () => {
@@ -519,10 +519,14 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
                 <select
                   value={categoryId}
                   onChange={(e) => {
-                    setCategoryId(e.target.value);
-                    const validChild = getSubCategories(categories, e.target.value).some(
-                      (s) => s.id === subCategoryId
-                    );
+                    const nextCatId = e.target.value;
+                    setCategoryId(nextCatId);
+                    const validChild = getUnifiedSubCategoriesForSelection(
+                      categories,
+                      nextCatId,
+                      companyId,
+                      subCategories
+                    ).some((s) => s.id === subCategoryId);
                     if (!validChild) setSubCategoryId('');
                   }}
                   className="w-full bg-[#FAF8F5] border border-stone-300 rounded-xl px-3 py-2 text-xs font-bold text-stone-800 focus:ring-2 focus:ring-[#046A47] focus:outline-none"
@@ -549,7 +553,7 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
                   <option value="">— عام داخل القسم الرئيسي —</option>
                   {subCats.map((sub) => (
                     <option key={sub.id} value={sub.id}>
-                      ↳ {sub.name}
+                      ↳ {sub.name} {sub.source === 'company' ? '(تابع للشركة)' : ''}
                     </option>
                   ))}
                 </select>

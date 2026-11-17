@@ -36,13 +36,14 @@ import {
   CompanyImage,
   ExtractedProductItem,
   ExtractedPackage,
+  CompanySubCategory,
 } from '../../types';
 import { aiCatalogService, CatalogExtractionResult } from '../../services/aiCatalogService';
 import { pdfHelper } from '../../utils/pdfHelper';
 import { ImageFileInput } from '../common/ImageFileInput';
 import { rotateAndUploadImage } from '../../utils/imageRotation';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
-import { getMainCategories, getSubCategories } from '../../utils/categoryHierarchy';
+import { getMainCategories, getSubCategories, getUnifiedSubCategoriesForSelection } from '../../utils/categoryHierarchy';
 
 export interface UploadedCatalogFile {
   file: File;
@@ -74,6 +75,7 @@ export const isProductMissingPrice = (prod: ExtractedProductItem): boolean => {
 interface AiCatalogExtractorProps {
   companies: Company[];
   categories: Category[];
+  subCategories?: CompanySubCategory[];
   existingProducts: Product[];
   existingPackages: Package[];
   companyImages: CompanyImage[];
@@ -91,6 +93,7 @@ interface AiCatalogExtractorProps {
 export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
   companies,
   categories,
+  subCategories = [],
   existingProducts,
   existingPackages,
   companyImages,
@@ -326,7 +329,9 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       const result = await aiCatalogService.extractCatalog(
         {
           companyName: selectedCompany.name,
+          companyId: selectedCompany.id,
           existingCategories: getMainCategories(categories).map((c) => c.name),
+          subCategories,
           files: filesPayload,
           pastedText: combinedPastedText.trim() || undefined,
           additionalNotes: additionalNotes.trim() || undefined,
@@ -654,14 +659,15 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
     selectedProducts.forEach((extProd, index) => {
       const prodId = `PRD-${selectedCompany.name.substring(0, 4).toUpperCase()}-${Date.now().toString().slice(-4)}-${index + 1}`;
 
-      let matchedCategory = updatedCategoriesList.find(
-        (c) =>
-          c.id === extProd.categoryId ||
-          c.name.toLowerCase() === extProd.categoryName?.toLowerCase() ||
-          (extProd.categoryName &&
-            (c.name.toLowerCase().includes(extProd.categoryName.toLowerCase()) ||
-              extProd.categoryName.toLowerCase().includes(c.name.toLowerCase())))
-      );
+      let matchedCategory = extProd.categoryId
+        ? updatedCategoriesList.find((c) => c.id === extProd.categoryId)
+        : updatedCategoriesList.find(
+            (c) =>
+              c.name.toLowerCase() === extProd.categoryName?.toLowerCase() ||
+              (extProd.categoryName &&
+                (c.name.toLowerCase().includes(extProd.categoryName.toLowerCase()) ||
+                  extProd.categoryName.toLowerCase().includes(c.name.toLowerCase())))
+          );
 
       // Auto-create category if AI extracted a brand-new category name
       if (!matchedCategory && extProd.categoryName?.trim()) {
@@ -697,13 +703,12 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
       }
 
       const firstPiecesPerCarton = extProd.packages[0]?.piecesPerCarton || 12;
-      const finalCategoryId = matchedCategory?.parentId
-        ? matchedCategory.parentId
-        : matchedCategory
-          ? matchedCategory.id
-          : getMainCategories(updatedCategoriesList)[0]?.id ||
-            updatedCategoriesList[0]?.id ||
-            'CAT-01';
+      const finalCategoryId = extProd.categoryId
+        ? extProd.categoryId
+        : matchedCategory?.parentId
+          ? matchedCategory.parentId
+          : matchedCategory?.id || 'CAT-01';
+
       const finalSubCategoryId =
         extProd.subCategoryId || (matchedCategory?.parentId ? matchedCategory.id : undefined);
 
@@ -1592,48 +1597,67 @@ export const AiCatalogExtractor: React.FC<AiCatalogExtractorProps> = ({
                               placeholder="اسم المنتج التجاري"
                             />
 
-                            <select
-                              value={prod.categoryId}
-                              onChange={(e) => {
-                                const nextMainId = e.target.value;
-                                const matchedCat = categories.find((c) => c.id === nextMainId);
-                                const validSub = getSubCategories(categories, nextMainId).some(
-                                  (s) => s.id === prod.subCategoryId
-                                );
-                                handleUpdateProduct(prod.id, {
-                                  categoryId: nextMainId,
-                                  subCategoryId: validSub ? prod.subCategoryId : undefined,
-                                  categoryName: matchedCat?.name || prod.categoryName,
-                                });
-                              }}
-                              className="text-xs font-bold text-[#046A47] bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
-                            >
-                              {getMainCategories(categories).map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.name}
-                                </option>
-                              ))}
-                            </select>
+                            {(() => {
+                              const availableSubs = getUnifiedSubCategoriesForSelection(
+                                categories,
+                                prod.categoryId,
+                                selectedCompanyId,
+                                subCategories
+                              );
+                              return (
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] font-bold text-stone-500">القسم:</span>
+                                    <select
+                                      value={prod.categoryId}
+                                      onChange={(e) => {
+                                        const nextMainId = e.target.value;
+                                        const matchedCat = categories.find((c) => c.id === nextMainId);
+                                        const newSubs = getUnifiedSubCategoriesForSelection(
+                                          categories,
+                                          nextMainId,
+                                          selectedCompanyId,
+                                          subCategories
+                                        );
+                                        const stillValid = newSubs.some((s) => s.id === prod.subCategoryId);
+                                        handleUpdateProduct(prod.id, {
+                                          categoryId: nextMainId,
+                                          subCategoryId: stillValid ? prod.subCategoryId : undefined,
+                                          categoryName: matchedCat?.name || prod.categoryName,
+                                        });
+                                      }}
+                                      className="text-xs font-bold text-[#046A47] bg-emerald-50 border border-emerald-300 px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
+                                    >
+                                      {getMainCategories(categories).map((c) => (
+                                        <option key={c.id} value={c.id}>
+                                          {c.name}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
 
-                            {prod.categoryId &&
-                              getSubCategories(categories, prod.categoryId).length > 0 && (
-                                <select
-                                  value={prod.subCategoryId || ''}
-                                  onChange={(e) =>
-                                    handleUpdateProduct(prod.id, {
-                                      subCategoryId: e.target.value || undefined,
-                                    })
-                                  }
-                                  className="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
-                                >
-                                  <option value="">— بدون قسم فرعي —</option>
-                                  {getSubCategories(categories, prod.categoryId).map((sub) => (
-                                    <option key={sub.id} value={sub.id}>
-                                      ↳ {sub.name}
-                                    </option>
-                                  ))}
-                                </select>
-                              )}
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[10px] font-bold text-amber-800">الفرعي:</span>
+                                    <select
+                                      value={prod.subCategoryId || ''}
+                                      onChange={(e) =>
+                                        handleUpdateProduct(prod.id, {
+                                          subCategoryId: e.target.value || undefined,
+                                        })
+                                      }
+                                      className="text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2 py-1 rounded-lg focus:outline-none cursor-pointer"
+                                    >
+                                      <option value="">— بدون قسم فرعي —</option>
+                                      {availableSubs.map((sub) => (
+                                        <option key={sub.id} value={sub.id}>
+                                          ↳ {sub.name} {sub.source === 'company' ? '(تابع للشركة)' : ''}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           <input

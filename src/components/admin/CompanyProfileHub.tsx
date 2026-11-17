@@ -36,6 +36,11 @@ import { AiCatalogExtractor } from './AiCatalogExtractor';
 import { pdfHelper, PdfPageImage } from '../../utils/pdfHelper';
 import { QuickProductEditModal } from './QuickProductEditModal';
 import { rotateAndUploadImage } from '../../utils/imageRotation';
+import {
+  getMainCategories,
+  getUnifiedSubCategoriesForSelection,
+  getUnifiedSubCategoryName,
+} from '../../utils/categoryHierarchy';
 
 interface CompanyProfileHubProps {
   company: Company;
@@ -104,6 +109,7 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
 
   // Manual Product Form
   const [manualName, setManualName] = useState('');
+  const [manualCategoryId, setManualCategoryId] = useState<string>(categories[0]?.id || 'CAT-01');
   const [manualSubCatId, setManualSubCatId] = useState('');
   const [manualProductType, setManualProductType] = useState<'fertilizer' | 'stimulant' | 'pesticide'>('fertilizer');
   const [manualDesc, setManualDesc] = useState('');
@@ -269,8 +275,8 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
     const newProduct: Product = {
       id: newProdId,
       companyId: company.id,
-      categoryId: categories[0]?.id || 'CAT-01',
-      subCategoryId: manualSubCatId || (companySubs[0]?.id || undefined),
+      categoryId: manualCategoryId || categories[0]?.id || 'CAT-01',
+      subCategoryId: manualSubCatId || undefined,
       productType: manualProductType,
       name: manualName.trim(),
       shortDescription: manualDesc.trim() || 'مركب زراعي عالي الجودة والفاعلية',
@@ -756,7 +762,7 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {companyProducts.map((p) => {
                 const prodPkgs = packages.filter((pkg) => pkg.productId === p.id);
-                const subCat = companySubs.find((s) => s.id === p.subCategoryId);
+                const subCatName = getUnifiedSubCategoryName(p.subCategoryId, categories, subCategories);
                 const isOutOfStock = Boolean(
                   p.isOutOfStock || (typeof p.stockQuantity === 'number' && p.stockQuantity <= 0)
                 );
@@ -818,9 +824,9 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
 
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <span className="font-mono text-[10px] text-gray-400 font-bold">{p.id}</span>
-                        {subCat && (
-                          <span className="text-[9px] bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded-md font-bold">
-                            {subCat.name}
+                        {subCatName && (
+                          <span className="text-[9px] bg-amber-50 text-amber-900 border border-amber-200 px-1.5 py-0.5 rounded-md font-bold">
+                            {subCatName}
                           </span>
                         )}
                       </div>
@@ -905,6 +911,7 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
               <AiCatalogExtractor
                 companies={[company]}
                 categories={categories}
+                subCategories={subCategories}
                 existingProducts={products}
                 existingPackages={packages}
                 companyImages={images}
@@ -918,7 +925,7 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
           ) : (
             /* Mode B: Manual Direct Form into this company */
             <form onSubmit={handleAddManualProduct} className="space-y-4 max-w-3xl mx-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-black text-gray-700 mb-1">اسم المنتج التجاري *</label>
                   <input
@@ -932,16 +939,46 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-gray-700 mb-1">القسم الفرعي التابع للشركة *</label>
+                  <label className="block text-xs font-black text-gray-700 mb-1">القسم الرئيسي *</label>
+                  <select
+                    value={manualCategoryId}
+                    onChange={(e) => {
+                      const nextCatId = e.target.value;
+                      setManualCategoryId(nextCatId);
+                      const validChild = getUnifiedSubCategoriesForSelection(
+                        categories,
+                        nextCatId,
+                        company.id,
+                        subCategories
+                      ).some((s) => s.id === manualSubCatId);
+                      if (!validChild) setManualSubCatId('');
+                    }}
+                    className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#046A47] focus:outline-hidden font-bold"
+                  >
+                    {getMainCategories(categories).map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black text-gray-700 mb-1">القسم الفرعي (اختياري)</label>
                   <select
                     value={manualSubCatId}
                     onChange={(e) => setManualSubCatId(e.target.value)}
                     className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#046A47] focus:outline-hidden"
                   >
-                    <option value="">اختر القسم الفرعي المناسب</option>
-                    {companySubs.map((s) => (
+                    <option value="">— عام داخل القسم الرئيسي —</option>
+                    {getUnifiedSubCategoriesForSelection(
+                      categories,
+                      manualCategoryId,
+                      company.id,
+                      subCategories
+                    ).map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.name} ({s.type === 'pesticide' ? 'مبيد' : s.type === 'stimulant' ? 'مخصب' : 'سماد'})
+                        ↳ {s.name} {s.source === 'company' ? '(تابع للشركة)' : ''}
                       </option>
                     ))}
                   </select>

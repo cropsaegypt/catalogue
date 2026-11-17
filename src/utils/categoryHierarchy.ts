@@ -1,4 +1,4 @@
-import { Category, Company, Product } from '../types';
+import { Category, Company, Product, CompanySubCategory } from '../types';
 
 export function isMainCategory(category: Category): boolean {
   return !category.parentId;
@@ -13,6 +13,80 @@ export function getSubCategories(categories: Category[], parentId?: string): Cat
     return categories.filter((c) => c.parentId === parentId);
   }
   return categories.filter((c) => Boolean(c.parentId));
+}
+
+export interface UnifiedSubCategoryOption {
+  id: string;
+  name: string;
+  source: 'hierarchical' | 'company';
+  parentId?: string;
+  companyId?: string;
+  type?: string;
+}
+
+/**
+ * Returns all available subcategories for selection:
+ * 1. Child categories under the selected main category (from Category[])
+ * 2. Company subcategories belonging to the selected company (from CompanySubCategory[])
+ */
+export function getUnifiedSubCategoriesForSelection(
+  categories: Category[],
+  mainCategoryId?: string,
+  companyId?: string,
+  companySubCategories?: CompanySubCategory[]
+): UnifiedSubCategoryOption[] {
+  const result: UnifiedSubCategoryOption[] = [];
+  const seenIds = new Set<string>();
+
+  // 1. Hierarchical subcategories under the mainCategory (or all if none specified)
+  const childCats = getSubCategories(categories, mainCategoryId);
+  for (const c of childCats) {
+    if (!seenIds.has(c.id)) {
+      seenIds.add(c.id);
+      result.push({
+        id: c.id,
+        name: c.name,
+        source: 'hierarchical',
+        parentId: c.parentId,
+      });
+    }
+  }
+
+  // 2. Company subcategories if companyId or general
+  if (companySubCategories && companySubCategories.length > 0) {
+    const compSubs = companyId
+      ? companySubCategories.filter((s) => s.companyId === companyId && s.active !== false)
+      : companySubCategories.filter((s) => s.active !== false);
+    for (const s of compSubs) {
+      if (!seenIds.has(s.id)) {
+        seenIds.add(s.id);
+        result.push({
+          id: s.id,
+          name: s.name,
+          source: 'company',
+          companyId: s.companyId,
+          type: s.type,
+        });
+      }
+    }
+  }
+
+  return result;
+}
+
+export function getUnifiedSubCategoryName(
+  subCategoryId: string | undefined,
+  categories: Category[],
+  companySubCategories?: CompanySubCategory[]
+): string {
+  if (!subCategoryId) return '';
+  const cat = categories.find((c) => c.id === subCategoryId);
+  if (cat) return cat.name;
+  if (companySubCategories) {
+    const sub = companySubCategories.find((s) => s.id === subCategoryId);
+    if (sub) return sub.name;
+  }
+  return '';
 }
 
 export function getProductMainCategoryId(product: Product, categories: Category[]): string {
@@ -134,9 +208,10 @@ export function getProductSubCategoryId(
 export function getCategoryDisplayPath(
   categoryId: string,
   subCategoryId: string | undefined,
-  categories: Category[]
+  categories: Category[],
+  companySubCategories?: CompanySubCategory[]
 ): { mainCategory?: Category; subCategory?: Category } {
-  const sub = subCategoryId
+  let sub = subCategoryId
     ? categories.find(
         (c) =>
           (c.id === subCategoryId ||
@@ -152,6 +227,23 @@ export function getCategoryDisplayPath(
       c.slug === categoryId ||
       c.name.trim().toLowerCase() === (categoryId || '').trim().toLowerCase()
   );
+
+  if (!sub && subCategoryId && companySubCategories && companySubCategories.length > 0) {
+    const compSub = companySubCategories.find((s) => s.id === subCategoryId);
+    if (compSub) {
+      sub = {
+        id: compSub.id,
+        name: compSub.name,
+        slug: compSub.id.toLowerCase(),
+        description: compSub.description,
+        displayOrder: compSub.displayOrder,
+        active: compSub.active !== false,
+        parentId: assignedCat?.id,
+        createdAt: '',
+        updatedAt: '',
+      };
+    }
+  }
 
   if (sub?.parentId) {
     const main = categories.find((c) => c.id === sub.parentId);

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "lastSyncedAt": "2026-11-17T12:53:54.711Z",
+  "lastSyncedAt": "2026-11-17T13:14:40.071Z",
   "categories": [
     {
       "description": "مركبات مغذية ومخصبات حيوية لتعزيز كفاءة الامتصاص وزيادة جودة المحاصيل.",
@@ -20856,7 +20856,7 @@
     "primaryColor": "#15803d",
     "heroBannerMode": "full_image",
     "showAdvertisements": true,
-    "logoUrl": "/uploads/company-logos/comp-01.webp",
+    "logoUrl": "/uploads/brand/cropsa-logo.jpg",
     "title": "كتالوج كروپسا الديناميكي للمخصبات والأسمدة",
     "website": "www.cropsa-agri.com",
     "phone": "0101010009163",
@@ -20874,5 +20874,77 @@
     "productsPerPage": 4,
     "pdfOrientation": "portrait",
     "subtitle": "دليلك الشامل لأحدث الحلول الزراعية والمخصبات عالية الكفاءة"
-  }
+  },
+  "orders": [
+    {
+      "id": "CR-20260814-001",
+      "customerName": "مزرعة الهدى الحديثة",
+      "customerPhone": "01012345678",
+      "farmName": "مزارع الوادي الصالحية",
+      "province": "الشرقية",
+      "city": "الصالحية الجديدة",
+      "createdAt": "2026-08-14T10:30:00Z",
+      "items": [
+        {
+          "productId": "KIMA-001",
+          "packageId": "KIMA-001-1L",
+          "quantity": 20,
+          "unitPrice": 225,
+          "totalPrice": 4500
+        }
+      ],
+      "totalAmount": 4500,
+      "status": "confirmed",
+      "notes": "مطلوب شحن سريع عبر مكتب فليكس توك الصالحية",
+      "totalItems": 20
+    }
+  ],
+  "financingRequests": [],
+  "teamMembers": [
+    {
+      "id": "ADMIN-01",
+      "name": "المهندس المشرف (مدير عام)",
+      "email": "admin@cropsa.org",
+      "role": "super_admin",
+      "active": true,
+      "avatarUrl": "",
+      "phone": "01000000001",
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "passwordHash": "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
+      "permissions": [
+        "order_link",
+        "overview"
+      ]
+    },
+    {
+      "id": "REP-01",
+      "name": "أحمد محمود (مندوب الدلتا)",
+      "email": "rep.delta@cropsa.org",
+      "role": "sales_rep",
+      "active": true,
+      "avatarUrl": "",
+      "phone": "01000000002",
+      "createdAt": "2026-02-01T00:00:00.000Z",
+      "passwordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+      "permissions": [
+        "pdf"
+      ]
+    },
+    {
+      "id": "VIEWER-01",
+      "name": "مكتب المحاسبة والمراجعة",
+      "email": "audit@cropsa.org",
+      "role": "viewer",
+      "active": true,
+      "avatarUrl": "",
+      "phone": "01000000003",
+      "createdAt": "2026-03-01T00:00:00.000Z",
+      "passwordHash": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+      "permissions": []
+    }
+  ],
+  "priceHistory": [],
+  "importLogs": [],
+  "auditLogs": [],
+  "pdfDividers": []
 }

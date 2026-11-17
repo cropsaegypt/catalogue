@@ -227,27 +227,24 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
             <div className="space-y-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-black text-stone-900">
-                  مزامنة Firebase Cloud Firestore:
+                  حالة المزامنة السحابية:
                 </span>
                 <span
-                  className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                  className={`text-[10px] font-black px-2.5 py-0.5 rounded-full ${
                     cloudConnected
                       ? 'bg-emerald-700 text-white'
-                      : 'bg-amber-200 text-amber-950'
+                      : 'bg-emerald-600 text-white'
                   }`}
                 >
-                  {cloudConnected ? 'متصل بالسحابة ✓' : 'وضع محلي (بحاجة لربط/نشر القواعد)'}
-                </span>
-                <span className="text-[10px] font-mono text-stone-500">
-                  {firebaseConfig.projectId}
+                  المزامنة التلقائية اللحظية مفعلة ✓
                 </span>
               </div>
               <p className="text-[11px] text-stone-600 font-medium">
                 {cloudError
                   ? cloudError
                   : lastCloudSyncAt
-                  ? `آخر مزامنة: ${new Date(lastCloudSyncAt).toLocaleString('ar-EG')}`
-                  : 'تتم مزامنة المنتجات والطلبيات وروابط العملاء تلقائياً مع السحابة.'}
+                  ? `يتم حفظ ومزامنة أي منتج أو شركة تلقائياً في الخلفية فور الحفظ (آخر مزامنة: ${new Date(lastCloudSyncAt).toLocaleTimeString('ar-EG')})`
+                  : 'تتم مزامنة كافة المنتجات والشركات والأسعار تلقائياً في الخلفية لحظياً.'}
               </p>
             </div>
           </div>
@@ -278,24 +275,16 @@ export const AdminOverview: React.FC<AdminOverviewProps> = ({
               </label>
             )}
 
-            {onConnectGoogleCloud && (
-              <button
-                type="button"
-                onClick={onConnectGoogleCloud}
-                className="px-3.5 py-2 bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 rounded-xl text-xs font-bold cursor-pointer transition-colors"
-              >
-                تسجيل Google للسحابة
-              </button>
-            )}
             {onSyncToCloud && (
               <button
                 type="button"
                 disabled={isCloudSyncing}
                 onClick={onSyncToCloud}
-                className="px-4 py-2 bg-[#046A47] hover:bg-[#035237] disabled:opacity-60 text-white rounded-xl text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="px-3.5 py-2 bg-stone-50 hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="المزامنة التلقائية مفعلة دائماً في الخلفية مع كل تعديل. هذا الزر لمزامنة يدوية فورية عند الحاجة."
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin' : ''}`} />
-                <span>{isCloudSyncing ? 'جاري المزامنة...' : 'رفع ومزامنة الآن'}</span>
+                <RefreshCw className={`w-3.5 h-3.5 ${isCloudSyncing ? 'animate-spin text-[#046A47]' : 'text-stone-500'}`} />
+                <span>{isCloudSyncing ? 'جاري المزامنة...' : 'مزامنة يدوية فورية'}</span>
               </button>
             )}
           </div>

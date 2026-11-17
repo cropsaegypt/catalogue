@@ -395,6 +395,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <AiCatalogExtractor
             companies={companies}
             categories={categories}
+            subCategories={subCategories}
             existingProducts={products}
             existingPackages={packages}
             companyImages={images}
@@ -414,6 +415,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             packages={packages}
             companies={companies}
             categories={categories}
+            subCategories={subCategories}
             companyImages={images}
             onSaveProducts={onSaveProducts}
             onSavePackages={onSavePackages}

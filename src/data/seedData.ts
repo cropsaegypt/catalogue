@@ -20873,7 +20873,7 @@ export const INITIAL_CATALOG_SETTINGS: CatalogSettings = {
   "primaryColor": "#15803d",
   "heroBannerMode": "full_image",
   "showAdvertisements": true,
-  "logoUrl": "/uploads/company-logos/comp-01.webp",
+  "logoUrl": "/uploads/brand/cropsa-logo.jpg",
   "title": "كتالوج كروپسا الديناميكي للمخصبات والأسمدة",
   "website": "www.cropsa-agri.com",
   "phone": "0101010009163",

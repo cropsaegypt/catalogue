@@ -17,7 +17,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 
-import { Product, Package, Company, Category, CompanyImage } from '../../types';
+import { Product, Package, Company, Category, CompanyImage, CompanySubCategory } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
 import { aiCatalogService } from '../../services/aiCatalogService';
@@ -30,6 +30,7 @@ import {
   getCategoryDisplayPath,
   getProductMainCategoryId,
   getProductSubCategoryId,
+  getUnifiedSubCategoriesForSelection,
 } from '../../utils/categoryHierarchy';
 
 interface ProductManagerProps {
@@ -37,6 +38,7 @@ interface ProductManagerProps {
   packages: Package[];
   companies: Company[];
   categories: Category[];
+  subCategories?: CompanySubCategory[];
   companyImages: CompanyImage[];
   onSaveProducts: (products: Product[]) => void;
   onSavePackages: (packages: Package[]) => void;
@@ -48,6 +50,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   packages = [],
   companies = [],
   categories = [],
+  subCategories = [],
   companyImages = [],
   onSaveProducts,
   onSavePackages,
@@ -167,7 +170,12 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   >([]);
 
   const mainCategories = getMainCategories(categories);
-  const subCategoriesForSelected = getSubCategories(categories, categoryId);
+  const subCategoriesForSelected = getUnifiedSubCategoriesForSelection(
+    categories,
+    categoryId,
+    companyId,
+    subCategories
+  );
 
   // Filtered Products List
   const filteredProducts = products.filter((p) => {
@@ -563,7 +571,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
             <tbody className="divide-y divide-[#E5E2D9]">
               {filteredProducts.map((p) => {
                 const comp = companies.find((c) => c.id === p.companyId);
-                const catPath = getCategoryDisplayPath(p.categoryId, p.subCategoryId, categories);
+                const catPath = getCategoryDisplayPath(p.categoryId, p.subCategoryId, categories, subCategories);
                 const prodPackages = packages.filter((pkg) => pkg.productId === p.id && pkg.active !== false);
                 const isOutOfStock = Boolean(
                   p.isOutOfStock || (typeof p.stockQuantity === 'number' && p.stockQuantity <= 0)
@@ -845,7 +853,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                         <option value="">— عام داخل القسم الرئيسي (بدون قسم فرعي محدد) —</option>
                         {subCategoriesForSelected.map((sub) => (
                           <option key={sub.id} value={sub.id}>
-                            ↳ {sub.name}
+                            ↳ {sub.name} {sub.source === 'company' ? '(تابع للشركة)' : ''}
                           </option>
                         ))}
                       </select>
@@ -1242,6 +1250,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           packages={packages.filter((pkg) => pkg.productId === quickEditProduct.id)}
           companies={companies}
           categories={categories}
+          subCategories={subCategories}
           isOpen={Boolean(quickEditProduct)}
           onClose={() => setQuickEditProduct(null)}
           onSave={handleQuickSaveProduct}
