@@ -25,6 +25,11 @@ import { inferAgronomySearchTags } from '../../utils/agriculturalSearch';
 import { QuickProductEditModal } from './QuickProductEditModal';
 import { rotateAndUploadImage } from '../../utils/imageRotation';
 import {
+  analyzeProductsForAgronomicSubCategories,
+  AgronomicClassificationProposal,
+} from '../../utils/agronomicClassifier';
+import { AgronomicClassifierModal } from './AgronomicClassifierModal';
+import {
   getMainCategories,
   getSubCategories,
   getCategoryDisplayPath,
@@ -67,6 +72,40 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
   // Quick Edit Modal State & 1-Click Stock Toggle
   const [quickEditProduct, setQuickEditProduct] = useState<Product | null>(null);
   const [rotatingProdId, setRotatingProdId] = useState<string | null>(null);
+
+  // Agronomic Intelligent Subcategory Classifier State
+  const [isClassifierModalOpen, setIsClassifierModalOpen] = useState(false);
+  const [classifierProposals, setClassifierProposals] = useState<AgronomicClassificationProposal[]>([]);
+
+  const handleRunAgronomicClassifier = () => {
+    const proposals = analyzeProductsForAgronomicSubCategories(
+      products,
+      categories,
+      subCategories,
+      companies
+    );
+    setClassifierProposals(proposals);
+    setIsClassifierModalOpen(true);
+  };
+
+  const handleApplyAgronomicProposals = (approvedProposals: AgronomicClassificationProposal[]) => {
+    const updateMap = new Map(approvedProposals.map((p) => [p.product.id, p.suggestedSubCategoryId]));
+    const updatedProducts = products.map((p) => {
+      if (updateMap.has(p.id)) {
+        return {
+          ...p,
+          subCategoryId: updateMap.get(p.id),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return p;
+    });
+    onSaveProducts(updatedProducts);
+    onShowToast(
+      `تم تطبيق التصنيف الزراعي وتحديث الأقسام الفرعية لـ ${approvedProposals.length} منتج بنجاح ✓`,
+      'success'
+    );
+  };
 
   const handleFastRotate = (e: React.MouseEvent, targetProduct: Product) => {
     e.stopPropagation();
@@ -476,6 +515,16 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           <p className="text-xs text-[#8A8A6D] font-medium">إضافة المنتجات وتحديد الحجم والأسعار والمعلومات الفنية</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleRunAgronomicClassifier}
+            className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 px-3.5 py-2.5 rounded-xl text-xs font-black shadow-2xs flex items-center gap-1.5 transition-all cursor-pointer"
+            title="فحص واقتراح الأقسام الفرعية الصحيحة لجميع المنتجات بالذكاء الزراعي مع معاينة وتأكيد مسبق (دون المساس بالشركات)"
+          >
+            <Sparkles className="w-4 h-4 text-amber-700" />
+            <span>المصنّف الزراعي للأقسام الفرعية</span>
+          </button>
+
           <button
             type="button"
             disabled={isCleaningAllBg}
@@ -1253,6 +1302,17 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
           onShowToast={onShowToast}
         />
       )}
+
+      {/* Agronomic Intelligent Subcategory Classifier Modal */}
+      <AgronomicClassifierModal
+        isOpen={isClassifierModalOpen}
+        onClose={() => setIsClassifierModalOpen(false)}
+        proposals={classifierProposals}
+        categories={categories}
+        subCategories={subCategories}
+        totalProductsCount={products.length}
+        onApplyProposals={handleApplyAgronomicProposals}
+      />
     </div>
   );
 };

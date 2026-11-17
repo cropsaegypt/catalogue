@@ -110,7 +110,7 @@ export const OffersBannerCarousel: React.FC<OffersBannerCarouselProps> = ({
 
   // 2. Custom Advertisement Slides (Displays pure designed banners without intrusive overlays)
   const adSlides: BannerSlide[] = advertisements
-    .filter((ad) => ad.active && ad.showOnline !== false)
+    .filter((ad) => ad.active && ad.showOnline !== false && Boolean(ad.desktopImageUrl || ad.mobileImageUrl))
     .map((ad, idx) => ({
       id: ad.id || `ad-${idx}`,
       badge: undefined,
