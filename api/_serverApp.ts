@@ -890,6 +890,20 @@ export function createApiApp() {
         };
       }
 
+      // Ensure productType is aligned with categoryId (preventing fertilizers/stimulants from carrying stale pesticide flag)
+      if (data && Array.isArray(data.products)) {
+        data.products = data.products.map((p: any) => {
+          let expectedType = p.productType;
+          if (p.categoryId === 'CAT-02') expectedType = 'fertilizer';
+          else if (p.categoryId === 'CAT-01') expectedType = 'stimulant';
+          else if (p.categoryId === 'CAT-759728') expectedType = 'pesticide';
+          if (p.productType !== expectedType) {
+            return { ...p, productType: expectedType };
+          }
+          return p;
+        });
+      }
+
       if (data && Array.isArray(data.products) && data.products.length > 0) {
         globalCatalogMemoryCache = data;
       }
@@ -950,6 +964,15 @@ export function createApiApp() {
             fixed = { ...fixed, imageRotation: fallback.imageRotation };
           }
           return fixed;
+        });
+
+        // Ensure productType is aligned with categoryId
+        updatedProducts = updatedProducts.map((p: any) => {
+          let expectedType = p.productType;
+          if (p.categoryId === 'CAT-02') expectedType = 'fertilizer';
+          else if (p.categoryId === 'CAT-01') expectedType = 'stimulant';
+          else if (p.categoryId === 'CAT-759728') expectedType = 'pesticide';
+          return { ...p, productType: expectedType };
         });
       }
 
