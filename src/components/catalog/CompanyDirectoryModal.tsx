@@ -8,9 +8,11 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Share2,
 } from 'lucide-react';
 import { Company, Product, Package } from '../../types';
 import { CompanyAvailabilityItem } from '../../utils/categoryHierarchy';
+import { getCompanyRoutePath, copyDirectLink } from '../../utils/urlRouter';
 
 interface CompanyDirectoryModalProps {
   isOpen: boolean;
@@ -45,6 +47,7 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
+  const [copiedCompanyId, setCopiedCompanyId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -222,6 +225,32 @@ export const CompanyDirectoryModal: React.FC<CompanyDirectoryModalProps> = ({
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const ok = await copyDirectLink(getCompanyRoutePath(comp));
+                          if (ok) {
+                            setCopiedCompanyId(comp.id);
+                            setTimeout(() => setCopiedCompanyId(null), 2000);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded-xl bg-white hover:bg-emerald-50 text-stone-600 hover:text-[#046A47] border border-stone-200 hover:border-emerald-300 transition-all cursor-pointer"
+                        title="نسخ ومشاركة رابط الشركة المباشر"
+                      >
+                        {copiedCompanyId === comp.id ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-[11px] font-black text-emerald-700">تم النسخ!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Share2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline text-[11px]">مشاركة</span>
+                          </>
+                        )}
+                      </button>
+
                       <button
                         type="button"
                         onClick={(e) => {

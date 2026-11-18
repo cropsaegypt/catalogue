@@ -12,9 +12,11 @@ import {
   Building2,
   Layers,
   ZoomIn,
+  Share2,
 } from 'lucide-react';
 import { Product, Package, Company, Category } from '../../types';
 import { ImageZoomModal } from '../common/ImageZoomModal';
+import { getProductRoutePath, copyDirectLink } from '../../utils/urlRouter';
 
 interface ProductModalProps {
   product: Product | null;
@@ -47,6 +49,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const [quantityText, setQuantityText] = useState<string>('1');
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -118,14 +121,41 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-full transition-colors cursor-pointer shrink-0"
-            title="إغلاق"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={async () => {
+                const ok = await copyDirectLink(getProductRoutePath(product));
+                if (ok) {
+                  setIsCopied(true);
+                  setTimeout(() => setIsCopied(false), 2200);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-[#046A47] border border-emerald-200 rounded-full text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              title="نسخ ومشاركة رابط مباشر للمنتج"
+            >
+              {isCopied ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="text-[11px] font-black">تم نسخ الرابط!</span>
+                </>
+              ) : (
+                <>
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline text-[11px] font-black">مشاركة</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-full transition-colors cursor-pointer shrink-0"
+              title="إغلاق"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}

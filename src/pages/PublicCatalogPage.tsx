@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   ArrowLeft,
   Banknote,
+  Share2,
+  Link2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Header } from '../components/common/Header';
@@ -38,6 +40,15 @@ import {
   getProductSubCategoryId,
   productMatchesCategoryFilter,
 } from '../utils/categoryHierarchy';
+import {
+  parseCurrentRoute,
+  navigateTo,
+  resolveCompanyFromSlugOrId,
+  resolveProductFromId,
+  getCompanyRoutePath,
+  getProductRoutePath,
+  copyDirectLink,
+} from '../utils/urlRouter';
 
 import {
   Product,
@@ -139,63 +150,95 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const isExitingRef = useRef(false);
 
-  // Intercept back button on mobile with marketing exit confirmation modal
+  // Deep Linking & Sub-Routing Sync:
+  // Synchronizes browser URL with active company, product details, financing, and companies directory
+  useEffect(() => {
+    const syncRouteToState = () => {
+      const r = parseCurrentRoute();
+
+      if (r.type === 'company') {
+        const found = resolveCompanyFromSlugOrId(r.slugOrId, companies);
+        if (found) {
+          setSelectedCompanyIds([found.id]);
+          setIsFinancingPageOpen(false);
+          setIsCompanyDirectoryOpen(false);
+          setSelectedProductModal(null);
+        }
+      } else if (r.type === 'companies') {
+        setIsCompanyDirectoryOpen(true);
+        setIsFinancingPageOpen(false);
+        setSelectedProductModal(null);
+      } else if (r.type === 'financing') {
+        setIsFinancingPageOpen(true);
+        setIsCompanyDirectoryOpen(false);
+        setSelectedProductModal(null);
+      } else if (r.type === 'product') {
+        const found = resolveProductFromId(r.productId, products);
+        if (found) {
+          setSelectedProductModal(found);
+          setIsFinancingPageOpen(false);
+          setIsCompanyDirectoryOpen(false);
+        }
+      } else if (r.type === 'home') {
+        if (selectedCompanyIds.length > 0) setSelectedCompanyIds([]);
+        setIsFinancingPageOpen(false);
+        setIsCompanyDirectoryOpen(false);
+        setSelectedProductModal(null);
+      }
+    };
+
+    syncRouteToState();
+
+    window.addEventListener('popstate', syncRouteToState);
+    window.addEventListener('app:route-change', syncRouteToState);
+    return () => {
+      window.removeEventListener('popstate', syncRouteToState);
+      window.removeEventListener('app:route-change', syncRouteToState);
+    };
+  }, [companies, products]);
+
+  // Clean Back Navigation & Marketing Exit Confirmation UX
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Push initial trap state into browser history
-    window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+    const r = parseCurrentRoute();
+    if (r.type === 'home') {
+      window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+    }
 
     const handlePopState = () => {
-      if (isExitingRef.current) {
-        return;
-      }
+      if (isExitingRef.current) return;
 
-      // 1. If any sub-modal or drawer is open, close it first (natural back navigation UX)
-      if (isWholesaleNoticeOpen) {
-        setIsWholesaleNoticeOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (selectedProductModal) {
-        setSelectedProductModal(null);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
+      // Close transient in-page drawers first
       if (isBasketOpen) {
         setIsBasketOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (isFinancingPageOpen) {
-        setIsFinancingPageOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (isCompanyDirectoryOpen) {
-        setIsCompanyDirectoryOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
         return;
       }
       if (mobileSheetMode !== 'closed') {
         setMobileSheetMode('closed');
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-        return;
-      }
-      if (isEmployeeLoginOpen) {
-        setIsEmployeeLoginOpen(false);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
         return;
       }
       if (quickAddTarget) {
         setQuickAddTarget(null);
-        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        return;
+      }
+      if (isEmployeeLoginOpen) {
+        setIsEmployeeLoginOpen(false);
         return;
       }
 
-      // 2. If at root catalog, intercept the exit!
-      window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
-      setIsExitModalOpen(true);
+      // If at root and user backs out of the website, intercept exit!
+      const current = parseCurrentRoute();
+      if (
+        current.type === 'home' &&
+        !selectedProductModal &&
+        !isFinancingPageOpen &&
+        !isCompanyDirectoryOpen &&
+        selectedCompanyIds.length === 0
+      ) {
+        window.history.pushState({ catalogExitTrap: true }, '', window.location.href);
+        setIsExitModalOpen(true);
+      }
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -203,14 +246,14 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
       window.removeEventListener('popstate', handlePopState);
     };
   }, [
-    isWholesaleNoticeOpen,
-    selectedProductModal,
     isBasketOpen,
+    mobileSheetMode,
+    quickAddTarget,
+    isEmployeeLoginOpen,
+    selectedProductModal,
     isFinancingPageOpen,
     isCompanyDirectoryOpen,
-    mobileSheetMode,
-    isEmployeeLoginOpen,
-    quickAddTarget,
+    selectedCompanyIds.length,
   ]);
 
   const handleStayInCatalog = () => {
@@ -253,6 +296,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
     setSelectedCompanyIds([]);
     setSelectedShowcaseKey(null);
     setSearchQuery('');
+    navigateTo('/');
   };
 
   const toggleCompany = (id: string) => {
@@ -261,6 +305,15 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
       : [...selectedCompanyIds, id];
 
     setSelectedCompanyIds(nextCompanies);
+
+    // Sync company deep-link URL
+    if (nextCompanies.length === 1) {
+      const comp = companies.find((c) => c.id === nextCompanies[0]);
+      if (comp) navigateTo(getCompanyRoutePath(comp));
+      else navigateTo('/');
+    } else {
+      navigateTo('/');
+    }
 
     // Prune any selected categories/subcategories that don't have products in nextCompanies
     if (nextCompanies.length > 0) {
@@ -449,6 +502,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   const handleOpenProductDetails = (product: Product, selectedPackage?: Package) => {
     setSelectedProductModal(product);
     setSelectedPackageModal(selectedPackage);
+    navigateTo(getProductRoutePath(product));
   };
 
   return (
@@ -460,6 +514,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         onOpenAdmin={onOpenAdmin}
         onOpenIslamicFinancing={() => {
           setIsFinancingPageOpen(true);
+          navigateTo('/financing');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
         isAdminLoggedIn={isAdminLoggedIn}
@@ -492,6 +547,13 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             basketItems={basketItems}
             onBackToCatalog={() => {
               setIsFinancingPageOpen(false);
+              if (selectedCompanyIds.length === 1) {
+                const comp = companies.find((c) => c.id === selectedCompanyIds[0]);
+                if (comp) navigateTo(getCompanyRoutePath(comp));
+                else navigateTo('/');
+              } else {
+                navigateTo('/');
+              }
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             onSubmitFinancingRequest={async (payload) => {
@@ -540,7 +602,10 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           onToggleCompany={toggleCompany}
           onToggleCategory={toggleCategory}
           onToggleSubCategory={toggleSubCategory}
-          onOpenAllCompanies={() => setIsCompanyDirectoryOpen(true)}
+          onOpenAllCompanies={() => {
+            setIsCompanyDirectoryOpen(true);
+            navigateTo('/companies');
+          }}
           onClearAll={resetAllFilters}
           matchingProductsCount={displayedProducts.length}
           hasCategoryRestrictionOnCompanies={crossFilter.hasCategoryRestrictionOnCompanies}
@@ -602,10 +667,28 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
                 return (
                   <span
                     key={compId}
-                    className="inline-flex items-center gap-1 bg-stone-900 text-white font-black px-2.5 py-1 rounded-lg"
+                    className="inline-flex items-center gap-1.5 bg-stone-900 text-white font-black px-2.5 py-1 rounded-lg text-xs"
                   >
                     <span>شركة: {comp.name}</span>
-                    <button onClick={() => toggleCompany(compId)} className="cursor-pointer">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const ok = await copyDirectLink(getCompanyRoutePath(comp));
+                        if (ok) {
+                          addToast(`تم نسخ رابط شركة ${comp.name} بنجاح ✓`, 'success');
+                        }
+                      }}
+                      className="hover:text-emerald-300 transition-colors cursor-pointer text-stone-300"
+                      title="نسخ ومشاركة رابط الشركة المباشر"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleCompany(compId)}
+                      className="hover:text-rose-300 transition-colors cursor-pointer"
+                      title="إلغاء التحديد"
+                    >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </span>
@@ -784,7 +867,16 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
               selectedProductModal ? packages.filter((p) => p.productId === selectedProductModal.id) : []
             }
             initialPackage={selectedPackageModal}
-            onClose={() => setSelectedProductModal(null)}
+            onClose={() => {
+              setSelectedProductModal(null);
+              if (selectedCompanyIds.length === 1) {
+                const comp = companies.find((c) => c.id === selectedCompanyIds[0]);
+                if (comp) navigateTo(getCompanyRoutePath(comp));
+                else navigateTo('/');
+              } else {
+                navigateTo('/');
+              }
+            }}
             onAddToCart={handleAddToCart}
           />
         );
@@ -828,7 +920,16 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
       {/* Company Directory Modal */}
       <CompanyDirectoryModal
         isOpen={isCompanyDirectoryOpen}
-        onClose={() => setIsCompanyDirectoryOpen(false)}
+        onClose={() => {
+          setIsCompanyDirectoryOpen(false);
+          if (selectedCompanyIds.length === 1) {
+            const comp = companies.find((c) => c.id === selectedCompanyIds[0]);
+            if (comp) navigateTo(getCompanyRoutePath(comp));
+            else navigateTo('/');
+          } else {
+            navigateTo('/');
+          }
+        }}
         companies={companies}
         companiesMeta={crossFilter.allCompaniesMeta}
         products={products}
@@ -903,6 +1004,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
                   onOpenAllCompanies={() => {
                     setMobileSheetMode('closed');
                     setIsCompanyDirectoryOpen(true);
+                    navigateTo('/companies');
                   }}
                   onClearAll={resetAllFilters}
                   matchingProductsCount={displayedProducts.length}
@@ -1053,6 +1155,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
             onClick={() => {
               setMobileSheetMode('closed');
               setIsFinancingPageOpen(true);
+              navigateTo('/financing');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
             className={`flex flex-col items-center gap-0.5 cursor-pointer px-1.5 py-0.5 transition-colors ${

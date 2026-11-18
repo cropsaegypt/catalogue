@@ -11,6 +11,7 @@ import {
   clearStoredSalesRep,
   StoredSalesRep,
 } from './utils/salesRepReferral';
+import { parseCurrentRoute, navigateTo } from './utils/urlRouter';
 
 import {
   dbStorage,
@@ -43,7 +44,12 @@ import {
 } from './types';
 
 export default function App() {
-  const [currentView, setCurrentView] = useState<'catalog' | 'admin' | 'catalog_builder'>('catalog');
+  const [currentView, setCurrentView] = useState<'catalog' | 'admin' | 'catalog_builder'>(() => {
+    const init = parseCurrentRoute();
+    if (init.type === 'admin') return 'admin';
+    if (init.type === 'builder') return 'catalog_builder';
+    return 'catalog';
+  });
   const [currentUser, setCurrentUser] = useState<TeamMember | null>(() => {
     const activeUser = dbStorage.getCurrentUser();
     if (!activeUser) {
@@ -146,11 +152,11 @@ export default function App() {
     setAuditLogs(data.auditLogs || []);
     if (data.settings) setSettings(data.settings);
 
-    const params = new URLSearchParams(window.location.search);
+    const currentRoute = parseCurrentRoute();
 
-    // 1. Check if employee opened a direct order link (?order=CR-...)
-    const orderParam = params.get('order') || params.get('orderId');
-    if (orderParam) {
+    // 1. Check if employee opened a direct order link (/order/CR-... or ?order=CR-...)
+    if (currentRoute.type === 'order') {
+      const orderParam = currentRoute.orderId;
       const localMatch = localOrders.find(
         (o) => o.orderNumber === orderParam || o.id === orderParam
       );
@@ -173,9 +179,9 @@ export default function App() {
       }
     }
 
-    // 2. Check if customer/employee opened a shared custom catalog link (?catalog=CAT-...)
-    const catalogParam = params.get('catalog') || params.get('c');
-    if (catalogParam) {
+    // 2. Check if customer/employee opened a shared custom catalog link (/shared/... or ?catalog=CAT-...)
+    if (currentRoute.type === 'shared_catalog') {
+      const catalogParam = currentRoute.catalogId;
       const localCat = dbStorage.getSharedCatalogById(catalogParam);
       if (localCat) {
         setSharedCatalog(localCat);
@@ -344,6 +350,48 @@ export default function App() {
       })
       .catch(() => {});
   }, []);
+
+  // Listen to browser History popstate and app:route-change to sync top-level view
+  useEffect(() => {
+    const handleRouteChange = () => {
+      const r = parseCurrentRoute();
+      if (r.type === 'admin') {
+        setCurrentView('admin');
+        setInspectedOrder(null);
+        setSharedCatalog(null);
+      } else if (r.type === 'builder') {
+        setCurrentView('catalog_builder');
+        setInspectedOrder(null);
+        setSharedCatalog(null);
+      } else if (r.type === 'order') {
+        const orderId = r.orderId;
+        const localMatch = orders.find(
+          (o) => o.orderNumber === orderId || o.id === orderId
+        );
+        if (localMatch) {
+          setInspectedOrder(localMatch);
+        }
+      } else if (r.type === 'shared_catalog') {
+        const catId = r.catalogId;
+        const localCat = dbStorage.getSharedCatalogById(catId);
+        if (localCat) {
+          setSharedCatalog(localCat);
+        }
+      } else {
+        // 'home' | 'company' | 'companies' | 'product' | 'financing'
+        setCurrentView('catalog');
+        setInspectedOrder(null);
+        setSharedCatalog(null);
+      }
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+    window.addEventListener('app:route-change', handleRouteChange);
+    return () => {
+      window.removeEventListener('popstate', handleRouteChange);
+      window.removeEventListener('app:route-change', handleRouteChange);
+    };
+  }, [orders]);
 
   // Automatic silent continuous background synchronization ("يعمل كدا لوحده دايما")
   useEffect(() => {
@@ -881,6 +929,7 @@ export default function App() {
     dbStorage.setCurrentUserId(null);
     setCurrentUser(null);
     setCurrentView('catalog');
+    navigateTo('/');
   };
 
   return (
@@ -903,12 +952,12 @@ export default function App() {
           }}
           onBackToCatalog={() => {
             setInspectedOrder(null);
-            window.history.replaceState({}, '', window.location.pathname);
+            navigateTo('/');
           }}
           onOpenAdmin={() => {
             setInspectedOrder(null);
-            window.history.replaceState({}, '', window.location.pathname);
             setCurrentView('admin');
+            navigateTo('/admin');
           }}
         />
       ) : sharedCatalog ? (
@@ -918,8 +967,7 @@ export default function App() {
           onSubmitOrder={handleSubmitOrder}
           onOpenFullStore={() => {
             setSharedCatalog(null);
-            window.history.replaceState({}, '', window.location.pathname);
-            setCurrentView('catalog');
+            navigateTo('/');
           }}
         />
       ) : currentView === 'catalog_builder' && canBuildCustomCatalog(currentUser) ? (
@@ -934,7 +982,10 @@ export default function App() {
               advertisements={advertisements}
               onShowToast={addBuilderToast}
               currentUser={currentUser}
-              onBackToCatalog={() => setCurrentView('catalog')}
+              onBackToCatalog={() => {
+                setCurrentView('catalog');
+                navigateTo('/');
+              }}
             />
           </div>
           <ToastContainer
@@ -951,8 +1002,14 @@ export default function App() {
           subCategories={subCategories}
           advertisements={advertisements}
           settings={settings}
-          onOpenAdmin={() => setCurrentView('admin')}
-          onOpenCatalogBuilder={() => setCurrentView('catalog_builder')}
+          onOpenAdmin={() => {
+            setCurrentView('admin');
+            navigateTo('/admin');
+          }}
+          onOpenCatalogBuilder={() => {
+            setCurrentView('catalog_builder');
+            navigateTo('/builder');
+          }}
           isAdminLoggedIn={isAdminLoggedIn}
           currentUser={currentUser}
           activeSalesRep={activeSalesRep}
@@ -993,7 +1050,10 @@ export default function App() {
           onBatchUpdatePrices={handleBatchUpdatePrices}
           onAddPriceHistory={handleAddPriceHistory}
           onAddImportLog={handleAddImportLog}
-          onBackToCatalog={() => setCurrentView('catalog')}
+          onBackToCatalog={() => {
+            setCurrentView('catalog');
+            navigateTo('/');
+          }}
           isAdminLoggedIn={isAdminLoggedIn}
           onLogin={handleLogin}
           onLogout={handleLogout}
