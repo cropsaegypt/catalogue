@@ -12,9 +12,14 @@ import {
   AlertCircle,
   HelpCircle,
   RefreshCw,
+  Cpu,
+  Check,
 } from 'lucide-react';
-import { Product, Category, CompanySubCategory } from '../../types';
-import { AgronomicClassificationProposal } from '../../utils/agronomicClassifier';
+import { Product, Category, CompanySubCategory, Company } from '../../types';
+import {
+  AgronomicClassificationProposal,
+  classifyProductsWithAi,
+} from '../../utils/agronomicClassifier';
 import {
   getMainCategories,
   getUnifiedSubCategoriesForSelection,
@@ -26,8 +31,11 @@ interface AgronomicClassifierModalProps {
   proposals: AgronomicClassificationProposal[];
   categories: Category[];
   subCategories: CompanySubCategory[];
+  companies?: Company[];
+  products?: Product[];
   totalProductsCount: number;
   onApplyProposals: (approvedProposals: AgronomicClassificationProposal[]) => void;
+  onShowToast?: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> = ({
@@ -36,13 +44,17 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
   proposals: initialProposals,
   categories,
   subCategories,
+  companies = [],
+  products = [],
   totalProductsCount,
   onApplyProposals,
+  onShowToast,
 }) => {
   const [proposals, setProposals] = useState<AgronomicClassificationProposal[]>(initialProposals);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'category_and_sub' | 'sub_only'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'category_and_sub' | 'sub_only' | 'ai_only'>('all');
   const [isApplying, setIsApplying] = useState(false);
+  const [isAiScanning, setIsAiScanning] = useState(false);
 
   // Available main categories
   const mainCategories = useMemo(() => getMainCategories(categories), [categories]);
@@ -60,12 +72,17 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
     () => proposals.filter((p) => !p.isCategoryChanged).length,
     [proposals]
   );
+  const aiCount = useMemo(
+    () => proposals.filter((p) => p.source === 'ai_deep_research').length,
+    [proposals]
+  );
 
   // Filtered list
   const filteredProposals = useMemo(() => {
     return proposals.filter((p) => {
       if (filterType === 'category_and_sub' && !p.isCategoryChanged) return false;
       if (filterType === 'sub_only' && p.isCategoryChanged) return false;
+      if (filterType === 'ai_only' && p.source !== 'ai_deep_research') return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.trim().toLowerCase();
       return (
@@ -112,9 +129,10 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
             ...p,
             suggestedCategoryId: newCatId,
             suggestedCategoryName: newCatName,
-            suggestedSubCategoryId: firstSub ? firstSub.id : p.suggestedSubCategoryId,
-            suggestedSubCategoryName: firstSub ? firstSub.name : p.suggestedSubCategoryName,
+            suggestedSubCategoryId: firstSub ? firstSub.id : '',
+            suggestedSubCategoryName: firstSub ? firstSub.name : '',
             isCategoryChanged: newCatId !== p.currentCategoryId,
+            isSubCategoryChanged: Boolean(firstSub?.id) && firstSub.id !== p.currentSubCategoryId,
           };
         }
         return p;
@@ -135,6 +153,57 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
           : p
       )
     );
+  };
+
+  // AI Deep Research trigger
+  const handleRunAiDeepResearch = async () => {
+    if (isAiScanning) return;
+    const targetProducts =
+      proposals.length > 0 ? proposals.map((p) => p.product) : products.slice(0, 30);
+    if (targetProducts.length === 0) return;
+
+    setIsAiScanning(true);
+    try {
+      const customKey = localStorage.getItem('cropsa_custom_gemini_key') || undefined;
+      const aiResults = await classifyProductsWithAi(
+        targetProducts,
+        categories,
+        subCategories,
+        companies,
+        customKey
+      );
+
+      if (aiResults.length > 0) {
+        // Merge AI proposals with existing proposals
+        const aiMap = new Map(aiResults.map((r) => [r.product.id, r]));
+        setProposals((prev) => {
+          const merged = prev.map((p) => (aiMap.has(p.product.id) ? aiMap.get(p.product.id)! : p));
+          // Also add any new ones detected by AI
+          const existingIds = new Set(merged.map((p) => p.product.id));
+          for (const air of aiResults) {
+            if (!existingIds.has(air.product.id)) {
+              merged.push(air);
+            }
+          }
+          return merged;
+        });
+
+        onShowToast?.(
+          `تم استكمال التدقيق الذكي بالذكاء الاصطناعي لـ ${aiResults.length} مركب بنجاح ✓`,
+          'success'
+        );
+      } else {
+        onShowToast?.('تم فحص المنتجات بالذكاء الاصطناعي والتأكد من ملاءمة تصنيفاتها.', 'info');
+      }
+    } catch (err: any) {
+      console.error('AI Research Error:', err);
+      onShowToast?.(
+        err.message || 'تعذر استكمال التدقيق بالذكاء الاصطناعي، تم الحفاظ على النتائج الحالية.',
+        'error'
+      );
+    } finally {
+      setIsAiScanning(false);
+    }
   };
 
   const handleConfirm = () => {
@@ -158,7 +227,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
         <div className="p-5 sm:p-6 bg-[#FAF8F5] border-b border-[#E5E2D9] flex items-start justify-between gap-4 shrink-0">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-300 flex items-center justify-center text-amber-700">
+              <div className="w-10 h-10 rounded-2xl bg-[#046A47]/10 border border-[#046A47]/20 flex items-center justify-center text-[#046A47]">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
@@ -166,7 +235,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                   المصنّف الزراعي الذكي للأقسام الرئيسية والفرعية
                 </h3>
                 <p className="text-xs text-stone-600 font-medium">
-                  فحص دقيق للمركبات الزراعية ومطابقة المواد الفعالة والاستخدامات لضبط القسم الرئيسي (مبيدات / أسمدة / مخصبات) والأقسام الفرعية المناسبة
+                  مطابقة علمية دقيقة للمواد الفعالة واستخدامات المركبات الزراعية لضبط القسم الرئيسي (مبيدات / أسمدة / مخصبات) والأقسام الفرعية المناسبة
                 </p>
               </div>
             </div>
@@ -175,7 +244,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
             <div className="inline-flex flex-wrap items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-900 px-3 py-1 rounded-xl text-xs font-bold mt-1">
               <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
               <span>
-                ضمان الأمان: الشركات المصنعة ثابتة ومحمية 100%. لن يتم تطبيق أي تعديل إلا بعد مراجعتك وتأكيدك بالزر أدناه.
+                ضمان الأمان والمراجعة اليدوية: لن يتم تطبيق أو تعديل أي منتج في قاعدة البيانات إلا بعد مراجعتك وتأكيدك بالزر أدناه. الشركة المصنعة ثابتة ومحمية 100%.
               </span>
             </div>
           </div>
@@ -189,7 +258,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
           </button>
         </div>
 
-        {/* Filter Pills, Stats & Search Toolbar */}
+        {/* Filter Pills, AI Research Button, Stats & Search Toolbar */}
         <div className="p-4 bg-white border-b border-stone-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -227,6 +296,41 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
               }`}
             >
               تعديل قسم فرعي فقط ({subOnlyCount})
+            </button>
+            {aiCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setFilterType('ai_only')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  filterType === 'ai_only'
+                    ? 'bg-purple-700 text-white shadow-xs'
+                    : 'bg-purple-50 text-purple-900 border border-purple-200 hover:bg-purple-100'
+                }`}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                <span>مدقق بالذكاء الاصطناعي ({aiCount})</span>
+              </button>
+            )}
+
+            {/* AI Deep Research Button */}
+            <button
+              type="button"
+              onClick={handleRunAiDeepResearch}
+              disabled={isAiScanning}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-black bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-300 transition-all cursor-pointer flex items-center gap-1.5 shadow-2xs hover:shadow-xs disabled:opacity-50"
+              title="فحص واستقصاء علمي إضافي عبر نموذج الذكاء الاصطناعي للتأكد من المركبات الغامضة"
+            >
+              {isAiScanning ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-purple-700" />
+                  <span>جاري الفحص بالذكاء الاصطناعي...</span>
+                </>
+              ) : (
+                <>
+                  <Cpu className="w-3.5 h-3.5 text-purple-700" />
+                  <span>✨ تدقيق وبحث بالذكاء الاصطناعي (AI Research)</span>
+                </>
+              )}
             </button>
           </div>
 
@@ -284,8 +388,8 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                     <th className="p-3">المنتج</th>
                     <th className="p-3">الشركة المصنعة</th>
                     <th className="p-3">التصنيف الحالي</th>
-                    <th className="p-3 text-emerald-800 font-black">التصنيف المقترح ⬅</th>
-                    <th className="p-3">القرائن الزراعية المكتشفة</th>
+                    <th className="p-3 text-emerald-800 font-black">التصنيف المقترح ⬅ (يمكنك التعديل)</th>
+                    <th className="p-3">القرائن والمادة الفعالة المكتشفة</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
@@ -331,7 +435,14 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                               </div>
                             )}
                             <div>
-                              <span className="block font-black text-stone-900">{item.product.name}</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-black text-stone-900">{item.product.name}</span>
+                                {item.source === 'ai_deep_research' && (
+                                  <span className="bg-purple-100 text-purple-900 border border-purple-200 text-[9.5px] font-bold px-1 rounded-sm">
+                                    ✨ AI
+                                  </span>
+                                )}
+                              </div>
                               <span className="font-mono text-[10px] text-stone-400">{item.product.id}</span>
                             </div>
                           </div>
@@ -347,7 +458,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                               {item.currentCategoryName}
                             </span>
                             <span className="block text-[10.5px] text-stone-500 font-medium">
-                              ↳ {item.currentSubCategoryName}
+                              ↳ {item.currentSubCategoryName || 'بدون قسم فرعي'}
                             </span>
                           </div>
                         </td>
@@ -408,15 +519,20 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                           </div>
                         </td>
                         <td className="p-3">
-                          <div className="flex flex-wrap gap-1 max-w-xs">
-                            {item.detectedKeywords.map((k, kIdx) => (
-                              <span
-                                key={kIdx}
-                                className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold px-1.5 py-0.5 rounded"
-                              >
-                                {k}
-                              </span>
-                            ))}
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap gap-1 max-w-xs">
+                              {item.detectedKeywords.map((k, kIdx) => (
+                                <span
+                                  key={kIdx}
+                                  className="bg-amber-100 text-amber-900 border border-amber-200 text-[10px] font-bold px-1.5 py-0.5 rounded"
+                                >
+                                  {k}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-[10px] text-stone-500 font-medium line-clamp-2 max-w-xs">
+                              {item.reason}
+                            </p>
                           </div>
                         </td>
                       </tr>
@@ -443,7 +559,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
               disabled={isApplying}
               className="px-4 py-2 border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
             >
-              إلغاء التراجع
+              إلغاء وإغلاق
             </button>
 
             <button
@@ -459,7 +575,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
               {isApplying ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>جاري تطبيق التعديلات...</span>
+                  <span>جاري تطبيق التعديلات المعتمدة...</span>
                 </>
               ) : (
                 <>

@@ -670,6 +670,142 @@ export function createApiApp() {
     }
   });
 
+  // Agronomic AI Deep Classification & Verification
+  app.post('/api/gemini/classify-products', async (req, res) => {
+    try {
+      const { products = [], customApiKey = '' } = req.body || {};
+      if (!Array.isArray(products) || products.length === 0) {
+        return res.status(400).json({ success: false, error: 'لا توجد منتجات للتصنيف.' });
+      }
+
+      const ai = getGeminiClient(customApiKey);
+      const batch = products.slice(0, 30).map((p: any) => ({
+        id: String(p.id || ''),
+        name: String(p.name || ''),
+        companyName: String(p.companyName || ''),
+        shortDescription: String(p.shortDescription || ''),
+        description: String(p.description || ''),
+        characteristics: Array.isArray(p.characteristics) ? p.characteristics.slice(0, 4) : [],
+        composition: Array.isArray(p.composition) ? p.composition : [],
+        usage: Array.isArray(p.usage) ? p.usage.slice(0, 3) : [],
+        currentCategory: String(p.currentCategoryName || ''),
+        currentSubCategory: String(p.currentSubCategoryName || ''),
+      }));
+
+      const prompt = [
+        'أنت خبير زراعي واستشاري متخصص في وقاية النبات والتسميد في السوق الزراعي المصري والشرق الأوسط.',
+        'مهمتك: تصنيف المنتجات الزراعية بدقة علمية وفق الأقسام المعتمدة.',
+        '',
+        'قواعد التصنيف الصارمة:',
+        '1. الأقسام الرئيسية (categoryType):',
+        '   - "pesticides": لأي مبيد (حشري، فطري، حشائش، نيماتودا) يكافح آفات كيميائياً أو حيوياً.',
+        '   - "fertilizers": لأي سماد يمد النبات بالعناصر الغذائية (مركبات NPK، سترات بوتاسيوم، عناصر صغرى مخلبية، يوريا، سلفات، نترات، أسمدة أحادية).',
+        '   - "stimulants": للمخصبات الحيوية، الأحماض الأمينية، مستخلصات الطحالب البحرية، الهيوميك، الفولفيك، منظمات النمو (أوكسين، سيتوكينين، جبرلين)، منشطات الجذور.',
+        '',
+        '2. الأقسام الفرعية القياسية (subCategoryName):',
+        '   - للمبيدات: اختر بدقة: "مبيدات فطرية" أو "مبيدات حشرية" أو "مبيدات حشائش" أو "مبيدات نيماتودا".',
+        '   - للأسمدة: اختر بدقة: "اسمدة مركبة" أو "اسمدة احادية".',
+        '   - للمخصبات: "مخصبات حيوية وأحماض أمينية" أو اتركه فارغاً.',
+        '',
+        '3. تنبيهات فنية حاسمة لمنع الخلط:',
+        '   - "بيض غير مخصب" في مبيدات الديدان واللوفينورون تعني منع فقس البيض، وهو مبيد حشري وليس مخصباً!',
+        '   - ذكر "مقاومة الأمراض أو الحشرات" في مستخلص طحالب أو أحماض أمينية يعني تعزيز مناعة وهو مخصب وليس مبيداً.',
+        '   - ذكر "علاج نقص العناصر" في مركب كالسيوم أو حديد أو NPK يعني سماداً وليس مبيداً.',
+        '   - استعن بالاسم التجاري المصري الشهير (مثل: كفروكسام = ثياميثوكسام حشري، كزد اويل = زيت معدني حشري، زوكسی مورف = دايميثومورف+أزوكسيستروبين فطري، اسباركلينز = بيراكلوستروبين+بوسكاليد فطري، نيماسكيل = نيماتودا).',
+        '',
+        'بيانات المنتجات (JSON):',
+        JSON.stringify(batch),
+      ].join('\n');
+
+      const candidates = [
+        cachedWorkingModel,
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.6-flash',
+        'gemini-flash-latest',
+      ].filter((m): m is string => Boolean(m));
+
+      const uniqueModels = Array.from(new Set(candidates));
+      let responseText = '';
+      let modelUsed = '';
+
+      for (const modelName of uniqueModels) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 20000);
+        try {
+          const resp = await ai.models.generateContent({
+            model: modelName,
+            contents: { parts: [{ text: prompt }] },
+            config: {
+              temperature: 0.1,
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  classifications: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        id: { type: Type.STRING },
+                        categoryType: { type: Type.STRING, enum: ['pesticides', 'fertilizers', 'stimulants'] },
+                        mainCategoryName: { type: Type.STRING },
+                        subCategoryName: { type: Type.STRING },
+                        activeIngredient: { type: Type.STRING },
+                        reason: { type: Type.STRING },
+                        confidence: { type: Type.STRING, enum: ['high', 'medium'] },
+                      },
+                      required: ['id', 'categoryType', 'mainCategoryName', 'subCategoryName', 'activeIngredient', 'reason', 'confidence'],
+                    },
+                  },
+                },
+                required: ['classifications'],
+              },
+              abortSignal: controller.signal,
+            },
+          });
+          if (resp?.text) {
+            responseText = resp.text;
+            modelUsed = modelName;
+            cachedWorkingModel = modelName;
+            break;
+          }
+        } catch (err: any) {
+          console.warn(`[CROPSA Classify AI] ${modelName} failed:`, err?.message || err);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      if (!responseText) {
+        throw new Error('تعذر الاتصال بنموذج الذكاء الاصطناعي للتصنيف.');
+      }
+
+      let cleanJson = responseText
+        .trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/, '')
+        .replace(/```$/g, '')
+        .trim();
+      const firstBrace = cleanJson.indexOf('{');
+      const lastBrace = cleanJson.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        cleanJson = cleanJson.slice(firstBrace, lastBrace + 1);
+      }
+      const parsed = JSON.parse(cleanJson);
+      return res.json({
+        success: true,
+        modelUsed,
+        classifications: Array.isArray(parsed?.classifications) ? parsed.classifications : [],
+      });
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        error: error?.message || 'تعذر تصنيف المنتجات بالذكاء الاصطناعي',
+      });
+    }
+  });
+
   // Orders Persistence & Webhook Dispatch
   const ordersStorePath = getStoreFilePath('orders-store.json');
 

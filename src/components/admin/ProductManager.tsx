@@ -1538,8 +1538,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         proposals={classifierProposals}
         categories={categories}
         subCategories={subCategories}
+        companies={companies}
+        products={products}
         totalProductsCount={products.length}
         onApplyProposals={handleApplyAgronomicProposals}
+        onShowToast={onShowToast}
       />
     </div>
   );
