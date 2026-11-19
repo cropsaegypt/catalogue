@@ -85,13 +85,19 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
       if (filterType === 'ai_only' && p.source !== 'ai_deep_research') return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.trim().toLowerCase();
+      const name = (p.product?.name || '').toLowerCase();
+      const id = (p.product?.id || '').toLowerCase();
+      const comp = (p.companyName || '').toLowerCase();
+      const cat = (p.suggestedCategoryName || '').toLowerCase();
+      const sub = (p.suggestedSubCategoryName || '').toLowerCase();
+      const kwMatch = Array.isArray(p.detectedKeywords) && p.detectedKeywords.some((k) => (k || '').toLowerCase().includes(q));
       return (
-        p.product.name.toLowerCase().includes(q) ||
-        p.product.id.toLowerCase().includes(q) ||
-        p.companyName.toLowerCase().includes(q) ||
-        p.suggestedCategoryName.toLowerCase().includes(q) ||
-        p.suggestedSubCategoryName.toLowerCase().includes(q) ||
-        p.detectedKeywords.some((k) => k.toLowerCase().includes(q))
+        name.includes(q) ||
+        id.includes(q) ||
+        comp.includes(q) ||
+        cat.includes(q) ||
+        sub.includes(q) ||
+        kwMatch
       );
     });
   }, [proposals, searchQuery, filterType]);
@@ -221,8 +227,11 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 dir-rtl animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 dir-rtl animate-in fade-in duration-200">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden"
+      >
         {/* Header */}
         <div className="p-5 sm:p-6 bg-[#FAF8F5] border-b border-[#E5E2D9] flex items-start justify-between gap-4 shrink-0">
           <div className="space-y-1.5">
@@ -250,6 +259,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors cursor-pointer"
             title="إغلاق"

@@ -5,6 +5,7 @@ import { OrderDetailsPage } from './components/common/OrderDetailsPage';
 import { SharedCatalogView } from './components/catalog/SharedCatalogView';
 import { PdfGeneratorView } from './components/admin/PdfGeneratorView';
 import { ToastContainer, ToastMessage } from './components/common/Toast';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { canBuildCustomCatalog } from './utils/permissions';
 import {
   resolveActiveSalesRep,
@@ -1021,50 +1022,58 @@ export default function App() {
           onSubmitFinancingRequest={handleSubmitFinancingRequest}
         />
       ) : (
-        <AdminPage
-          products={products}
-          packages={packages}
-          categories={categories}
-          companies={companies}
-          subCategories={subCategories}
-          images={images}
-          advertisements={advertisements}
-          orders={orders}
-          financingRequests={financingRequests}
-          teamMembers={teamMembers}
-          currentUser={currentUser}
-          priceHistory={priceHistory}
-          settings={settings}
-          auditLogs={auditLogs}
-          onSaveProducts={handleSaveProducts}
-          onSavePackages={handleSavePackages}
-          onSaveCategories={handleSaveCategories}
-          onSaveCompanies={handleSaveCompanies}
-          onSaveSubCategories={handleSaveSubCategories}
-          onSaveImages={handleSaveImages}
-          onSaveAdvertisements={handleSaveAdvertisements}
-          onSaveSettings={handleSaveSettings}
-          onSaveTeamMembers={handleSaveTeamMembers}
-          onSaveFinancingRequests={handleSaveFinancingRequests}
-          onUpdateOrderStatus={handleUpdateOrderStatus}
-          onBatchUpdatePrices={handleBatchUpdatePrices}
-          onAddPriceHistory={handleAddPriceHistory}
-          onAddImportLog={handleAddImportLog}
-          onBackToCatalog={() => {
-            setCurrentView('catalog');
-            navigateTo('/');
+        <ErrorBoundary
+          fallbackTitle="لوحة الإدارة الرئيسية"
+          onReset={() => {
+            setCurrentView('admin');
+            navigateTo('/admin');
           }}
-          isAdminLoggedIn={isAdminLoggedIn}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-          cloudConnected={cloudConnected}
-          hasUnsyncedChanges={hasUnsyncedChanges}
-          isCloudSyncing={isCloudSyncing}
-          lastCloudSyncAt={lastCloudSyncAt}
-          cloudError={cloudError}
-          onSyncToCloud={handleSyncToCloud}
-          onConnectGoogleCloud={handleConnectGoogleCloud}
-        />
+        >
+          <AdminPage
+            products={products}
+            packages={packages}
+            categories={categories}
+            companies={companies}
+            subCategories={subCategories}
+            images={images}
+            advertisements={advertisements}
+            orders={orders}
+            financingRequests={financingRequests}
+            teamMembers={teamMembers}
+            currentUser={currentUser}
+            priceHistory={priceHistory}
+            settings={settings}
+            auditLogs={auditLogs}
+            onSaveProducts={handleSaveProducts}
+            onSavePackages={handleSavePackages}
+            onSaveCategories={handleSaveCategories}
+            onSaveCompanies={handleSaveCompanies}
+            onSaveSubCategories={handleSaveSubCategories}
+            onSaveImages={handleSaveImages}
+            onSaveAdvertisements={handleSaveAdvertisements}
+            onSaveSettings={handleSaveSettings}
+            onSaveTeamMembers={handleSaveTeamMembers}
+            onSaveFinancingRequests={handleSaveFinancingRequests}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onBatchUpdatePrices={handleBatchUpdatePrices}
+            onAddPriceHistory={handleAddPriceHistory}
+            onAddImportLog={handleAddImportLog}
+            onBackToCatalog={() => {
+              setCurrentView('catalog');
+              navigateTo('/');
+            }}
+            isAdminLoggedIn={isAdminLoggedIn}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            cloudConnected={cloudConnected}
+            hasUnsyncedChanges={hasUnsyncedChanges}
+            isCloudSyncing={isCloudSyncing}
+            lastCloudSyncAt={lastCloudSyncAt}
+            cloudError={cloudError}
+            onSyncToCloud={handleSyncToCloud}
+            onConnectGoogleCloud={handleConnectGoogleCloud}
+          />
+        </ErrorBoundary>
       )}
       {currentView === 'admin' && (
         <ToastContainer

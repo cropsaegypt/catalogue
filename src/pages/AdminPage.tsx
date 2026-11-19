@@ -16,6 +16,7 @@ import { AiCatalogExtractor } from '../components/admin/AiCatalogExtractor';
 import { HomeShowcasesManager } from '../components/admin/HomeShowcasesManager';
 import { IslamicFinancingManager } from '../components/admin/IslamicFinancingManager';
 import { ToastContainer, ToastMessage } from '../components/common/Toast';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 
 import { TeamManager } from '../components/admin/TeamManager';
@@ -508,17 +509,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         )}
 
         {activeTab === 'products' && (!currentUser || canAccessAdminTab(currentUser, 'products')) && (
-          <ProductManager
-            products={products}
-            packages={packages}
-            companies={companies}
-            categories={categories}
-            subCategories={subCategories}
-            companyImages={images}
-            onSaveProducts={onSaveProducts}
-            onSavePackages={onSavePackages}
-            onShowToast={addToast}
-          />
+          <ErrorBoundary fallbackTitle="إدارة المنتجات والعبوات">
+            <ProductManager
+              products={products}
+              packages={packages}
+              companies={companies}
+              categories={categories}
+              subCategories={subCategories}
+              companyImages={images}
+              onSaveProducts={onSaveProducts}
+              onSavePackages={onSavePackages}
+              onShowToast={addToast}
+            />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'gallery' && (!currentUser || canAccessAdminTab(currentUser, 'gallery')) && (
@@ -532,15 +535,17 @@ export const AdminPage: React.FC<AdminPageProps> = ({
         )}
 
         {activeTab === 'prices' && (!currentUser || canAccessAdminTab(currentUser, 'prices')) && (
-          <PriceManager
-            products={products}
-            packages={packages}
-            companies={companies}
-            priceHistory={priceHistory}
-            onSavePackages={onSavePackages}
-            onAddPriceHistory={onAddPriceHistory}
-            onShowToast={addToast}
-          />
+          <ErrorBoundary fallbackTitle="إدارة الأسعار">
+            <PriceManager
+              products={products}
+              packages={packages}
+              companies={companies}
+              priceHistory={priceHistory}
+              onSavePackages={onSavePackages}
+              onAddPriceHistory={onAddPriceHistory}
+              onShowToast={addToast}
+            />
+          </ErrorBoundary>
         )}
 
         {activeTab === 'excel' && (!currentUser || canAccessAdminTab(currentUser, 'excel')) && (

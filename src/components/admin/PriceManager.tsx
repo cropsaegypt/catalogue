@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Product, Package, PriceHistory, Company } from '../../types';
 import { SmartPriceUpdateModal } from './SmartPriceUpdateModal';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 interface PriceManagerProps {
   products: Product[];
@@ -814,15 +815,22 @@ export const PriceManager: React.FC<PriceManagerProps> = ({
       )}
 
       {/* Smart Price Update Modal */}
-      <SmartPriceUpdateModal
-        isOpen={isSmartPriceModalOpen}
-        onClose={() => setIsSmartPriceModalOpen(false)}
-        products={products}
-        packages={packages}
-        companies={companies}
-        onApplyPriceUpdates={handleApplySmartPriceUpdates}
-        onShowToast={onShowToast}
-      />
+      {isSmartPriceModalOpen && (
+        <ErrorBoundary
+          fallbackTitle="المحدّث الذكي للأسعار"
+          onReset={() => setIsSmartPriceModalOpen(false)}
+        >
+          <SmartPriceUpdateModal
+            isOpen={isSmartPriceModalOpen}
+            onClose={() => setIsSmartPriceModalOpen(false)}
+            products={products}
+            packages={packages}
+            companies={companies}
+            onApplyPriceUpdates={handleApplySmartPriceUpdates}
+            onShowToast={onShowToast}
+          />
+        </ErrorBoundary>
+      )}
     </div>
   );
 };

@@ -35,6 +35,7 @@ import {
   AgronomicClassificationProposal,
 } from '../../utils/agronomicClassifier';
 import { AgronomicClassifierModal } from './AgronomicClassifierModal';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import {
   getMainCategories,
   getSubCategories,
@@ -1532,18 +1533,25 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
       )}
 
       {/* Agronomic Intelligent Subcategory Classifier Modal */}
-      <AgronomicClassifierModal
-        isOpen={isClassifierModalOpen}
-        onClose={() => setIsClassifierModalOpen(false)}
-        proposals={classifierProposals}
-        categories={categories}
-        subCategories={subCategories}
-        companies={companies}
-        products={products}
-        totalProductsCount={products.length}
-        onApplyProposals={handleApplyAgronomicProposals}
-        onShowToast={onShowToast}
-      />
+      {isClassifierModalOpen && (
+        <ErrorBoundary
+          fallbackTitle="المصنّف الزراعي للأقسام"
+          onReset={() => setIsClassifierModalOpen(false)}
+        >
+          <AgronomicClassifierModal
+            isOpen={isClassifierModalOpen}
+            onClose={() => setIsClassifierModalOpen(false)}
+            proposals={classifierProposals}
+            categories={categories}
+            subCategories={subCategories}
+            companies={companies}
+            products={products}
+            totalProductsCount={products.length}
+            onApplyProposals={handleApplyAgronomicProposals}
+            onShowToast={onShowToast}
+          />
+        </ErrorBoundary>
+      )}
     </div>
   );
 };

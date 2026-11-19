@@ -227,11 +227,15 @@ export const SmartPriceUpdateModal: React.FC<SmartPriceUpdateModalProps> = ({
 
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase().trim();
+      const rawName = (p.rawName || '').toLowerCase();
+      const productName = (p.productName || '').toLowerCase();
+      const companyName = (p.companyName || '').toLowerCase();
+      const packageName = (p.packageName || '').toLowerCase();
       return (
-        p.rawName.toLowerCase().includes(q) ||
-        p.productName.toLowerCase().includes(q) ||
-        p.companyName.toLowerCase().includes(q) ||
-        p.packageName.toLowerCase().includes(q)
+        rawName.includes(q) ||
+        productName.includes(q) ||
+        companyName.includes(q) ||
+        packageName.includes(q)
       );
     });
   }, [proposals, filterType, searchQuery]);
@@ -279,8 +283,11 @@ export const SmartPriceUpdateModal: React.FC<SmartPriceUpdateModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 dir-rtl animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden">
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 dir-rtl animate-in fade-in duration-200">
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white rounded-3xl w-full max-w-6xl max-h-[92vh] flex flex-col shadow-2xl border border-stone-200 overflow-hidden"
+      >
         {/* Header */}
         <div className="p-5 sm:p-6 bg-[#FAF8F5] border-b border-[#E5E2D9] flex items-start justify-between gap-4 shrink-0">
           <div className="space-y-1.5">
@@ -338,6 +345,7 @@ export const SmartPriceUpdateModal: React.FC<SmartPriceUpdateModalProps> = ({
           </div>
 
           <button
+            type="button"
             onClick={onClose}
             className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition-colors cursor-pointer"
             title="إغلاق"
