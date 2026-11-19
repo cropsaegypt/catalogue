@@ -303,12 +303,18 @@ export const QuickProductEditModal: React.FC<QuickProductEditModalProps> = ({
 
     const finalStockQty = isOutOfStock ? 0 : Math.max(0, Number(stockQuantity) || 0);
 
+    let nextType = product.productType;
+    if (categoryId === 'CAT-02') nextType = 'fertilizer';
+    else if (categoryId === 'CAT-01') nextType = 'stimulant';
+    else if (categoryId === 'CAT-759728') nextType = 'pesticide';
+
     const updatedProduct: Product = {
       ...product,
       name: name.trim(),
       companyId,
       categoryId,
       subCategoryId: subCategoryId || undefined,
+      productType: nextType,
       shortDescription: shortDescription.trim() || name.trim(),
       mainImageUrl: mainImageUrl.trim() || undefined,
       imageRotation: imageRotation || undefined,

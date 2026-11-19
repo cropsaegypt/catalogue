@@ -401,24 +401,30 @@ export const aiCatalogService = {
         }));
 
         const fullText = `${p.name || ''} ${p.shortDescription || ''} ${p.description || ''} ${(p.usage || []).join(' ')} ${(p.characteristics || []).join(' ')} ${p.categoryName || ''}`;
-        const isPestControl = /مكافح|علاج|مبيد|حشائش|فطر|حشر|دودة|توتا|أكاروس|نيماتود|عفن|ذبابة|من|تربس/.test(fullText);
 
-        let computedType: 'fertilizer' | 'stimulant' | 'pesticide' | 'seeds' | 'other';
-        if (isPestControl) {
+        let computedType: 'fertilizer' | 'stimulant' | 'pesticide' | 'seeds' | 'other' =
+          (p.productType as any) || 'fertilizer';
+
+        if (resolvedMainCategoryId === 'CAT-02') {
+          computedType = 'fertilizer';
+        } else if (resolvedMainCategoryId === 'CAT-01') {
+          computedType = 'stimulant';
+        } else if (resolvedMainCategoryId === 'CAT-759728') {
           computedType = 'pesticide';
         } else {
-          const hasPowder = packages.some((pkg) =>
-            /كجم|جم|جرام|كيلو|بودر|مسحوق|شيكارة/.test(pkg.unit + ' ' + pkg.displayName)
-          );
-          const hasLiquid = packages.some((pkg) =>
-            /لتر|مل|سم|سائل|جالون/.test(pkg.unit + ' ' + pkg.displayName)
-          );
-          if (hasLiquid && !hasPowder) {
+          const isPesticide =
+            /مبيد|مكافحة آفات|مكافحة حشرات|مكافحة فطريات|مبيد حشائش|مانع انبات|مبيد نيماتود/i.test(fullText) &&
+            !/سماد|تسميد|npk|مخصب|أحماض أمينية|طحالب|هيوميك/i.test(p.name || '');
+
+          const isStimulant =
+            /مخصب|أحماض أمينية|طحالب بحرية|هيوميك|فولفيك|محفز نمو|سيتوكينين|أوكسين|جبرلين|تزهير|تحجيم/i.test(fullText);
+
+          if (isPesticide) {
+            computedType = 'pesticide';
+          } else if (isStimulant) {
             computedType = 'stimulant';
-          } else if (hasPowder) {
-            computedType = 'fertilizer';
           } else {
-            computedType = (p.productType as any) || 'fertilizer';
+            computedType = 'fertilizer';
           }
         }
 

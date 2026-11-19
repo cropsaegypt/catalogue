@@ -491,6 +491,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         ? mainImageUrl
         : getAgriculturalProductImage(name, categoryNameForTags);
 
+    let nextProductType: 'fertilizer' | 'stimulant' | 'pesticide' = 'pesticide';
+    if (categoryId === 'CAT-02') nextProductType = 'fertilizer';
+    else if (categoryId === 'CAT-01') nextProductType = 'stimulant';
+    else if (categoryId === 'CAT-759728') nextProductType = 'pesticide';
+
     let updatedProducts: Product[];
 
     if (editingProduct) {
@@ -503,6 +508,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
               companyId,
               categoryId,
               subCategoryId: subCategoryId || undefined,
+              productType: nextProductType,
               shortDescription,
               description,
               characteristics: cleanChars,
@@ -524,6 +530,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
         companyId,
         categoryId,
         subCategoryId: subCategoryId || undefined,
+        productType: nextProductType,
         name,
         shortDescription,
         description,
