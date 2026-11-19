@@ -806,6 +806,125 @@ export function createApiApp() {
     }
   });
 
+  // AI Multimodal Price List Extraction (Images & PDF)
+  app.post('/api/gemini/extract-price-list', async (req, res) => {
+    try {
+      const { fileDataUrl, fileName = 'pricelist', customApiKey = '' } = req.body || {};
+      if (!fileDataUrl || typeof fileDataUrl !== 'string') {
+        return res.status(400).json({ success: false, error: 'الملف غير متوفر أو غير صالح.' });
+      }
+
+      const ai = getGeminiClient(customApiKey);
+      const mimeType = fileDataUrl.split(';')[0].split(':')[1] || 'image/jpeg';
+      const base64Data = fileDataUrl.includes(',') ? fileDataUrl.split(',')[1] : fileDataUrl;
+
+      const prompt = [
+        'أنت مدقق ومستخرج فواتير وقوائم أسعار زراعية عالي الدقة للمحاصيل والمبيدات والأسمدة في مصر والشرق الأوسط.',
+        'المطلوب: قراءة وتحليل هذه الصورة / المستند واستخراج كل صنف زراعي مذكور مع سعره والعبوة بدقة تامة.',
+        '',
+        'قواعد الاستخراج:',
+        '1. name: اسم المنتج التجاري بدقة (مثال: لمبادا 10%، زوكسی مورف، كفروكسام 25%، كزد اويل، سوبريم PK، إلخ).',
+        '2. price: رقم السعر مجرداً دون كتابة كلمة جنيه أو EGP (مثال: 250 أو 185.50).',
+        '3. package: سعة أو حجم العبوة إن كانت مذكورة (مثل: 1 لتر، 250 سم، 5 كجم، شيكارة 25 كجم، إلخ)، أو اتركها فارغة إن لم تكن محددة.',
+        '4. استخرج جميع الأصناف الواردة في القائمة وتجاهل ترويسات الصفحات أو أرقام الهواتف والتواقيع.',
+      ].join('\n');
+
+      const parts: any[] = [
+        {
+          inlineData: {
+            mimeType,
+            data: base64Data,
+          },
+        },
+        { text: prompt },
+      ];
+
+      const candidates = [
+        cachedWorkingModel,
+        'gemini-3.5-flash-lite',
+        'gemini-flash-lite-latest',
+        'gemini-3.6-flash',
+        'gemini-flash-latest',
+      ].filter((m): m is string => Boolean(m));
+
+      const uniqueModels = Array.from(new Set(candidates));
+      let responseText = '';
+      let modelUsed = '';
+
+      for (const modelName of uniqueModels) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 28000);
+        try {
+          const resp = await ai.models.generateContent({
+            model: modelName,
+            contents: { parts },
+            config: {
+              temperature: 0.1,
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  items: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        name: { type: Type.STRING },
+                        package: { type: Type.STRING },
+                        price: { type: Type.NUMBER },
+                      },
+                      required: ['name', 'price'],
+                    },
+                  },
+                },
+                required: ['items'],
+              },
+              abortSignal: controller.signal,
+            },
+          });
+          if (resp?.text) {
+            responseText = resp.text;
+            modelUsed = modelName;
+            cachedWorkingModel = modelName;
+            break;
+          }
+        } catch (err: any) {
+          console.warn(`[CROPSA Price List AI] ${modelName} failed:`, err?.message || err);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      if (!responseText) {
+        throw new Error('تعذر قراءة قائمة الأسعار بواسطة نموذج الذكاء الاصطناعي.');
+      }
+
+      let cleanJson = responseText
+        .trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/, '')
+        .replace(/```$/g, '')
+        .trim();
+      const firstBrace = cleanJson.indexOf('{');
+      const lastBrace = cleanJson.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace > firstBrace) {
+        cleanJson = cleanJson.slice(firstBrace, lastBrace + 1);
+      }
+      const parsed = JSON.parse(cleanJson);
+      return res.json({
+        success: true,
+        modelUsed,
+        items: Array.isArray(parsed?.items) ? parsed.items : [],
+      });
+    } catch (error: any) {
+      console.error('[CROPSA Price List Extraction Error]:', error);
+      return res.status(500).json({
+        success: false,
+        error: error?.message || 'فشل استخراج الأسعار من الملف بالذكاء الاصطناعي',
+      });
+    }
+  });
+
   // Orders Persistence & Webhook Dispatch
   const ordersStorePath = getStoreFilePath('orders-store.json');
 

@@ -12,8 +12,10 @@ import {
   AlertTriangle,
   Package as PackageIcon,
   Layers,
+  Zap,
 } from 'lucide-react';
 import { Product, Package, PriceHistory, Company } from '../../types';
+import { SmartPriceUpdateModal } from './SmartPriceUpdateModal';
 
 interface PriceManagerProps {
   products: Product[];
@@ -36,6 +38,47 @@ export const PriceManager: React.FC<PriceManagerProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'prices' | 'history'>('prices');
   const [editingPriceMap, setEditingPriceMap] = useState<Record<string, number>>({});
+  const [isSmartPriceModalOpen, setIsSmartPriceModalOpen] = useState(false);
+
+  // Apply batch price updates from SmartPriceUpdateModal
+  const handleApplySmartPriceUpdates = (
+    updates: {
+      productId: string;
+      productName: string;
+      packageId: string;
+      packageDisplayName: string;
+      oldPrice: number;
+      newPrice: number;
+    }[]
+  ) => {
+    if (updates.length === 0) return;
+
+    const updateMap = new Map(updates.map((u) => [u.packageId, u.newPrice]));
+
+    const updatedPackages = packages.map((pkg) => {
+      if (updateMap.has(pkg.id)) {
+        return { ...pkg, price: updateMap.get(pkg.id)! };
+      }
+      return pkg;
+    });
+
+    updates.forEach((u) => {
+      onAddPriceHistory({
+        productId: u.productId,
+        productName: u.productName,
+        packageId: u.packageId,
+        packageDisplayName: u.packageDisplayName,
+        oldPrice: u.oldPrice,
+        newPrice: u.newPrice,
+        currency: 'EGP',
+        source: 'smart_batch',
+        updatedBy: 'المدير العام (تحديث ذكي)',
+      });
+    });
+
+    onSavePackages(updatedPackages);
+    onShowToast(`تم اعتماد وتحديث أسعار ${updates.length} عبوة بنجاح في النظام ✓`, 'success');
+  };
 
   // 1. Prices Tab Filters
   const [pricesSearchQuery, setPricesSearchQuery] = useState('');
@@ -281,30 +324,43 @@ export const PriceManager: React.FC<PriceManagerProps> = ({
           </p>
         </div>
 
-        {/* Tab Selector */}
-        <div className="flex bg-[#E5E2D9] p-1 rounded-2xl border border-[#D4D1C5] shrink-0">
+        {/* Action Controls & Tab Selector */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
-            onClick={() => setActiveTab('prices')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'prices'
-                ? 'bg-[#046A47] text-white shadow-xs'
-                : 'text-[#2D2D24] hover:text-[#046A47]'
-            }`}
+            type="button"
+            onClick={() => setIsSmartPriceModalOpen(true)}
+            className="px-4 py-2.5 bg-[#046A47] hover:bg-[#035237] text-white rounded-2xl text-xs font-black shadow-xs hover:shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+            title="تحديث الأسعار ذكياً عبر لصق نص مباشر أو رفع ملف إكسيل / صورة / PDF"
           >
-            <DollarSign className="w-4 h-4" />
-            <span>جدول الأسعار الحالي ({packages.length})</span>
+            <Zap className="w-4 h-4 text-emerald-300" />
+            <span>تحديث ذكي للأسعار (نص / ملف)</span>
           </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'history'
-                ? 'bg-[#046A47] text-white shadow-xs'
-                : 'text-[#2D2D24] hover:text-[#046A47]'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            <span>سجل التعديلات ({priceHistory.length})</span>
-          </button>
+
+          {/* Tab Selector */}
+          <div className="flex bg-[#E5E2D9] p-1 rounded-2xl border border-[#D4D1C5]">
+            <button
+              onClick={() => setActiveTab('prices')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'prices'
+                  ? 'bg-[#046A47] text-white shadow-xs'
+                  : 'text-[#2D2D24] hover:text-[#046A47]'
+              }`}
+            >
+              <DollarSign className="w-4 h-4" />
+              <span>جدول الأسعار الحالي ({packages.length})</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'history'
+                  ? 'bg-[#046A47] text-white shadow-xs'
+                  : 'text-[#2D2D24] hover:text-[#046A47]'
+              }`}
+            >
+              <History className="w-4 h-4" />
+              <span>سجل التعديلات ({priceHistory.length})</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -737,10 +793,16 @@ export const PriceManager: React.FC<PriceManagerProps> = ({
                         className={`px-3 py-1 rounded-full text-[11px] font-bold ${
                           entry.source === 'excel'
                             ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : entry.source === 'smart_batch'
+                            ? 'bg-purple-100 text-purple-800 border border-purple-300'
                             : 'bg-blue-100 text-blue-800 border border-blue-300'
                         }`}
                       >
-                        {entry.source === 'excel' ? 'استيراد إكسيل' : 'تعديل يدوي'}
+                        {entry.source === 'excel'
+                          ? 'استيراد إكسيل'
+                          : entry.source === 'smart_batch'
+                          ? '⚡ تحديث ذكي'
+                          : 'تعديل يدوي'}
                       </span>
                     </div>
                   </div>
@@ -750,6 +812,17 @@ export const PriceManager: React.FC<PriceManagerProps> = ({
           )}
         </div>
       )}
+
+      {/* Smart Price Update Modal */}
+      <SmartPriceUpdateModal
+        isOpen={isSmartPriceModalOpen}
+        onClose={() => setIsSmartPriceModalOpen(false)}
+        products={products}
+        packages={packages}
+        companies={companies}
+        onApplyPriceUpdates={handleApplySmartPriceUpdates}
+        onShowToast={onShowToast}
+      />
     </div>
   );
 };
