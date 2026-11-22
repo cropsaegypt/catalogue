@@ -247,33 +247,43 @@ export default function App() {
       })
       .catch(() => ({}));
 
-    // 3. Centralized Dual Hydration (Firestore Single-Doc Snapshot + Central Server Storage)
+    // 3. Centralized Dual Hydration (Firestore Collections + Single-Doc Snapshot + Central Server Storage)
     void Promise.all([
       idbHydratedPromise,
       firestoreSync.pullSingleDocumentSnapshot(),
+      firestoreSync.pullAllFromCloud(),
       serverSync.fetchFromCentralServer(),
     ])
-      .then(([idbData, firestoreSnapRes, serverRes]) => {
+      .then(([idbData, firestoreSnapRes, firestoreFullRes, serverRes]) => {
         const localProducts =
           (idbData as any)?.products?.length >= INITIAL_PRODUCTS.length
             ? (idbData as any).products
             : INITIAL_PRODUCTS;
 
         // Determine best remote dataset
-        const firestoreProds =
-          firestoreSnapRes.success && firestoreSnapRes.data?.products
+        const firestoreSnapProds =
+          firestoreSnapRes.success && Array.isArray(firestoreSnapRes.data?.products)
             ? firestoreSnapRes.data.products
             : [];
+        const firestoreFullProds =
+          firestoreFullRes.connected && Array.isArray(firestoreFullRes.data?.products)
+            ? firestoreFullRes.data.products
+            : [];
         const serverProds =
-          serverRes.success && serverRes.data?.products ? serverRes.data.products : [];
+          serverRes.success && Array.isArray(serverRes.data?.products) ? serverRes.data.products : [];
 
-        const bestRemoteProds =
-          firestoreProds.length >= serverProds.length ? firestoreProds : serverProds;
-        const bestRemoteData =
-          firestoreProds.length >= serverProds.length ? firestoreSnapRes.data : serverRes.data;
+        const candidateRemoteSets = [
+          { prods: firestoreSnapProds, data: firestoreSnapRes.data },
+          { prods: firestoreFullProds, data: firestoreFullRes.data },
+          { prods: serverProds, data: serverRes.data },
+        ];
+        candidateRemoteSets.sort((a, b) => b.prods.length - a.prods.length);
+
+        const bestRemoteProds = candidateRemoteSets[0].prods;
+        const bestRemoteData = candidateRemoteSets[0].data;
 
         // Case A: Local device has MORE products than remote AND has at least the baseline count!
-        // Immediately broadcast local catalog to central server and cloud snapshot!
+        // Immediately broadcast local catalog to central server and cloud snapshot + collections!
         if (
           localProducts.length > bestRemoteProds.length &&
           localProducts.length >= INITIAL_PRODUCTS.length
@@ -285,6 +295,7 @@ export default function App() {
           };
           void Promise.allSettled([
             serverSync.syncToCentralServer(fullData),
+            firestoreSync.pushFullSnapshot(fullData),
             firestoreSync.pushSingleDocumentSnapshot(fullData),
           ]).then(() => {
             dbStorage.setPendingCloudSync(false);
@@ -413,6 +424,7 @@ export default function App() {
       try {
         await Promise.allSettled([
           serverSync.syncToCentralServer(payload),
+          firestoreSync.pushFullSnapshot(payload),
           firestoreSync.pushSingleDocumentSnapshot(payload),
         ]);
         dbStorage.setPendingCloudSync(false);
@@ -782,6 +794,57 @@ export default function App() {
     setIsCloudSyncing(true);
     setCloudError(undefined);
     try {
+      // 0. Check remote cloud collections first (Two-Way Sync):
+      // If remote has MORE products than this local device, pull and update local immediately!
+      const [remoteCloud, remoteServer] = await Promise.all([
+        firestoreSync.pullAllFromCloud(),
+        serverSync.fetchFromCentralServer(),
+      ]);
+
+      const cloudProds = remoteCloud.connected && Array.isArray(remoteCloud.data?.products)
+        ? remoteCloud.data.products
+        : [];
+      const serverProds = remoteServer.success && Array.isArray(remoteServer.data?.products)
+        ? remoteServer.data.products
+        : [];
+      const bestRemoteProds = cloudProds.length >= serverProds.length ? cloudProds : serverProds;
+      const bestRemoteData = cloudProds.length >= serverProds.length ? remoteCloud.data : remoteServer.data;
+
+      if (bestRemoteData && bestRemoteProds.length > products.length) {
+        // Upgrade local device!
+        const rd = bestRemoteData;
+        if (rd.products?.length) {
+          setProducts(rd.products);
+          dbStorage.saveProducts(rd.products);
+        }
+        if (rd.packages?.length) {
+          setPackages(rd.packages);
+          dbStorage.savePackages(rd.packages);
+        }
+        if (rd.companies?.length) {
+          setCompanies(rd.companies);
+          dbStorage.saveCompanies(rd.companies);
+        }
+        if (rd.categories?.length) {
+          setCategories(rd.categories);
+          dbStorage.saveCategories(rd.categories);
+        }
+        if (rd.subCategories?.length) {
+          setSubCategories(rd.subCategories);
+          dbStorage.saveSubCategories(rd.subCategories);
+        }
+        setCloudConnected(true);
+        setLastCloudSyncAt(new Date().toISOString());
+        dbStorage.setPendingCloudSync(false);
+        setHasUnsyncedChanges(false);
+        addBuilderToast(
+          `تم سحب وتحديث الكتالوج من السحابة بنجاح: تم تحديث جهازك إلى (${bestRemoteProds.length} منتج) ✓`,
+          'success'
+        );
+        return;
+      }
+
+      // If local device has equal or more products, push local catalog to all remotes!
       const fullPayload = {
         ...dbStorage.getData(),
         products,
@@ -799,16 +862,13 @@ export default function App() {
         pdfDividers: dbStorage.getPdfDividers(),
       };
 
-      // 1. Push to centralized server storage immediately (for all browsers)
-      const serverResult = await serverSync.syncToCentralServer(fullPayload);
+      const [serverResult, fullSnapshotRes, singleDocRes] = await Promise.all([
+        serverSync.syncToCentralServer(fullPayload),
+        firestoreSync.pushFullSnapshot(fullPayload),
+        firestoreSync.pushSingleDocumentSnapshot(fullPayload),
+      ]);
 
-      // 2. Push high-speed unified single-doc snapshot to Cloud Firestore (zero Google auth blocker)
-      const singleDocRes = await firestoreSync.pushSingleDocumentSnapshot(fullPayload);
-
-      // 3. Attempt multi-doc collection push in background if authenticated
-      void firestoreSync.pushFullSnapshot(fullPayload).catch(() => {});
-
-      if (singleDocRes.success || serverResult.success) {
+      if (fullSnapshotRes.success || singleDocRes.success || serverResult.success) {
         setCloudConnected(true);
         setLastCloudSyncAt(new Date().toISOString());
         dbStorage.setPendingCloudSync(false);
@@ -818,7 +878,7 @@ export default function App() {
           'success'
         );
       } else {
-        const errMsg = singleDocRes.error || serverResult.error || 'تعذر المزامنة مع السحابة';
+        const errMsg = fullSnapshotRes.error || singleDocRes.error || serverResult.error || 'تعذر المزامنة مع السحابة';
         setCloudError(errMsg);
         addBuilderToast(errMsg, 'error');
       }
