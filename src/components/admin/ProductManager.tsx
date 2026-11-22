@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Package as PackageIcon,
   Plus,
@@ -21,13 +21,14 @@ import {
   X,
   Ban,
   Check,
+  AlertTriangle,
 } from 'lucide-react';
 
 import { Product, Package, Company, Category, CompanyImage, CompanySubCategory } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
 import { AGRICULTURAL_PRESET_IMAGES, getAgriculturalProductImage } from '../../utils/agriculturalImages';
 import { aiCatalogService } from '../../services/aiCatalogService';
-import { inferAgronomySearchTags } from '../../utils/agriculturalSearch';
+import { inferAgronomySearchTags, findDuplicateProduct } from '../../utils/agriculturalSearch';
 import { QuickProductEditModal } from './QuickProductEditModal';
 import { rotateAndUploadImage } from '../../utils/imageRotation';
 import {
@@ -335,6 +336,12 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     subCategories
   );
 
+  // Check for duplicate product within same company
+  const duplicateProduct = useMemo(() => {
+    if (!name.trim() || !companyId) return null;
+    return findDuplicateProduct(name, companyId, products, editingProduct?.id);
+  }, [name, companyId, products, editingProduct]);
+
   // Filtered Products List
   const filteredProducts = products.filter((p) => {
     const matchesSearch =
@@ -461,6 +468,13 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
     if (!productId.trim() || !name.trim()) {
       alert('يرجى ملء كافة البيانات المطلوبة');
       return;
+    }
+
+    if (!editingProduct && duplicateProduct) {
+      const proceed = window.confirm(
+        `⚠️ تنبيه وجود منتج مكرر:\n\nيوجد منتج مسجل بالفعل لهذه الشركة بنفس الاسم:\n- اسم المنتج: "${duplicateProduct.name}" (كود: ${duplicateProduct.id})\n\nهل ترغب بالاستمرار وإضافته كنسخة جديدة مكررة؟\nاضغط "إلغاء Cancel" لمنع الإضافة وإلغاء التكرار.`
+      );
+      if (!proceed) return;
     }
 
     const cleanChars = characteristics.filter((c) => c.trim() !== '');
@@ -1074,6 +1088,43 @@ export const ProductManager: React.FC<ProductManagerProps> = ({
                       />
                     </div>
                   </div>
+
+                  {duplicateProduct && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-950 shadow-xs animate-in fade-in">
+                      <div className="flex items-start gap-2.5">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold text-xs">
+                            ⚠️ تنبيه: يوجد منتج مسجل مسبقاً لهذه الشركة بنفس الاسم!
+                          </p>
+                          <p className="text-[11px] text-amber-800 mt-0.5">
+                            المنتج المسجل: <span className="font-semibold text-amber-950">{duplicateProduct.name}</span> (كود: <span className="font-mono font-bold">{duplicateProduct.id}</span>)
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`هل ترغب في الانتقال لتعديل المنتج الموجود "${duplicateProduct.name}" بدلاً من إنشاء منتج جديد مكرر؟`)) {
+                              openEditModal(duplicateProduct);
+                            }
+                          }}
+                          className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-lg shadow-2xs transition-colors cursor-pointer"
+                        >
+                          تعديل المنتج الموجود
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setName('')}
+                          className="px-2 py-1.5 bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                          title="تفريغ حقل الاسم"
+                        >
+                          مسح الاسم
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>

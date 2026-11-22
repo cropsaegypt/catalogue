@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Building2,
   DollarSign,
@@ -26,6 +26,7 @@ import {
   EyeOff,
   X,
   RotateCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { Company, Product, Package, PriceHistory, CompanyImage, Category, CompanySubCategory } from '../../types';
 import { ImageFileInput } from '../common/ImageFileInput';
@@ -38,6 +39,7 @@ import { AiCatalogExtractor } from './AiCatalogExtractor';
 import { pdfHelper, PdfPageImage } from '../../utils/pdfHelper';
 import { QuickProductEditModal } from './QuickProductEditModal';
 import { rotateAndUploadImage } from '../../utils/imageRotation';
+import { findDuplicateProduct } from '../../utils/agriculturalSearch';
 import {
   getMainCategories,
   getUnifiedSubCategoriesForSelection,
@@ -123,6 +125,12 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
   const [manualPackagePrice, setManualPackagePrice] = useState<number>(100);
   const [manualPackageUnit, setManualPackageUnit] = useState('لتر');
   const [manualImageUrl, setManualImageUrl] = useState('');
+
+  // Check duplicate product within current company
+  const duplicateManualProduct = useMemo(() => {
+    if (!manualName.trim() || !company?.id) return null;
+    return findDuplicateProduct(manualName, company.id, products);
+  }, [manualName, company?.id, products]);
 
   // PDF Extraction & Images state
   const [isExtractingPdf, setIsExtractingPdf] = useState(false);
@@ -266,6 +274,13 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
     if (!manualName.trim()) {
       alert('يرجى إدخال اسم المنتج');
       return;
+    }
+
+    if (duplicateManualProduct) {
+      const proceed = window.confirm(
+        `⚠️ تنبيه وجود منتج مكرر:\n\nيوجد منتج مسجل مسبقاً لهذه الشركة بنفس الاسم:\n- اسم المنتج: "${duplicateManualProduct.name}" (كود: ${duplicateManualProduct.id})\n\nهل ترغب بالاستمرار وإضافته كنسخة مكررة؟\nاضغط "إلغاء Cancel" لمنع الإضافة وتفادي التكرار.`
+      );
+      if (!proceed) return;
     }
 
     const newProdId = `${company.slug ? company.slug.toUpperCase() : 'PRD'}-${Date.now().toString().slice(-4)}`;
@@ -967,6 +982,24 @@ export const CompanyProfileHub: React.FC<CompanyProfileHubProps> = ({
                     className="w-full text-xs p-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#046A47] focus:outline-hidden"
                   />
                 </div>
+
+                {duplicateManualProduct && (
+                  <div className="col-span-full p-3 bg-amber-50 border border-amber-300 rounded-xl flex items-center justify-between gap-3 text-amber-950 animate-in fade-in">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span className="text-xs">
+                        ⚠️ تنبيه: هذا المنتج مسجل مسبقاً لنفس الشركة (<strong>{duplicateManualProduct.name}</strong> - كود: <span className="font-mono">{duplicateManualProduct.id}</span>)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setManualName('')}
+                      className="text-xs font-bold text-amber-800 hover:text-amber-950 underline shrink-0 cursor-pointer"
+                    >
+                      مسح الاسم
+                    </button>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-black text-gray-700 mb-1">القسم الرئيسي *</label>

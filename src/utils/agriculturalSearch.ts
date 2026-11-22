@@ -16,6 +16,39 @@ export function normalizeArabicSearch(input: string): string {
     .toLowerCase();
 }
 
+/**
+ * Normalizes product name to a stripped key for duplicate comparison:
+ * unifies Arabic letters, removes all diacritics, tatweel, punctuation, spaces, and lowercases.
+ */
+export function cleanProductKey(name: string): string {
+  if (!name) return '';
+  return normalizeArabicSearch(name)
+    .replace(/[\u0640]/g, '')
+    .replace(/[\s\-_/\\()[\],.:;=*+%#]/g, '')
+    .toLowerCase();
+}
+
+/**
+ * Checks if a candidate product is a duplicate of an existing catalog product
+ * within the same company.
+ */
+export function findDuplicateProduct<T extends { id?: string; name: string; companyId: string }>(
+  candidateName: string,
+  candidateCompanyId: string,
+  existingList: T[],
+  ignoreId?: string
+): T | undefined {
+  if (!candidateName || !candidateCompanyId || !existingList?.length) return undefined;
+  const targetKey = cleanProductKey(candidateName);
+  if (!targetKey) return undefined;
+
+  return existingList.find((p) => {
+    if (ignoreId && p.id === ignoreId) return false;
+    if (p.companyId !== candidateCompanyId) return false;
+    return cleanProductKey(p.name) === targetKey;
+  });
+}
+
 interface AgronomyTagRule {
   patterns: string[];
   tags: string[];
