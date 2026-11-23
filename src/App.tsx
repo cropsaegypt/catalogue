@@ -277,23 +277,39 @@ export default function App() {
           serverRes.success && Array.isArray(serverRes.data?.products) ? serverRes.data.products : [];
 
         const candidateRemoteSets = [
-          { prods: firestoreSnapProds, data: firestoreSnapRes.data },
-          { prods: firestoreFullProds, data: firestoreFullRes.data },
-          { prods: serverProds, data: serverRes.data },
-        ];
-        candidateRemoteSets.sort((a, b) => b.prods.length - a.prods.length);
+          { source: 'server', prods: serverProds, data: serverRes.data },
+          { source: 'firestoreSnap', prods: firestoreSnapProds, data: firestoreSnapRes.data },
+          { source: 'firestoreFull', prods: firestoreFullProds, data: firestoreFullRes.data },
+        ].filter((s) => Array.isArray(s.prods) && s.prods.length > 0);
 
-        const bestRemoteProds = candidateRemoteSets[0].prods;
-        const bestRemoteData = candidateRemoteSets[0].data;
+        // Sort candidates:
+        // 1. Highest product count wins
+        // 2. Highest biostimulant classification count wins (server has 148 vs stale firestore 104)
+        // 3. Central server source precedence
+        candidateRemoteSets.sort((a, b) => {
+          if (b.prods.length !== a.prods.length) {
+            return b.prods.length - a.prods.length;
+          }
+          const aStim = a.prods.filter((p: any) => p.categoryId === 'CAT-01').length;
+          const bStim = b.prods.filter((p: any) => p.categoryId === 'CAT-01').length;
+          if (bStim !== aStim) {
+            return bStim - aStim;
+          }
+          if (b.source === 'server') return 1;
+          if (a.source === 'server') return -1;
+          return 0;
+        });
+
+        const bestRemoteProds = candidateRemoteSets[0]?.prods || [];
+        const bestRemoteData = candidateRemoteSets[0]?.data;
 
         const remoteStimCount = bestRemoteProds.filter((p: any) => p.categoryId === 'CAT-01').length;
         const localStimCount = localProducts.filter((p: any) => p.categoryId === 'CAT-01').length;
 
-        // Case A: Local device has MORE products OR has upgraded classifications while remote is stale!
+        // Case A: Local device has strictly MORE products than any remote source!
         // Immediately broadcast local catalog to central server and cloud snapshot + collections!
         if (
-          (localProducts.length > bestRemoteProds.length ||
-            (localProducts.length === bestRemoteProds.length && localStimCount > remoteStimCount)) &&
+          localProducts.length > bestRemoteProds.length &&
           localProducts.length >= INITIAL_PRODUCTS.length
         ) {
           const fullData = {
@@ -315,12 +331,13 @@ export default function App() {
         }
 
         // Case B: Remote has equal or MORE products (and at least the baseline count)!
-        // Hydrate local device immediately!
+        // Hydrate local device immediately if remote is newer or has upgraded classifications!
         if (
           bestRemoteData &&
-          bestRemoteProds.length >= localProducts.length &&
           bestRemoteProds.length >= INITIAL_PRODUCTS.length &&
-          (remoteStimCount >= localStimCount || bestRemoteProds.length > localProducts.length)
+          (bestRemoteProds.length > localProducts.length ||
+            remoteStimCount >= localStimCount ||
+            localStimCount < initialStimCount)
         ) {
           const rd = bestRemoteData;
           if (rd.categories?.length) {
@@ -345,6 +362,7 @@ export default function App() {
           if (rd.products?.length) {
             setProducts(rd.products);
             dbStorage.saveProducts(rd.products);
+            dbStorage.setPendingCloudSync(false);
           }
           if (rd.packages?.length) {
             setPackages(rd.packages);
@@ -475,8 +493,6 @@ export default function App() {
     let lastKnownSyncTime = '';
 
     const checkServerUpdates = async () => {
-      if (dbStorage.hasPendingCloudSync()) return;
-
       // Fetch latest updates from central server or single-doc firestore snapshot
       const [serverRes, firestoreSnapRes] = await Promise.allSettled([
         serverSync.fetchFromCentralServer(),
@@ -496,16 +512,29 @@ export default function App() {
 
       const sCount = sData?.products?.length || 0;
       const fCount = fData?.products?.length || 0;
-      const bestRemote = sCount >= fCount ? sData : fData;
+      const sStim = sData?.products?.filter((p: any) => p.categoryId === 'CAT-01').length || 0;
+      const fStim = fData?.products?.filter((p: any) => p.categoryId === 'CAT-01').length || 0;
+
+      const bestRemote =
+        sCount > fCount || (sCount === fCount && sStim >= fStim) ? sData : fData || sData;
       if (!bestRemote || !bestRemote.products?.length) return;
 
       const incomingProds = bestRemote.products;
-      const syncStamp =
-        (bestRemote as any).lastSyncedAt || (bestRemote as any).syncedAt || '';
+      const incomingStim = incomingProds.filter((p: any) => p.categoryId === 'CAT-01').length;
 
       setProducts((prev) => {
-        // Build map of current local products
         const localList = prev.length >= dbStorage.getProducts().length ? prev : dbStorage.getProducts();
+        const localStim = localList.filter((p: any) => p.categoryId === 'CAT-01').length;
+
+        // If incoming has the audited biostimulants upgrade (148) and local is stale (< 148),
+        // adopt incoming immediately across open tabs!
+        if (incomingStim > localStim && prev.length <= incomingProds.length) {
+          dbStorage.saveProducts(incomingProds);
+          dbStorage.setPendingCloudSync(false);
+          return incomingProds;
+        }
+
+        // Build map of current local products
         const localMap = new Map(localList.map((p) => [p.id, p]));
         let hasLocalEditsToPush = false;
         let hasChanges = false;
