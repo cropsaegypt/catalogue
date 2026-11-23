@@ -8,8 +8,11 @@ import {
   MessageCircle,
   Truck,
   Building2,
+  Check,
+  Sparkles,
+  ChevronDown,
 } from 'lucide-react';
-import { Product, Package, Company } from '../../types';
+import { Product, Package, Company, Category, CompanySubCategory } from '../../types';
 import { FALLBACK_BOTTLE_SVG_DATA_URL } from '../../utils/agriculturalImages';
 import { ImageZoomModal } from '../common/ImageZoomModal';
 
@@ -31,6 +34,16 @@ interface ProductCardProps {
   showProductId?: boolean;
   showPrices?: boolean;
   whatsAppNumber?: string;
+  // Admin-only quick classification controls
+  isAdmin?: boolean;
+  categories?: Category[];
+  subCategories?: CompanySubCategory[];
+  onQuickCategoryChange?: (
+    productId: string,
+    newCategoryId: string,
+    newSubCategoryId?: string
+  ) => void;
+  onOpenClassifierForProduct?: (product: Product) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -46,6 +59,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   showProductId = true,
   showPrices = true,
   whatsAppNumber = '201000000000',
+  isAdmin = false,
+  categories = [],
+  subCategories = [],
+  onQuickCategoryChange,
+  onOpenClassifierForProduct,
 }) => {
   const activePackages = packages.filter((p) => p.active !== false);
   const [selectedPackageId, setSelectedPackageId] = useState<string>(
@@ -53,6 +71,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   );
   const [isZoomOpen, setIsZoomOpen] = useState<boolean>(false);
   const [isAddedRecently, setIsAddedRecently] = useState<boolean>(false);
+  const [isCatMenuOpen, setIsCatMenuOpen] = useState<boolean>(false);
 
   const currentPackage = activePackages.find((p) => p.id === selectedPackageId) || activePackages[0];
 
@@ -166,8 +185,121 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           isPackImage ? 'bg-white border border-stone-100 p-2' : 'bg-stone-100'
         }`}
       >
-        {/* Top-Right Type Badge */}
-        <div className="absolute top-1.5 right-1.5 z-10">{getTag()}</div>
+        {/* Top-Right Category Badge & Admin Quick Switcher */}
+        {isAdmin && onQuickCategoryChange ? (
+          <div
+            className="absolute top-1.5 right-1.5 z-30"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setIsCatMenuOpen(!isCatMenuOpen)}
+                className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-lg shadow-sm border transition-all cursor-pointer ${
+                  product.categoryId === 'CAT-01'
+                    ? 'bg-sky-500 hover:bg-sky-600 text-white border-sky-400'
+                    : product.categoryId === 'CAT-02'
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500'
+                    : 'bg-rose-600 hover:bg-rose-700 text-white border-rose-500'
+                }`}
+                title="تغيير سريع للقسم (للأدمن فقط - اضغط للاختيار)"
+              >
+                <span>
+                  {product.categoryId === 'CAT-01'
+                    ? '🌿 مخصب'
+                    : product.categoryId === 'CAT-02'
+                    ? '🌾 سماد'
+                    : '🧪 مبيد'}
+                </span>
+                <span className="text-[9px]">▾</span>
+              </button>
+
+              {isCatMenuOpen && (
+                <div
+                  className="absolute right-0 top-full mt-1 w-48 bg-white border border-stone-200 rounded-xl shadow-2xl p-1.5 z-50 text-right space-y-1 text-xs animate-in fade-in"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-2 py-1 text-[10px] font-black text-stone-400 border-b border-stone-100 flex items-center justify-between">
+                    <span>تحويل سريع للقسم:</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsCatMenuOpen(false)}
+                      className="text-stone-400 hover:text-stone-700 p-0.5"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onQuickCategoryChange(product.id, 'CAT-01');
+                      setIsCatMenuOpen(false);
+                    }}
+                    className={`w-full text-right px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      product.categoryId === 'CAT-01'
+                        ? 'bg-sky-50 text-sky-800 font-black'
+                        : 'hover:bg-stone-50 text-stone-700'
+                    }`}
+                  >
+                    <span>🌿 مخصبات ومحفزات</span>
+                    {product.categoryId === 'CAT-01' && <Check className="w-3.5 h-3.5 text-sky-600" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onQuickCategoryChange(product.id, 'CAT-02');
+                      setIsCatMenuOpen(false);
+                    }}
+                    className={`w-full text-right px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      product.categoryId === 'CAT-02'
+                        ? 'bg-emerald-50 text-emerald-800 font-black'
+                        : 'hover:bg-stone-50 text-stone-700'
+                    }`}
+                  >
+                    <span>🌾 أسمدة ومغذيات</span>
+                    {product.categoryId === 'CAT-02' && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onQuickCategoryChange(product.id, 'CAT-759728');
+                      setIsCatMenuOpen(false);
+                    }}
+                    className={`w-full text-right px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center justify-between transition-colors cursor-pointer ${
+                      product.categoryId === 'CAT-759728'
+                        ? 'bg-rose-50 text-rose-800 font-black'
+                        : 'hover:bg-stone-50 text-stone-700'
+                    }`}
+                  >
+                    <span>🧪 مبيدات زراعية</span>
+                    {product.categoryId === 'CAT-759728' && <Check className="w-3.5 h-3.5 text-rose-600" />}
+                  </button>
+
+                  {onOpenClassifierForProduct && (
+                    <div className="pt-1 border-t border-stone-100">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCatMenuOpen(false);
+                          onOpenClassifierForProduct(product);
+                        }}
+                        className="w-full text-right px-2 py-1 rounded-lg text-[10.5px] font-bold text-[#046A47] hover:bg-emerald-50 flex items-center gap-1 cursor-pointer"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>فحص بالمصنف الزراعي...</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="absolute top-1.5 right-1.5 z-10">{getTag()}</div>
+        )}
 
         {/* Top-Left Promo Discount Ribbon when viewed from a showcase offer */}
         {(promoBadgeLabel || pct > 0) && (

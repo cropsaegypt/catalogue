@@ -155,14 +155,22 @@ export function analyzeProductsForAgronomicSubCategories(
 
     // C. BIOSTIMULANTS & HORMONES & SEAWEED & AMINO ACIDS
     const isBiostimulant =
-      /مخصب\s+ورقي|مخصبات\s+ورقية|مخصب\s+حيوي|مخصبات\s+حيوية|مستخلص\s+طحالب|طحالب\s+بحرية|أحماض\s+أمينية|احماض\s+امينية|هيوميك|فولفيك|سيتوكينين|سيتوكينينات|أوكسين|اوكسينات|جبرلين|جبريلين|الجبرليك|محفز\s+نمو|محفزات\s+نمو|منشط\s+جذور|منشط\s+نمو|مقاومة\s+الإجهاد|مقاومة\s+الجهاد|تزهير\s+وعقد|تحجيم\s+الثمار|تلوين\s+الثمار|الجيفول|أبو\s*شنب|ستمبلكس|اكساديان|كاتاليست|هرمون\s+نباتي/i.test(
+      /مخصب|مخصبات|مستخلص\s+طحالب|طحالب\s+بحرية|طحالب|أحماض\s+أمينية|احماض\s+امينية|أمينو|امينو|هيوميك|فولفيك|سيتوكينين|سيتوكينينات|أوكسين|اوكسينات|جبرلين|جبريلين|الجبرليك|محفز\s+نمو|محفزات\s+نمو|منشط\s+جذور|منشط\s+نمو|منشط\s+للمجموع\s+الجدري|معالج\s+ملوحة|معالجة\s+الملوحة|مقاومة\s+الملوحة|رافع\s+إجهاد|رافع\s+اجهاد|مضاد\s+إجهاد|مضاد\s+اجهاد|مقاومة\s+الإجهاد|مقاومة\s+الجهاد|تزهير\s+وعقد|عقد\s+وتزهير|تزهير\s+وتثبيت|تحجيم\s+الثمار|تلوين\s+الثمار|الجيفول|أبو\s*شنب|ستمبلكس|اكساديان|كاتاليست|هرمون\s+نباتي|نفثالين\s+أسيتك|naa\b|رووت\s*اون|نوفاندول|أجروتونك|اجروتونك|هيوماسول|كيورسال|اورسال/i.test(
         cleanFull
       );
 
     // Evaluate Category Candidates
     const isPesticideCandidate = isInsecticide || isFungicide || isHerbicide || isNematicide;
-    const isStimulantCandidate = isBiostimulant && !cleanPrimary.includes('مبيد') && !cleanPrimary.includes('npk');
-    const isFertilizerCandidate = (isCompoundFert || isSingleFert) && !cleanPrimary.includes('مبيد') && !isStimulantCandidate;
+    const isStimulantCandidate =
+      isBiostimulant &&
+      !cleanPrimary.includes('مبيد') &&
+      !cleanPrimary.includes('npk') &&
+      !/\b\d{1,2}[-\/]\d{1,2}[-\/]\d{1,2}\b/.test(cleanPrimary);
+
+    const isFertilizerCandidate =
+      (isCompoundFert || isSingleFert) &&
+      !cleanPrimary.includes('مبيد') &&
+      !isStimulantCandidate;
 
     let suggestedCatId = product.categoryId;
     let suggestedSubId = product.subCategoryId || '';
@@ -450,4 +458,48 @@ export async function classifyProductsWithAi(
   }
 
   return proposals;
+}
+
+/**
+ * Analyzes a single product to re-evaluate and propose its agronomic category and subcategory on demand.
+ */
+export function analyzeSingleProductAgronomic(
+  product: Product,
+  categories: Category[],
+  subCategories: CompanySubCategory[],
+  companies: Company[]
+): AgronomicClassificationProposal {
+  const result = analyzeProductsForAgronomicSubCategories(
+    [product],
+    categories,
+    subCategories,
+    companies
+  );
+  if (result.length > 0) return result[0];
+
+  const catMap = new Map(categories.map((c) => [c.id, c.name]));
+  const compMap = new Map(companies.map((c) => [c.id, c.name]));
+  const currentCatName = catMap.get(product.categoryId) || 'غير محدد';
+  const currentSubName =
+    getUnifiedSubCategoryName(product.subCategoryId, categories, subCategories) || 'غير محدد';
+
+  return {
+    product,
+    companyName: compMap.get(product.companyId) || 'شركة زراعية',
+    currentCategoryId: product.categoryId,
+    currentCategoryName: currentCatName,
+    currentSubCategoryId: product.subCategoryId,
+    currentSubCategoryName: currentSubName,
+    suggestedCategoryId: product.categoryId,
+    suggestedCategoryName: currentCatName,
+    suggestedSubCategoryId: product.subCategoryId || '',
+    suggestedSubCategoryName: currentSubName,
+    isCategoryChanged: false,
+    isSubCategoryChanged: false,
+    detectedKeywords: ['تحليل مطابق للقسم الحالي'],
+    reason: 'المركب مصنف بالفعل بالقسم الملائم وفقاً للمكونات والخصائص الزراعية المسجلة',
+    confidence: 'high',
+    selected: true,
+    source: 'rule_engine',
+  };
 }

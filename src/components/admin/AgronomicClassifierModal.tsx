@@ -14,11 +14,14 @@ import {
   RefreshCw,
   Cpu,
   Check,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { Product, Category, CompanySubCategory, Company } from '../../types';
 import {
   AgronomicClassificationProposal,
   classifyProductsWithAi,
+  analyzeSingleProductAgronomic,
 } from '../../utils/agronomicClassifier';
 import {
   getMainCategories,
@@ -55,6 +58,47 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
   const [filterType, setFilterType] = useState<'all' | 'category_and_sub' | 'sub_only' | 'ai_only'>('all');
   const [isApplying, setIsApplying] = useState(false);
   const [isAiScanning, setIsAiScanning] = useState(false);
+  const [manualSearchQuery, setManualSearchQuery] = useState('');
+  const [isManualDropdownOpen, setIsManualDropdownOpen] = useState(false);
+
+  // Candidate products for manual addition
+  const manualCandidateProducts = useMemo(() => {
+    if (!manualSearchQuery.trim() || !products.length) return [];
+    const q = manualSearchQuery.trim().toLowerCase();
+    return products
+      .filter((p) => {
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.id.toLowerCase().includes(q) ||
+          (p.shortDescription || '').toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 12);
+  }, [manualSearchQuery, products]);
+
+  const handleAddProductToClassifier = (targetProduct: Product) => {
+    const proposal = analyzeSingleProductAgronomic(
+      targetProduct,
+      categories,
+      subCategories,
+      companies
+    );
+    setProposals((prev) => {
+      const withoutTarget = prev.filter((p) => p.product.id !== targetProduct.id);
+      return [{ ...proposal, selected: true }, ...withoutTarget];
+    });
+    setManualSearchQuery('');
+    setIsManualDropdownOpen(false);
+    onShowToast?.(
+      `تمت إضافة "${targetProduct.name}" للمصنف! القسم المقترح: ${proposal.suggestedCategoryName}`,
+      'success'
+    );
+  };
+
+  const handleRemoveProposal = (productId: string) => {
+    setProposals((prev) => prev.filter((p) => p.product.id !== productId));
+    onShowToast?.('تمت إزالة المنتج من قائمة المراجعة', 'info');
+  };
 
   // Available main categories
   const mainCategories = useMemo(() => getMainCategories(categories), [categories]);
@@ -268,6 +312,86 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
           </button>
         </div>
 
+        {/* Search & Add Specific Products Section (Admin Multi-Product Analysis) */}
+        <div className="p-3.5 sm:p-4 bg-emerald-50/70 border-b border-emerald-200/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+          <div className="relative flex-1 max-w-2xl">
+            <div className="flex items-center gap-2 bg-white border border-emerald-300 rounded-2xl px-3 py-2 shadow-xs focus-within:ring-2 focus-within:ring-[#046A47] focus-within:border-[#046A47]">
+              <Plus className="w-4 h-4 text-[#046A47] shrink-0" />
+              <input
+                type="text"
+                value={manualSearchQuery}
+                onChange={(e) => {
+                  setManualSearchQuery(e.target.value);
+                  setIsManualDropdownOpen(true);
+                }}
+                onFocus={() => setIsManualDropdownOpen(true)}
+                placeholder="ابحث باسم أي منتج لإضافته للمصنف وإعادة التفكير في تصنيفه (يمكنك إضافة أكثر من منتج)..."
+                className="w-full text-xs font-bold text-stone-800 placeholder-stone-400 focus:outline-none bg-transparent"
+              />
+              {manualSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualSearchQuery('');
+                    setIsManualDropdownOpen(false);
+                  }}
+                  className="p-1 hover:bg-stone-100 rounded-full text-stone-400 hover:text-stone-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Floating Dropdown Results */}
+            {isManualDropdownOpen && manualSearchQuery.trim() && (
+              <div className="absolute top-full right-0 left-0 mt-1 bg-white border border-emerald-300 rounded-2xl shadow-xl z-50 max-h-60 overflow-y-auto divide-y divide-stone-100">
+                {manualCandidateProducts.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-stone-500 font-bold">
+                    لا توجد منتجات مطابقة لـ "{manualSearchQuery}"
+                  </div>
+                ) : (
+                  manualCandidateProducts.map((p) => {
+                    const compName = companies.find((c) => c.id === p.companyId)?.name || 'شركة';
+                    const catName = categories.find((c) => c.id === p.categoryId)?.name || 'غير محدد';
+                    const isAlreadyInProposals = proposals.some((pr) => pr.product.id === p.id);
+
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleAddProductToClassifier(p)}
+                        className="w-full p-2.5 text-right hover:bg-emerald-50/80 flex items-center justify-between gap-3 transition-colors cursor-pointer group"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-stone-900 group-hover:text-[#046A47] truncate">
+                              {p.name}
+                            </span>
+                            <span className="text-[10px] text-stone-400 font-mono">
+                              ({p.id})
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-500 truncate mt-0.5">
+                            الشركة: <span className="font-semibold text-stone-700">{compName}</span> | القسم الحالي: <span className="font-semibold text-emerald-800">{catName}</span>
+                          </p>
+                        </div>
+                        <span className="px-2.5 py-1 bg-[#046A47] group-hover:bg-[#035136] text-white text-[10px] font-black rounded-lg shrink-0 shadow-2xs">
+                          {isAlreadyInProposals ? '+ إعادة تحليل' : '+ إضافة وتحليل'}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="text-[11px] text-emerald-950 font-bold flex items-center gap-1.5 shrink-0">
+            <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+            <span>ابحث واختر أي منتج وسيتم إدراجه فوراً وإعادة استنتاج قسمه المناسب</span>
+          </div>
+        </div>
+
         {/* Filter Pills, AI Research Button, Stats & Search Toolbar */}
         <div className="p-4 bg-white border-b border-stone-100 flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -400,6 +524,7 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                     <th className="p-3">التصنيف الحالي</th>
                     <th className="p-3 text-emerald-800 font-black">التصنيف المقترح ⬅ (يمكنك التعديل)</th>
                     <th className="p-3">القرائن والمادة الفعالة المكتشفة</th>
+                    <th className="p-3 w-12 text-center">إجراء</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-stone-100">
@@ -544,6 +669,16 @@ export const AgronomicClassifierModal: React.FC<AgronomicClassifierModalProps> =
                               {item.reason}
                             </p>
                           </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveProposal(item.product.id)}
+                            className="p-1.5 hover:bg-rose-50 text-stone-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer"
+                            title="إزالة هذا المنتج من قائمة المراجعة"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </td>
                       </tr>
                     );

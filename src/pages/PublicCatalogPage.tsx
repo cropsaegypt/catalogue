@@ -20,6 +20,8 @@ import { Footer } from '../components/common/Footer';
 import { ToastContainer, ToastMessage } from '../components/common/Toast';
 import { EmployeeLoginModal } from '../components/common/EmployeeLoginModal';
 import { ProductCard } from '../components/catalog/ProductCard';
+import { AgronomicClassifierModal } from '../components/admin/AgronomicClassifierModal';
+import { analyzeSingleProductAgronomic } from '../utils/agronomicClassifier';
 import { ProductModal } from '../components/catalog/ProductModal';
 import { QuickAddQuantityModal } from '../components/catalog/QuickAddQuantityModal';
 import { WholesaleNoticeModal } from '../components/catalog/WholesaleNoticeModal';
@@ -94,6 +96,7 @@ interface PublicCatalogPageProps {
   onSubmitFinancingRequest?: (
     payload: Omit<IslamicFinancingRequest, 'id' | 'requestNumber' | 'status' | 'createdAt' | 'updatedAt'>
   ) => Promise<IslamicFinancingRequest>;
+  onSaveProducts?: (products: Product[]) => void;
 }
 
 export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
@@ -115,6 +118,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   onLogout,
   onSubmitOrder,
   onSubmitFinancingRequest,
+  onSaveProducts,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
@@ -282,6 +286,55 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   };
 
   const totalBasketAmount = basketItems.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0);
+
+  const isAdmin = Boolean(
+    isAdminLoggedIn ||
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'super_admin' ||
+    hasDashboardAccess(currentUser)
+  );
+
+  const [classifierTargetProduct, setClassifierTargetProduct] = useState<Product | null>(null);
+  const [isClassifierModalOpen, setIsClassifierModalOpen] = useState(false);
+
+  const handleQuickCategoryChange = (
+    productId: string,
+    newCategoryId: string,
+    newSubCategoryId?: string
+  ) => {
+    if (!isAdmin) return;
+    const targetProduct = products.find((p) => p.id === productId);
+    if (!targetProduct) return;
+
+    let nextType: 'stimulant' | 'fertilizer' | 'pesticide' = 'pesticide';
+    if (newCategoryId === 'CAT-01') nextType = 'stimulant';
+    else if (newCategoryId === 'CAT-02') nextType = 'fertilizer';
+
+    const catName =
+      categories.find((c) => c.id === newCategoryId)?.name ||
+      (newCategoryId === 'CAT-01' ? 'المخصبات' : newCategoryId === 'CAT-02' ? 'الأسمدة' : 'المبيدات');
+
+    const updatedProducts = products.map((p) => {
+      if (p.id === productId) {
+        return {
+          ...p,
+          categoryId: newCategoryId,
+          subCategoryId: newSubCategoryId || undefined,
+          productType: nextType,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return p;
+    });
+
+    onSaveProducts?.(updatedProducts);
+    addToast(`تم تحويل "${targetProduct.name}" إلى قسم (${catName}) بنجاح ✓`, 'success');
+  };
+
+  const handleOpenClassifierForProduct = (product: Product) => {
+    setClassifierTargetProduct(product);
+    setIsClassifierModalOpen(true);
+  };
 
   const isHomeDefaultView =
     searchQuery.trim() === '' &&
@@ -827,6 +880,11 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
                     showProductId={settings.showProductIds}
                     showPrices={settings.showPrices}
                     whatsAppNumber={settings.whatsApp}
+                    isAdmin={isAdmin}
+                    categories={categories}
+                    subCategories={subCategories}
+                    onQuickCategoryChange={handleQuickCategoryChange}
+                    onOpenClassifierForProduct={handleOpenClassifierForProduct}
                   />
                 );
               })}
@@ -1207,6 +1265,51 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         whatsAppNumber={settings.whatsApp}
         phone={settings.phone}
       />
+
+      {/* Agronomic Classifier Modal (Admin direct check & rethink) */}
+      {isClassifierModalOpen && (
+        <AgronomicClassifierModal
+          isOpen={isClassifierModalOpen}
+          onClose={() => {
+            setIsClassifierModalOpen(false);
+            setClassifierTargetProduct(null);
+          }}
+          proposals={
+            classifierTargetProduct
+              ? [analyzeSingleProductAgronomic(classifierTargetProduct, categories, subCategories || [], companies)]
+              : []
+          }
+          categories={categories}
+          subCategories={subCategories || []}
+          companies={companies}
+          products={products}
+          totalProductsCount={products.length}
+          onApplyProposals={(approved) => {
+            const proposalMap = new Map(approved.map((a) => [a.product.id, a]));
+            const updated = products.map((p) => {
+              if (proposalMap.has(p.id)) {
+                const prop = proposalMap.get(p.id)!;
+                let nextType: 'pesticide' | 'fertilizer' | 'stimulant' = 'pesticide';
+                if (prop.suggestedCategoryId === 'CAT-01') nextType = 'stimulant';
+                else if (prop.suggestedCategoryId === 'CAT-02') nextType = 'fertilizer';
+                return {
+                  ...p,
+                  categoryId: prop.suggestedCategoryId,
+                  subCategoryId: prop.suggestedSubCategoryId || undefined,
+                  productType: nextType,
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return p;
+            });
+            onSaveProducts?.(updated);
+            addToast(`تم اعتماد وتحديث تصنيف ${approved.length} مركب بنجاح ✓`, 'success');
+            setIsClassifierModalOpen(false);
+            setClassifierTargetProduct(null);
+          }}
+          onShowToast={(msg, type) => addToast(msg, type)}
+        />
+      )}
 
       <ToastContainer
         toasts={toasts}

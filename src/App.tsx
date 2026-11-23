@@ -224,8 +224,12 @@ export default function App() {
           dbStorage.saveCompanies(INITIAL_COMPANIES);
         }
         if (idbData.subCategories?.length) setSubCategories(idbData.subCategories);
-        if (idbData.products?.length && idbData.products.length >= INITIAL_PRODUCTS.length) {
-          setProducts(idbData.products);
+        const idbProducts = idbData.products || [];
+        const idbStimCount = idbProducts.filter((p: any) => p.categoryId === 'CAT-01').length;
+        const initialStimCount = INITIAL_PRODUCTS.filter((p: any) => p.categoryId === 'CAT-01').length;
+
+        if (idbProducts.length >= INITIAL_PRODUCTS.length && idbStimCount >= initialStimCount) {
+          setProducts(idbProducts);
         } else {
           setProducts(INITIAL_PRODUCTS);
           dbStorage.saveProducts(INITIAL_PRODUCTS);
@@ -282,10 +286,14 @@ export default function App() {
         const bestRemoteProds = candidateRemoteSets[0].prods;
         const bestRemoteData = candidateRemoteSets[0].data;
 
-        // Case A: Local device has MORE products than remote AND has at least the baseline count!
+        const remoteStimCount = bestRemoteProds.filter((p: any) => p.categoryId === 'CAT-01').length;
+        const localStimCount = localProducts.filter((p: any) => p.categoryId === 'CAT-01').length;
+
+        // Case A: Local device has MORE products OR has upgraded classifications while remote is stale!
         // Immediately broadcast local catalog to central server and cloud snapshot + collections!
         if (
-          localProducts.length > bestRemoteProds.length &&
+          (localProducts.length > bestRemoteProds.length ||
+            (localProducts.length === bestRemoteProds.length && localStimCount > remoteStimCount)) &&
           localProducts.length >= INITIAL_PRODUCTS.length
         ) {
           const fullData = {
@@ -311,7 +319,8 @@ export default function App() {
         if (
           bestRemoteData &&
           bestRemoteProds.length >= localProducts.length &&
-          bestRemoteProds.length >= INITIAL_PRODUCTS.length
+          bestRemoteProds.length >= INITIAL_PRODUCTS.length &&
+          (remoteStimCount >= localStimCount || bestRemoteProds.length > localProducts.length)
         ) {
           const rd = bestRemoteData;
           if (rd.categories?.length) {
@@ -1080,6 +1089,7 @@ export default function App() {
           onLogout={handleLogout}
           onSubmitOrder={handleSubmitOrder}
           onSubmitFinancingRequest={handleSubmitFinancingRequest}
+          onSaveProducts={handleSaveProducts}
         />
       ) : (
         <ErrorBoundary

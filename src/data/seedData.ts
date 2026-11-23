@@ -6336,9 +6336,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   },
   {
     "createdAt": "2026-11-15T21:48:47.686Z",
-    "updatedAt": "2026-11-15T21:48:47.686Z",
+    "updatedAt": "2026-11-23T15:55:26.694Z",
     "shortDescription": "مركب مغذي عام ورافع إجهاد",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "ديور (أقوى مركب مغذي عام ورافع إجهاد)",
     "description": "مركب مغذي عام ورافع إجهاد غني بالعناصر الكبرى والصغرى والسيتوكينين لتحسين العقد وتحجيم الثمار ومقاومة الإجهاد البيئي.",
     "allowCartonOrder": true,
@@ -6371,7 +6371,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "applicationRate": "حسب الحاجة",
     "active": true,
     "id": "PRD-الوا-7686-59",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "usage": [
       "مقاومة الإجهاد البيئي الصعبة (الملوحة وتقلبات الحرارة)",
       "رفع جودة المحصول والمواصفات التصديرية"
@@ -13494,8 +13494,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-كفر -5240-9",
     "companyId": "COMP-07",
-    "categoryId": "CAT-02",
-    "productType": "fertilizer",
+    "categoryId": "CAT-01",
+    "productType": "stimulant",
     "name": "سماد كزد فولفات",
     "shortDescription": "سماد ورقي ومعدنى وعضوى لجميع انواع المحاصيل والخضر والفاكهة",
     "description": "سماد مركب غني بفولفات البوتاسيوم والبوتاسيوم لتحسين خواص التربة وزيادة امتصاص العناصر وتنشيط الجذور.",
@@ -13541,7 +13541,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-15T23:07:55.240Z",
-    "updatedAt": "2026-11-15T23:07:55.240Z",
+    "updatedAt": "2026-11-23T15:55:26.694Z",
     "subCategoryId": "SUB-685005"
   },
   {
@@ -14854,8 +14854,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-اجرو-7507-23",
     "companyId": "COMP-08",
-    "categoryId": "CAT-02",
-    "productType": "fertilizer",
+    "categoryId": "CAT-01",
+    "productType": "stimulant",
     "name": "أحماض أمينية 60%",
     "shortDescription": "مركب يمتص و ينتقل داخل أجزاء النبات المختلفة بسرعة كبيرة جداً",
     "description": "أحماض أمينية حرة لزيادة مقاومة الإجهاد.",
@@ -14884,7 +14884,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:15:37.507Z",
-    "updatedAt": "2026-11-15T23:15:37.507Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-7512-24",
@@ -15596,8 +15596,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-نوفا-9140-2",
     "companyId": "COMP-05",
-    "categoryId": "CAT-02",
-    "productType": "fertilizer",
+    "categoryId": "CAT-01",
+    "productType": "stimulant",
     "name": "أبو شنب",
     "shortDescription": "سماد يحتوي على محفزات نمو لتنشيط النمو الجذري والشعيرات الجذرية وتنمية المجموع الخضري.",
     "description": "يحتوي علي محفزات نمو لها دور في تنشيط النمو الجذري والشعيرات الجذرية يساعد النبات علي النمو الخضري. بشكل منتظم في المراحل الاولي من عمر النبات وتنشيط الجذور وتمددها. وسهوله عمليه الامتصاص للنبات من الماده العضويه المضافه بديل نهائي لشيكاره الكيماوي",
@@ -15651,7 +15651,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:21:39.140Z",
-    "updatedAt": "2026-11-15T23:21:39.140Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-نوفا-9167-3",
@@ -17528,8 +17528,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-زين-6765-7",
     "companyId": "COMP-14",
-    "categoryId": "CAT-02",
-    "productType": "fertilizer",
+    "categoryId": "CAT-01",
+    "productType": "stimulant",
     "name": "سماد زين السحري",
     "shortDescription": "منظم نمو نباتي مع العناصر الضرورية لتثبيت الازهار وزيادة نسبة العقد",
     "description": "سماد زين السحري مركب متكامل لتثبيت الأزهار وتحسين العقد ومقاومة الصقيع.",
@@ -17591,7 +17591,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-15T23:28:06.765Z",
-    "updatedAt": "2026-11-15T23:28:06.765Z",
+    "updatedAt": "2026-11-23T15:55:26.694Z",
     "subCategoryId": "SUB-675865"
   },
   {
@@ -19237,8 +19237,8 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-اورك-1669-6",
     "companyId": "COMP-06",
-    "categoryId": "CAT-02",
-    "productType": "fertilizer",
+    "categoryId": "CAT-01",
+    "productType": "stimulant",
     "name": "هيوستيك",
     "shortDescription": "مصدر عضوي عالي الجودة لهيومات وبوتاسيوم يساعد على تحسين خواص التربة ورفع جاهزية العناصر الغذائية.",
     "description": "سماد بودر عالي النقاء يحتوي على هيومات البوتاسيوم فليكس لتحسين خواص التربة وزيادة الخصوبة والنشاط الحيوي.",
@@ -19284,7 +19284,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-15T23:31:41.669Z",
-    "updatedAt": "2026-11-15T23:31:41.669Z",
+    "updatedAt": "2026-11-23T15:55:26.694Z",
     "subCategoryId": "SUB-685005"
   },
   {
@@ -20143,9 +20143,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-كفر -9839-1",
     "companyId": "COMP-07",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "بروسويل",
     "shortDescription": "مخصب زراعي يحسن من خواص التربة ويعالج مشاكل الملوحة ونقص العناصر",
     "description": "يوصى باستخدامه عند وجود مشاكل بالملوحة لأنه يحسن من خواص التربة مثل الحموضة وتركيب التربة ودوران الماء بين النبات والتربة ويعمل على اذابة الايونات الغير ذائبة.",
@@ -20201,14 +20201,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T17:52:59.839Z",
-    "updatedAt": "2026-11-21T17:52:59.839Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-كفر -9839-2",
     "companyId": "COMP-07",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "برو أكتيف",
     "shortDescription": "مخصب زراعي لمنع نقص العناصر الصغرى وتحسين حركة العناصر وامتصاصها",
     "description": "يمنع نقص العناصر الصغرى بسبب حركة وامتصاص المنجنيز والزنك داخل النبات بطريقة مرنة وسهلة.",
@@ -20258,7 +20258,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T17:52:59.839Z",
-    "updatedAt": "2026-11-21T17:52:59.839Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-كفر -9839-3",
@@ -20374,9 +20374,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-كفر -9839-5",
     "companyId": "COMP-07",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "جيوكر كزد",
     "shortDescription": "مخصب يحمي النباتات من الظروف الجوية الصعبة والمجهدة وسليكون للوقاية من الفطريات",
     "description": "يحمي النباتات من الظروف الجوية الصعبة والمجهدة (ارتفاع الحرارة - الصقيع - الجفاف - الملوحة) ويعمل علي الوقاية من الاصابة بالفطريات والعناكب.",
@@ -20430,7 +20430,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T17:52:59.839Z",
-    "updatedAt": "2026-11-21T17:52:59.839Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-كفر -9839-6",
@@ -20493,9 +20493,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-كفر -9839-7",
     "companyId": "COMP-07",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "سلفيتو",
     "shortDescription": "مخصب كبريت وكالسيوم لزيادة المحصول ومقاومة الصقيع والجفاف وتحسين الضغط الاسموزي",
     "description": "عتبر عنصر الكبريت من اهم العناصر الضرورية للنبات وذلك حيث انه من المركبات متعددة الفوائد والأغراض فهو يستخدم كعنصر سمادي هام وضروري لنباتات على زيادة المحصول.",
@@ -20542,7 +20542,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T17:52:59.839Z",
-    "updatedAt": "2026-11-21T17:52:59.839Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-كفر -9839-8",
@@ -21923,9 +21923,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-شركة-6840-27",
     "companyId": "COMP-02",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "سالت كلير بريميوم",
     "shortDescription": "مركب بودرة عالي الكفاءة لمعالجة الملوحة وتفكيك الأملاح الضارة وطردها من منطقة الجذور",
     "description": "مركب بودرة عالي الكفاءة لمعالجة الملوحة وتفكيك الأملاح الضارة وطردها من منطقة الجذور بفضل تكنولوجيا الكريو-شيلات التي تحسن نفاذية التربة وتحسن نفاذية التربة و حركة الماء مما يزيد من امتصاص العناصر الغذائية ويرفع قدرة النبات على مقاومة إجهاد الملوحة والحرارة والجفاف لضمان استدامة الإنتاج.",
@@ -21980,7 +21980,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-21T17:56:36.840Z",
-    "updatedAt": "2026-11-21T17:56:36.840Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-شركة-6841-28",
@@ -22230,9 +22230,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-شركة-6850-32",
     "companyId": "COMP-02",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "فوس باور بلس",
     "shortDescription": "صيغة متطورة عالية الفسفور مدعمة بالأحماض الأمينية والمغنيسيوم والفولفيك",
     "description": "صيغة متطورة عالية الفسفور مدعمة بالأحماض الأمينية والمغنيسيوم والفولفيك، تعمل كمصدر طاقة للنبات (ATP). تخصصها الأساسي بناء مجموع جذري قوي في البدايات، ودفع النبات للتزهير بكثافة ومنع تساقط العقد. كما تحسن من امتصاص العناصر الصغرى بفضل وسطها الحامضي وسهولة ذوبانها.",
@@ -22287,7 +22287,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-21T17:56:36.850Z",
-    "updatedAt": "2026-11-21T17:56:36.850Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-شركة-6854-33",
@@ -22825,9 +22825,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-شركة-8516-6",
     "companyId": "COMP-03",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "كاس سال",
     "shortDescription": "مركب يحتوي على نسبة مرتفعة من الكالسيوم الذي يعمل على طرد الصوديوم وتحويله إلى المياه الجوفية",
     "description": "مركب لمعالجة الملوحة وطرد الصوديوم الغني بالكالسيوم.",
@@ -22878,7 +22878,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T17:59:08.516Z",
-    "updatedAt": "2026-11-21T17:59:08.516Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-شركة-8518-7",
@@ -23339,9 +23339,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-شركة-8529-15",
     "companyId": "COMP-03",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "اند سال",
     "shortDescription": "معالج ملوحة ومنشط للمجموع الجدري",
     "description": "معالج ملوحة ومنشط للمجموع الجدري، يعمل على معالجة ملوحة التربة وطرد الصوديوم وإزالة آثاره.",
@@ -23393,7 +23393,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 4,
     "createdAt": "2026-11-21T17:59:08.529Z",
-    "updatedAt": "2026-11-21T17:59:08.529Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-شركة-8530-16",
@@ -23657,9 +23657,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-ايجي-4216-1",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "كيورسال",
     "shortDescription": "مركب فعال غني بالكالسيوم والأحماض العضوية والكربوكسيلية والكبريت",
     "description": "مركب فعال لغسيل الأملاح وتحسين التربة ومعالجة ملوحة الأراضي ومقاومة الأمراض الفطرية.",
@@ -23719,7 +23719,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 4,
     "createdAt": "2026-11-21T18:04:34.216Z",
-    "updatedAt": "2026-11-21T18:04:34.216Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4220-2",
@@ -23786,9 +23786,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-ايجي-4224-3",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "هيوماسول",
     "shortDescription": "مخصب زراعي يحتوي على بوتاسيوم وهيوميك لمعالجة الحموضة والقلوية",
     "description": "مخصب عالي التركيز من الهيوميك أسيد والبوتاسيوم لتحسين خصائص التربة وتيسير العناصر.",
@@ -23843,14 +23843,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 4,
     "createdAt": "2026-11-21T18:04:34.224Z",
-    "updatedAt": "2026-11-21T18:04:34.224Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4227-4",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "اورسال",
     "shortDescription": "مخصب لعلاج الملوحة وتحسين نفاذية التربة",
     "description": "مركب متخصص لغسيل الأملاح وإحلال الصوديوم في الأراضي المتأثرة بالملوحة.",
@@ -23907,14 +23907,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 4,
     "createdAt": "2026-11-21T18:04:34.227Z",
-    "updatedAt": "2026-11-21T18:04:34.227Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4230-5",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "ميلانو جيت",
     "shortDescription": "منظم نمو طبيعي ومحفز للتحجيم وزيادة الإنتاج",
     "description": "مخصب طبيعي يحتوي على طحالب وأحماض أمينية وسيتوكينين للتحجيم ومقاومة الإجهاد.",
@@ -23974,14 +23974,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:04:34.230Z",
-    "updatedAt": "2026-11-21T18:04:34.230Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4232-6",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "سيتو ايجلز",
     "shortDescription": "منشط نمو طبيعي لزيادة معدلات التزهير والعقد",
     "description": "منظم نمو نباتي يحتوي على سيتوكينين وأوكسينات لزيادة التزهير والعقد وتقليل التساقط.",
@@ -24028,7 +24028,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:04:34.232Z",
-    "updatedAt": "2026-11-21T18:04:34.232Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4235-7",
@@ -24101,9 +24101,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-ايجي-4237-8",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "مادوفيت ال",
     "shortDescription": "مخصب ومغذي عام للتحجيم وزيادة الإنتاجية",
     "description": "مغذي متكامل يحتوي على كالسيوم وبورون وأحماض أمينية وطحالب لتحسين جودة وثمار المحاصيل.",
@@ -24164,7 +24164,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:04:34.237Z",
-    "updatedAt": "2026-11-21T18:04:34.237Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4240-9",
@@ -24535,9 +24535,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-ايجي-4251-15",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "سيناتور",
     "shortDescription": "منظم نمو نباتي (P.G.R)",
     "description": "سيناتور منظم نمو نباتي لتحفيز العمليات الحيوية داخل النبات.",
@@ -24568,7 +24568,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:04:34.251Z",
-    "updatedAt": "2026-11-21T18:04:34.251Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4253-16",
@@ -24909,9 +24909,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-ايجي-4264-21",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "سوبرانو",
     "shortDescription": "تركيبة متميزة لمقاومة كافة أنواع الإجهادات وتنشيط العصارة",
     "description": "مركب مضاد للإجهاد مدعم بالطحالب ومضادات الأكسدة والمغنيسيوم لحماية النبات من الصقيع والإجهاد البيئي.",
@@ -24969,7 +24969,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:04:34.264Z",
-    "updatedAt": "2026-11-21T18:04:34.264Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-ايجي-4265-22",
@@ -25037,9 +25037,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-ايجي-4267-23",
     "companyId": "COMP-18",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "ستار ليكس",
     "shortDescription": "تركيبة متطورة لتنشيط نمو الجذور وزيادة مقاومة الأمراض الفطرية",
     "description": "مركب متطور من الفوسفور والبوتاسيوم مع الفولفيك والألجينيك والسكريدات لتنشيط وتطوير الجذور وزيادة الشعيرات الجذرية.",
@@ -25098,7 +25098,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:04:34.267Z",
-    "updatedAt": "2026-11-21T18:04:34.267Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-الهي-2146-1",
@@ -25606,9 +25606,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-اجرو-7638-2",
     "companyId": "COMP-08",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "أحماض امينية مكة",
     "shortDescription": "مركب أحماض أمينية حرة وطحالب بحرية",
     "description": "مركب أحماض أمينية لمقاومة الإجهادات البيئية والصقيع وزيادة حيوية النبات.",
@@ -25658,7 +25658,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:07:07.638Z",
-    "updatedAt": "2026-11-21T18:07:07.638Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-7643-3",
@@ -25787,9 +25787,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-اجرو-7647-5",
     "companyId": "COMP-08",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "بيكون رووت",
     "shortDescription": "محفز نمو جذور وعناصر صغرى وهيوميك وفولفيك",
     "description": "بيكون رووت محفز جذور متطور يحتوي على عناصر صغرى وهيوميك وفولفيك لتنشيط الجذور ومعالجة الإجهاد.",
@@ -25842,7 +25842,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:07:07.647Z",
-    "updatedAt": "2026-11-21T18:07:07.647Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-7656-6",
@@ -26504,9 +26504,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-زين-6529-7",
     "companyId": "COMP-14",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "أمينو أسيد",
     "shortDescription": "مركب أحماض أمينية حرة طبيعي مستخلص من أغنى المصادر العضوية يعمل على تنشيط الإنزيمات النباتية وزيادة كفاءة العمليات الحيوية داخل النبات.",
     "description": "مركب أحماض أمينية متكامل مع فولفيك وهيوميك وطحالب بحرية لتحفيز النمو ومقاومة الإجهاد.",
@@ -26564,14 +26564,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:09:46.529Z",
-    "updatedAt": "2026-11-21T18:09:46.529Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-زين-6534-8",
     "companyId": "COMP-14",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "معالج ملوحة",
     "shortDescription": "يستخدم بكفاءة عالية في معالجة ملوحة التربة ومياه الري وذلك في جميع أنواع الأراضي ولجميع محاصيل الخضر والفاكهة وكذلك المحاصيل الحقلية.",
     "description": "مركب معالج ملوحة لإمداد النبات بالكالسيوم وإحلال الصوديوم لغسله وتحسين نمو الجذور.",
@@ -26626,7 +26626,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:09:46.534Z",
-    "updatedAt": "2026-11-21T18:09:46.534Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-زين-6534-9",
@@ -26675,9 +26675,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-زين-6536-10",
     "companyId": "COMP-14",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "نترو بلس منشط جذور",
     "shortDescription": "منشط عام لتحسين كثافة وقوة المجموع الجذري",
     "description": "منشط نمو متخصص لتحفيز تكوين وتنشيط المجموع الجذري وزيادة امتصاص العناصر الغذائية.",
@@ -26725,7 +26725,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:09:46.536Z",
-    "updatedAt": "2026-11-21T18:09:46.536Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-زين-6541-11",
@@ -26881,9 +26881,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-زين-6552-14",
     "companyId": "COMP-14",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "نفثالين أسيتك أسيد",
     "shortDescription": "منظم نمو نباتي يحتوي على NAA 98%",
     "description": "منظم نمو نباتي من مجموعة الأوكسينات لمنع التساقط وتشجيع العقد وتكوين الجذور العرضية.",
@@ -26936,7 +26936,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:09:46.552Z",
-    "updatedAt": "2026-11-21T18:09:46.552Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-زين-6553-15",
@@ -27012,9 +27012,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-زين-6557-16",
     "companyId": "COMP-14",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "احماض امينية",
     "shortDescription": "مركب أحماض أمينية حرة لتنشيط النمو ومقاومة الإجهاد",
     "description": "أحماض أمينية حرة مدعمة بالعناصر الصغرى لزيادة النشاط الحيوي ومقاومة ظروف الإجهاد.",
@@ -27052,7 +27052,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:09:46.557Z",
-    "updatedAt": "2026-11-21T18:09:46.557Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-نوفا-8366-1",
@@ -27239,9 +27239,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-نوفا-8366-4",
     "companyId": "COMP-05",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-675865",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "نوفاندول",
     "shortDescription": "مخصب ومحفز لنمو الجذور وانقسام الخلايا",
     "description": "مخصب نباتي يحتوي على أندول بيوتريك أسيد وفيتامينات لتحفيز نمو الجذور وانقسام الخلايا وتنشيط التجذير.",
@@ -27280,14 +27280,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-21T18:11:08.366Z",
-    "updatedAt": "2026-11-21T18:11:08.366Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-نوفا-8366-5",
     "companyId": "COMP-05",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "امي نو نوفا",
     "shortDescription": "مخصب أحماض أمينية وعناصر صغرى",
     "description": "مخصب سائل غني بالأحماض الأمينية والعناصر الكبرى والصغرى لتحسين التحجيم وزيادة الوزن.",
@@ -27348,7 +27348,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:11:08.366Z",
-    "updatedAt": "2026-11-21T18:11:08.366Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-نوفا-8366-6",
@@ -27413,9 +27413,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-نوفا-8366-7",
     "companyId": "COMP-05",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "أجروتونك",
     "shortDescription": "مخصب ومحفز للنمو ومقاومة الإجهاد",
     "description": "مخصب متكامل من الأحماض الأمينية والعناصر الصغرى لتحفيز النمو الخضري ومقاومة الإجهاد والأمراض.",
@@ -27478,7 +27478,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 4,
     "createdAt": "2026-11-21T18:11:08.366Z",
-    "updatedAt": "2026-11-21T18:11:08.366Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-نوفا-8366-8",
@@ -27545,9 +27545,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-نوفا-8366-9",
     "companyId": "COMP-05",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "هومو نوفا (هيومات بوتاسيوم 12 %)",
     "shortDescription": "مخصب زراعي غني بهيومات البوتاسيوم والعناصر الصغرى والطحالب البحرية لتحسين تهوية التربة ونمو النبات.",
     "description": "مخصب زراعي غني بهيومات البوتاسيوم والعناصر الصغرى والطحالب البحرية لتحسين تهوية التربة ونمو النبات.",
@@ -27582,14 +27582,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:11:08.366Z",
-    "updatedAt": "2026-11-21T18:11:08.366Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-نوفا-8371-10",
     "companyId": "COMP-05",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "نوفا نوسلت (معالج ملوحة)",
     "shortDescription": "مركب متطور لمعالجة ملوحة التربة والمياه الجوفية وكسر ارتباط عنصر الصوديوم.",
     "description": "مركب متطور لمعالجة ملوحة التربة والمياه الجوفية وكسر ارتباط عنصر الصوديوم.",
@@ -27612,14 +27612,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:11:08.371Z",
-    "updatedAt": "2026-11-21T18:11:08.371Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-بايو-5532-1",
     "companyId": "COMP-17",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "رووت اون",
     "shortDescription": "منشط جذور حيوي يحفز تكوين الجذور الجديدة ويرفع الامتصاص.",
     "description": "منشط جذور حيوي يحفز تكوين الجذور الجديدة ويرفع الامتصاص.",
@@ -27658,14 +27658,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 4,
     "createdAt": "2026-11-21T18:11:55.532Z",
-    "updatedAt": "2026-11-21T18:11:55.532Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-بايو-5536-2",
     "companyId": "COMP-17",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "جراند جرو",
     "shortDescription": "مخصب يحتوي على سيتوكينين يحفز انقسام الخلايا واستطالتها.",
     "description": "مخصب يحتوي على سيتوكينين يحفز انقسام الخلايا واستطالتها.",
@@ -27697,14 +27697,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:11:55.536Z",
-    "updatedAt": "2026-11-21T18:11:55.536Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-5861-1",
     "companyId": "COMP-10",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "جبريكين",
     "shortDescription": "منظم نمو يحتوي على جبريلك أسيد",
     "description": "منظم نمو يحتوي على جبريلك أسيد",
@@ -27740,7 +27740,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:15:05.861Z",
-    "updatedAt": "2026-11-21T18:15:05.861Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-5867-2",
@@ -27866,9 +27866,9 @@ export const INITIAL_PRODUCTS: Product[] = [
   {
     "id": "PRD-اجرو-5867-5",
     "companyId": "COMP-10",
-    "categoryId": "CAT-759728",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-814298",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "name": "جبريليك اسيد 10%",
     "shortDescription": "منظم نمو في صورة أقراص",
     "description": "منظم نمو في صورة أقراص",
@@ -27903,14 +27903,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:15:05.867Z",
-    "updatedAt": "2026-11-21T18:15:05.867Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-5873-6",
     "companyId": "COMP-10",
-    "categoryId": "CAT-759728",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-814298",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "name": "كيميكالز جيب بلس 4%",
     "shortDescription": "منظم نمو سائل يحتوي على جبريلك أسيد",
     "description": "منظم نمو سائل يحتوي على جبريلك أسيد",
@@ -27936,14 +27936,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:15:05.873Z",
-    "updatedAt": "2026-11-21T18:15:05.873Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-5873-7",
     "companyId": "COMP-10",
-    "categoryId": "CAT-759728",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-814298",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "name": "بروميكس",
     "shortDescription": "منظم نمو يحتوي على سياناميد الهيدروجين",
     "description": "منظم نمو يحتوي على سياناميد الهيدروجين",
@@ -27969,14 +27969,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:15:05.873Z",
-    "updatedAt": "2026-11-21T18:15:05.873Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-5873-8",
     "companyId": "COMP-10",
-    "categoryId": "CAT-759728",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-814298",
-    "productType": "pesticide",
+    "productType": "stimulant",
     "name": "اجروبلكس",
     "shortDescription": "منظم نمو في صورة أقراص",
     "description": "منظم نمو في صورة أقراص",
@@ -28000,14 +28000,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 24,
     "createdAt": "2026-11-21T18:15:05.873Z",
-    "updatedAt": "2026-11-21T18:15:05.873Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-5873-9",
     "companyId": "COMP-10",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "فوتشنر",
     "shortDescription": "منظم نمو نباتي عالي الجودة لتحجيم الثمار وزيادة المحصول.",
     "description": "منظم نمو متطور يعمل على تحسين مواصفات الثمار وزيادة أحجامها، خاص ومثالي لمحاصيل الفاكهة مثل التفاح والكمثرى والبرقوق واللايكونت.",
@@ -28058,14 +28058,14 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": true,
     "piecesPerCarton": 12,
     "createdAt": "2026-11-21T18:15:05.873Z",
-    "updatedAt": "2026-11-21T18:15:05.873Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   },
   {
     "id": "PRD-اجرو-5873-10",
     "companyId": "COMP-10",
-    "categoryId": "CAT-02",
+    "categoryId": "CAT-01",
     "subCategoryId": "SUB-685005",
-    "productType": "fertilizer",
+    "productType": "stimulant",
     "name": "سلفادول",
     "shortDescription": "منشط ومحسن جذور قوي لدعم نمو وتكوين المجموع الجذري.",
     "description": "منشط جذور متخصص يساعد النبات على سرعة التجذير بعد الشتل ولتنشيط المجموع الجذري في المحاصيل المختلفة.",
@@ -28108,7 +28108,7 @@ export const INITIAL_PRODUCTS: Product[] = [
     "allowCartonOrder": false,
     "piecesPerCarton": 1,
     "createdAt": "2026-11-21T18:15:05.873Z",
-    "updatedAt": "2026-11-21T18:15:05.873Z"
+    "updatedAt": "2026-11-23T15:55:26.694Z"
   }
 ];
 
