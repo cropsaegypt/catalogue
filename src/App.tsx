@@ -225,7 +225,17 @@ export default function App() {
           dbStorage.saveCompanies(INITIAL_COMPANIES);
         }
         if (idbData.subCategories?.length) setSubCategories(idbData.subCategories);
-        const idbProducts = idbData.products || [];
+        const rawIdbProducts = idbData.products || [];
+        const idbProducts = rawIdbProducts.map((p: any) => {
+          if (p.subCategoryId && p.categoryId) {
+            const sub = (idbData.categories || INITIAL_CATEGORIES).find((c: any) => c.id === p.subCategoryId);
+            if (sub?.parentId && sub.parentId !== p.categoryId) {
+              const { subCategoryId, ...rest } = p;
+              return rest;
+            }
+          }
+          return p;
+        });
         const idbStimCount = idbProducts.filter((p: any) => p.categoryId === 'CAT-01').length;
         const initialStimCount = INITIAL_PRODUCTS.filter((p: any) => p.categoryId === 'CAT-01').length;
 
@@ -854,19 +864,30 @@ export default function App() {
     try {
       // 0. Check remote cloud collections first (Two-Way Sync):
       // If remote has MORE products than this local device, pull and update local immediately!
-      const [remoteCloud, remoteServer] = await Promise.all([
+      const [remoteSupabase, remoteCloud, remoteServer] = await Promise.all([
+        supabaseSync.pullSingleDocumentSnapshot(),
         firestoreSync.pullAllFromCloud(),
         serverSync.fetchFromCentralServer(),
       ]);
 
+      const supaProds = remoteSupabase.success && Array.isArray(remoteSupabase.data?.products)
+        ? remoteSupabase.data.products
+        : [];
       const cloudProds = remoteCloud.connected && Array.isArray(remoteCloud.data?.products)
         ? remoteCloud.data.products
         : [];
       const serverProds = remoteServer.success && Array.isArray(remoteServer.data?.products)
         ? remoteServer.data.products
         : [];
-      const bestRemoteProds = cloudProds.length >= serverProds.length ? cloudProds : serverProds;
-      const bestRemoteData = cloudProds.length >= serverProds.length ? remoteCloud.data : remoteServer.data;
+
+      const candidateRemotes = [
+        { prods: supaProds, data: remoteSupabase.data },
+        { prods: cloudProds, data: remoteCloud.data },
+        { prods: serverProds, data: remoteServer.data },
+      ].sort((a, b) => b.prods.length - a.prods.length);
+
+      const bestRemoteProds = candidateRemotes[0]?.prods || [];
+      const bestRemoteData = candidateRemotes[0]?.data;
 
       if (bestRemoteData && bestRemoteProds.length > products.length) {
         // Upgrade local device!
@@ -920,23 +941,25 @@ export default function App() {
         pdfDividers: dbStorage.getPdfDividers(),
       };
 
-      const [serverResult, fullSnapshotRes, singleDocRes] = await Promise.all([
+      const [supaSnapRes, supaFullRes, serverResult, fullSnapshotRes, singleDocRes] = await Promise.all([
+        supabaseSync.pushSingleDocumentSnapshot(fullPayload),
+        supabaseSync.pushAllToCloud(fullPayload),
         serverSync.syncToCentralServer(fullPayload),
         firestoreSync.pushFullSnapshot(fullPayload),
         firestoreSync.pushSingleDocumentSnapshot(fullPayload),
       ]);
 
-      if (fullSnapshotRes.success || singleDocRes.success || serverResult.success) {
+      if (supaSnapRes.success || fullSnapshotRes.success || singleDocRes.success || serverResult.success) {
         setCloudConnected(true);
         setLastCloudSyncAt(new Date().toISOString());
         dbStorage.setPendingCloudSync(false);
         setHasUnsyncedChanges(false);
         addBuilderToast(
-          `تم رفع ومزامنة الكتالوج بالكامل (${products.length} منتج) لجميع الأجهزة والزوار بنجاح ✓`,
+          `تم رفع ومزامنة الكتالوج بالكامل (${products.length} منتج) لجميع الأجهزة والزوار بنجاح عبر Supabase وCloud ✓`,
           'success'
         );
       } else {
-        const errMsg = fullSnapshotRes.error || singleDocRes.error || serverResult.error || 'تعذر المزامنة مع السحابة';
+        const errMsg = supaSnapRes.error || fullSnapshotRes.error || singleDocRes.error || serverResult.error || 'تعذر المزامنة مع السحابة';
         setCloudError(errMsg);
         addBuilderToast(errMsg, 'error');
       }

@@ -90,25 +90,9 @@ export function getUnifiedSubCategoryName(
 }
 
 export function getProductMainCategoryId(product: Product, categories: Category[]): string {
-  // 1. Highest Priority: If subCategoryId is set and belongs to a parent main category,
-  // that parent category is definitively the main category!
-  if (product.subCategoryId) {
-    const subCat = categories.find(
-      (c) =>
-        (c.id === product.subCategoryId ||
-          c.slug === product.subCategoryId ||
-          c.name.trim().toLowerCase() === product.subCategoryId.trim().toLowerCase()) &&
-        Boolean(c.parentId)
-    );
-    if (subCat?.parentId) {
-      const parent = categories.find((c) => c.id === subCat.parentId);
-      return parent ? parent.id : subCat.parentId;
-    }
-  }
-
-  // 2. Direct match on product.categoryId:
+  // 1. Direct match on product.categoryId:
+  // If product.categoryId points directly to an established Main Category (e.g. CAT-01, CAT-02, CAT-759728), return it!
   // If product.categoryId points to a subcategory with a parentId, return parent's ID.
-  // If it points directly to an established Main Category (e.g. CAT-01, CAT-02, CAT-759728), return it!
   const directCat = categories.find(
     (c) =>
       c.id === product.categoryId ||
@@ -123,7 +107,22 @@ export function getProductMainCategoryId(product: Product, categories: Category[
     return directCat.id;
   }
 
-  // 3. Agronomy Type & Keywords resolution (fixes Excel imports where categoryId defaulted to CAT-01)
+  // 2. Fallback to subCategoryId if categoryId is empty or unresolved:
+  if (product.subCategoryId) {
+    const subCat = categories.find(
+      (c) =>
+        (c.id === product.subCategoryId ||
+          c.slug === product.subCategoryId ||
+          c.name.trim().toLowerCase() === product.subCategoryId.trim().toLowerCase()) &&
+        Boolean(c.parentId)
+    );
+    if (subCat?.parentId) {
+      const parent = categories.find((c) => c.id === subCat.parentId);
+      return parent ? parent.id : subCat.parentId;
+    }
+  }
+
+  // 3. Agronomy Type & Keywords resolution (fixes Excel imports where categoryId was unassigned)
   const prodName = typeof product.name === 'string' ? product.name : '';
   const searchTags = Array.isArray(product.searchTags) ? product.searchTags.join(' ') : '';
   const fullText = `${prodName} ${product.shortDescription || ''} ${searchTags}`.toLowerCase();
@@ -138,6 +137,7 @@ export function getProductMainCategoryId(product: Product, categories: Category[
         !c.parentId &&
         (c.slug === 'pesticides' ||
           c.name.replace(/^(ال)/, '').includes('مبيد') ||
+          c.id === 'CAT-759728' ||
           c.id === 'CAT-03')
     );
     if (pCat) return pCat.id;
@@ -153,7 +153,7 @@ export function getProductMainCategoryId(product: Product, categories: Category[
         !c.parentId &&
         (c.slug === 'stimulants' ||
           c.name.replace(/^(ال)/, '').includes('مخصب') ||
-          c.id === 'CAT-02')
+          c.id === 'CAT-01')
     );
     if (sCat) return sCat.id;
   }
@@ -169,14 +169,9 @@ export function getProductMainCategoryId(product: Product, categories: Category[
         (c.slug === 'fertilizers' ||
           c.name.replace(/^(ال)/, '').includes('سماد') ||
           c.name.replace(/^(ال)/, '').includes('أسمدة') ||
-          c.id === 'CAT-01')
+          c.id === 'CAT-02')
     );
     if (fCat) return fCat.id;
-  }
-
-  // 4. Fallback to direct matched category or product.categoryId
-  if (directCat) {
-    return directCat.id;
   }
 
   return product.categoryId;
@@ -186,6 +181,8 @@ export function getProductSubCategoryId(
   product: Product,
   categories: Category[]
 ): string | undefined {
+  const mainCatId = getProductMainCategoryId(product, categories);
+
   if (product.subCategoryId) {
     const existsAsSub = categories.find(
       (c) =>
@@ -194,7 +191,10 @@ export function getProductSubCategoryId(
           c.name.trim().toLowerCase() === product.subCategoryId.trim().toLowerCase()) &&
         Boolean(c.parentId)
     );
-    if (existsAsSub) return existsAsSub.id;
+    // Crucial: Only accept this subcategory if its parentId actually matches the product's main category!
+    if (existsAsSub && (!existsAsSub.parentId || existsAsSub.parentId === mainCatId)) {
+      return existsAsSub.id;
+    }
   }
 
   const assignedCat = categories.find(
@@ -203,11 +203,11 @@ export function getProductSubCategoryId(
       c.slug === product.categoryId ||
       c.name.trim().toLowerCase() === (product.categoryId || '').trim().toLowerCase()
   );
-  if (assignedCat?.parentId) {
+  if (assignedCat?.parentId && (!mainCatId || assignedCat.parentId === mainCatId)) {
     return assignedCat.id;
   }
 
-  return product.subCategoryId;
+  return undefined;
 }
 
 export function getCategoryDisplayPath(
@@ -250,18 +250,29 @@ export function getCategoryDisplayPath(
     }
   }
 
+  // 1. If assignedCat is an established main category:
+  if (assignedCat && !assignedCat.parentId) {
+    const validSub = sub?.parentId === assignedCat.id ? sub : undefined;
+    return {
+      mainCategory: assignedCat,
+      subCategory: validSub,
+    };
+  }
+
+  // 2. If assignedCat is a subcategory:
+  if (assignedCat?.parentId) {
+    return {
+      mainCategory: categories.find((c) => c.id === assignedCat.parentId),
+      subCategory: assignedCat,
+    };
+  }
+
+  // 3. Fallback: if sub has a parent
   if (sub?.parentId) {
     const main = categories.find((c) => c.id === sub.parentId);
     return {
       mainCategory: main || assignedCat,
       subCategory: sub,
-    };
-  }
-
-  if (assignedCat?.parentId) {
-    return {
-      mainCategory: categories.find((c) => c.id === assignedCat.parentId),
-      subCategory: assignedCat,
     };
   }
 
