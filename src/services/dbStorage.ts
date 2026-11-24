@@ -111,6 +111,7 @@ function notifyCatalogChange(key: string) {
     STORAGE_KEYS.ADVERTISEMENTS,
     STORAGE_KEYS.SETTINGS,
     STORAGE_KEYS.IMAGES,
+    STORAGE_KEYS.TEAM,
   ];
   if (syncKeys.includes(key)) {
     try {
@@ -385,8 +386,31 @@ export const dbStorage = {
         active: m.active !== false,
       };
     });
+    // Remove un-deleted active members from tombstone storage
+    try {
+      const raw = localStorage.getItem('cropsa_deleted_team_ids');
+      if (raw) {
+        const deletedList: string[] = JSON.parse(raw);
+        const activeIds = new Set(sanitized.map((m) => m.id));
+        const filtered = deletedList.filter((id) => !activeIds.has(id));
+        localStorage.setItem('cropsa_deleted_team_ids', JSON.stringify(filtered));
+      }
+    } catch {}
+
     setItem(STORAGE_KEYS.TEAM, sanitized);
     idbStorage.set(STORAGE_KEYS.TEAM, sanitized).catch(() => {});
+  },
+  recordDeletedTeamMember(memberId: string): void {
+    recordDeletedTeamMember(memberId);
+  },
+  removeDeletedTeamMemberRecord(memberId: string): void {
+    removeDeletedTeamMemberRecord(memberId);
+  },
+  mergeTeamMembers(
+    localTeam: TeamMember[] = [],
+    remoteTeam: TeamMember[] = []
+  ): { merged: TeamMember[]; hasLocalAdditions: boolean } {
+    return mergeTeamMembers(localTeam, remoteTeam);
   },
   authenticateUser(usernameOrEmail: string, passwordAttempt: string): TeamMember | null {
     const result = this.authenticateWithReason(usernameOrEmail, passwordAttempt);
@@ -833,3 +857,100 @@ export const dbStorage = {
     this.getCatalogSettings();
   },
 };
+
+/**
+ * Record a team member ID that was explicitly deleted by an administrator.
+ * Prevents distributed stale snapshots from re-adding deleted users.
+ */
+export function recordDeletedTeamMember(memberId: string): void {
+  try {
+    const raw = localStorage.getItem('cropsa_deleted_team_ids');
+    const list: string[] = raw ? JSON.parse(raw) : [];
+    if (!list.includes(memberId)) {
+      list.push(memberId);
+      localStorage.setItem('cropsa_deleted_team_ids', JSON.stringify(list.slice(-100)));
+    }
+  } catch {}
+}
+
+/**
+ * Remove an ID from tombstone storage when an employee is intentionally created or restored.
+ */
+export function removeDeletedTeamMemberRecord(memberId: string): void {
+  try {
+    const raw = localStorage.getItem('cropsa_deleted_team_ids');
+    if (!raw) return;
+    const list: string[] = JSON.parse(raw);
+    const filtered = list.filter((id) => id !== memberId);
+    localStorage.setItem('cropsa_deleted_team_ids', JSON.stringify(filtered));
+  } catch {}
+}
+
+/**
+ * Robust two-way merge for team members.
+ * Guarantees that any employee created locally is NEVER deleted by a stale remote snapshot!
+ */
+export function mergeTeamMembers(
+  localTeam: TeamMember[] = [],
+  remoteTeam: TeamMember[] = []
+): { merged: TeamMember[]; hasLocalAdditions: boolean } {
+  if (!Array.isArray(remoteTeam) || remoteTeam.length === 0) {
+    return { merged: localTeam || [], hasLocalAdditions: false };
+  }
+  if (!Array.isArray(localTeam) || localTeam.length === 0) {
+    return { merged: remoteTeam, hasLocalAdditions: false };
+  }
+
+  const deletedIds = new Set<string>();
+  try {
+    const raw = localStorage.getItem('cropsa_deleted_team_ids');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((id) => deletedIds.add(id));
+      }
+    }
+  } catch {}
+
+  const map = new Map<string, TeamMember>();
+
+  // 1. Add all remote members first (unless explicitly deleted locally)
+  for (const m of remoteTeam) {
+    if (m && m.id && !deletedIds.has(m.id)) {
+      map.set(m.id, m);
+    }
+  }
+
+  let hasLocalAdditions = false;
+
+  // 2. Overlay all local members: ANY local member created on this device is PRESERVED!
+  for (const localM of localTeam) {
+    if (!localM || !localM.id || deletedIds.has(localM.id)) continue;
+
+    const existingRemote = map.get(localM.id);
+    if (!existingRemote) {
+      // Local addition not yet present on remote (e.g. newly created employee)!
+      map.set(localM.id, localM);
+      hasLocalAdditions = true;
+    } else {
+      // Both exist: prefer whichever has more recent edit or preserve local credentials
+      const localTime =
+        localM.updatedAt || localM.createdAt
+          ? new Date(localM.updatedAt || localM.createdAt).getTime()
+          : 0;
+      const remoteTime =
+        existingRemote.updatedAt || existingRemote.createdAt
+          ? new Date(existingRemote.updatedAt || existingRemote.createdAt).getTime()
+          : 0;
+      if (localTime >= remoteTime) {
+        map.set(localM.id, { ...existingRemote, ...localM });
+      } else {
+        map.set(localM.id, { ...localM, ...existingRemote });
+      }
+    }
+  }
+
+  const merged = Array.from(map.values());
+  return { merged, hasLocalAdditions };
+}
+

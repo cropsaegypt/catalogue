@@ -389,6 +389,7 @@ export interface TeamMember {
   active: boolean;
   permissions: string[];
   createdAt: string;
+  updatedAt?: string;
   lastLogin?: string;
 }
 

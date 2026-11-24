@@ -1111,6 +1111,10 @@ export function createApiApp() {
           subCategories: baseline.subCategories || (data && data.subCategories),
           advertisements: baseline.advertisements || (data && data.advertisements),
           settings: (data && data.settings) || baseline.settings,
+          teamMembers:
+            data && Array.isArray(data.teamMembers) && data.teamMembers.length > 0
+              ? data.teamMembers
+              : baseline.teamMembers,
         };
         globalCatalogMemoryCache = data;
       }

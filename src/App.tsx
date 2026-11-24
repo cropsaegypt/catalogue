@@ -19,6 +19,7 @@ import { parseCurrentRoute, navigateTo } from './utils/urlRouter';
 import {
   dbStorage,
   DbData,
+  mergeTeamMembers,
 } from './services/dbStorage';
 import { firestoreSync } from './services/firestoreSync';
 import { serverSync } from './services/serverSync';
@@ -203,8 +204,16 @@ export default function App() {
       dbStorage.saveFinancingRequests(rd.financingRequests);
     }
     if (rd.teamMembers?.length) {
-      setTeamMembers(rd.teamMembers);
-      dbStorage.saveTeamMembers(rd.teamMembers);
+      const currentLocal = dbStorage.getTeamMembers();
+      const { merged, hasLocalAdditions } = mergeTeamMembers(currentLocal, rd.teamMembers);
+      setTeamMembers(merged);
+      dbStorage.saveTeamMembers(merged);
+      if (hasLocalAdditions) {
+        void supabaseSync.pushSingleDocumentSnapshot({
+          ...dbStorage.getData(),
+          teamMembers: merged,
+        });
+      }
     }
     if (rd.priceHistory?.length) {
       setPriceHistory(rd.priceHistory);
@@ -521,8 +530,16 @@ export default function App() {
             dbStorage.savePdfDividers(rd.pdfDividers);
           }
           if (rd.teamMembers?.length) {
-            setTeamMembers(rd.teamMembers);
-            dbStorage.saveTeamMembers(rd.teamMembers);
+            const currentLocal = dbStorage.getTeamMembers();
+            const { merged, hasLocalAdditions } = mergeTeamMembers(currentLocal, rd.teamMembers);
+            setTeamMembers(merged);
+            dbStorage.saveTeamMembers(merged);
+            if (hasLocalAdditions) {
+              void supabaseSync.pushSingleDocumentSnapshot({
+                ...dbStorage.getData(),
+                teamMembers: merged,
+              });
+            }
           }
           if (rd.settings) {
             setSettings(rd.settings);
@@ -817,6 +834,18 @@ export default function App() {
         setSettings(bestRemote.settings);
         dbStorage.saveSettings(bestRemote.settings);
       }
+      if (bestRemote.teamMembers?.length) {
+        const localTeam = dbStorage.getTeamMembers();
+        const { merged, hasLocalAdditions } = mergeTeamMembers(localTeam, bestRemote.teamMembers);
+        setTeamMembers(merged);
+        dbStorage.saveTeamMembers(merged);
+        if (hasLocalAdditions) {
+          void supabaseSync.pushSingleDocumentSnapshot({
+            ...dbStorage.getData(),
+            teamMembers: merged,
+          });
+        }
+      }
     };
 
     const interval = setInterval(checkServerUpdates, 15000);
@@ -887,17 +916,23 @@ export default function App() {
     void serverSync.syncToCentralServer({ subCategories: updatedSubs });
   };
 
-  const handleSaveTeamMembers = (updatedTeam: TeamMember[]) => {
+  const handleSaveTeamMembers = async (updatedTeam: TeamMember[]) => {
     setTeamMembers(updatedTeam);
     dbStorage.saveTeamMembers(updatedTeam);
     dbStorage.setPendingCloudSync(true);
     setHasUnsyncedChanges(true);
-    void trackCloudWrite(firestoreSync.syncCollection('team', updatedTeam));
-    void serverSync.syncToCentralServer({ teamMembers: updatedTeam });
-    void supabaseSync.pushSingleDocumentSnapshot({
-      ...dbStorage.getData(),
-      teamMembers: updatedTeam,
-    });
+
+    try {
+      const fullSnapshot = {
+        ...dbStorage.getData(),
+        teamMembers: updatedTeam,
+      };
+      await supabaseSync.pushSingleDocumentSnapshot(fullSnapshot);
+      void trackCloudWrite(firestoreSync.syncCollection('team', updatedTeam));
+      void serverSync.syncToCentralServer({ teamMembers: updatedTeam });
+    } catch (err) {
+      console.warn('[Team] Cloud push warning:', err);
+    }
     if (currentUser) {
       const updatedSelf = updatedTeam.find((m) => m.id === currentUser.id);
       if (!updatedSelf || !updatedSelf.active) {
@@ -1106,8 +1141,16 @@ export default function App() {
           dbStorage.saveSubCategories(rd.subCategories);
         }
         if (rd.teamMembers?.length) {
-          setTeamMembers(rd.teamMembers);
-          dbStorage.saveTeamMembers(rd.teamMembers);
+          const localTeam = dbStorage.getTeamMembers();
+          const { merged, hasLocalAdditions } = mergeTeamMembers(localTeam, rd.teamMembers);
+          setTeamMembers(merged);
+          dbStorage.saveTeamMembers(merged);
+          if (hasLocalAdditions) {
+            void supabaseSync.pushSingleDocumentSnapshot({
+              ...dbStorage.getData(),
+              teamMembers: merged,
+            });
+          }
         }
         setCloudConnected(true);
         setLastCloudSyncAt(new Date().toISOString());

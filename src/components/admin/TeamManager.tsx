@@ -32,6 +32,10 @@ import {
   buildSalesRepStoreUrl,
   formatPhoneForWhatsApp,
 } from '../../utils/salesRepReferral';
+import {
+  recordDeletedTeamMember,
+  removeDeletedTeamMemberRecord,
+} from '../../services/dbStorage';
 
 interface TeamManagerProps {
   teamMembers: TeamMember[];
@@ -125,6 +129,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
         alert('اسم المستخدم هذا مستخدم لحساب آخر، يرجى اختيار اسم مختلف.');
         return;
       }
+      removeDeletedTeamMemberRecord(editingMember.id);
       const updated = teamMembers.map((m) =>
         m.id === editingMember.id
           ? {
@@ -136,6 +141,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
               role,
               permissions: cleanPermissions,
               phone: phone.trim(),
+              updatedAt: new Date().toISOString(),
             }
           : m
       );
@@ -157,7 +163,9 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
         active: true,
         permissions: cleanPermissions,
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
+      removeDeletedTeamMemberRecord(newMember.id);
       onSaveTeamMembers([...teamMembers, newMember]);
       onShowToast?.(`تم تسجيل وإضافة الموظف الجديد (${name.trim()}) بنجاح ✓`, 'success');
     }
@@ -167,13 +175,14 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
 
   const handleToggleActive = (memberId: string) => {
     const updated = teamMembers.map((m) =>
-      m.id === memberId ? { ...m, active: !m.active } : m
+      m.id === memberId ? { ...m, active: !m.active, updatedAt: new Date().toISOString() } : m
     );
     onSaveTeamMembers(updated);
   };
 
   const handleDelete = (memberId: string) => {
     if (confirm('هل أنت متأكد من حذف هذا الحساب من فريق العمل؟')) {
+      recordDeletedTeamMember(memberId);
       const updated = teamMembers.filter((m) => m.id !== memberId);
       onSaveTeamMembers(updated);
     }
