@@ -444,7 +444,67 @@ export type AdminTab =
   | 'team'
   | 'settings'
   | 'audit_logs'
-  | 'ai_catalog';
+  | 'ai_catalog'
+  | 'programs';
+
+// -------------------------------------------------------------
+// AGRONOMIC PROGRAMS (تسميد ومكافحة ذكية للمزارع والعملاء)
+// -------------------------------------------------------------
+export type ProgramType = 'fertilizer' | 'protection' | 'integrated';
+export type SoilType = 'clay' | 'sandy' | 'calcareous' | 'silt' | 'other';
+export type IrrigationType = 'drip' | 'flood' | 'pivot' | 'sprinkler' | 'other';
+export type DrainageType = 'good' | 'medium' | 'poor';
+
+export interface ProgramItem {
+  id: string;
+  productId: string;
+  productName: string;
+  companyId: string;
+  companyName: string;
+  packageId?: string;
+  packageName?: string;
+  categoryName?: string;
+  imageUrl?: string;
+  dose: string; // e.g. "2 لتر / فدان"
+  timing: string; // e.g. "رية أولى - بداية التزهير"
+  stage?: string; // e.g. "مرحلة التزهير والعقد"
+  unitPrice: number; // actual price offered in the program
+  originalPrice: number; // original base price (for strikethrough marketing)
+  discountPercent?: number; // per item discount percent
+  quantity: number; // units or packages
+  totalPrice: number; // quantity * unitPrice
+  notes?: string;
+  reason?: string; // AI recommendation explanation
+}
+
+export interface AgronomicProgram {
+  id: string;
+  title: string;
+  programType: ProgramType;
+  crop: string;
+  growthStage?: string;
+  areaAcres: number;
+  soilType: SoilType;
+  irrigationType: IrrigationType;
+  drainageType: DrainageType;
+  targetIssues?: string[];
+  companyIds: string[];
+  items: ProgramItem[];
+  originalTotal: number;
+  finalTotal: number;
+  totalSavings: number;
+  globalDiscountPercent: number;
+  marketingBadge?: string;
+  clientName: string;
+  clientPhone?: string;
+  clientLocation?: string;
+  salesRepName?: string;
+  salesRepPhone?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  active: boolean;
+}
 
 
 

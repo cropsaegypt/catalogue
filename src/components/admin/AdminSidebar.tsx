@@ -21,6 +21,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   X,
+  Sprout,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { TeamMember } from '../../types';
@@ -41,6 +42,7 @@ export type AdminTab =
   | 'layout'
   | 'pdf'
   | 'orders'
+  | 'programs'
   | 'financing'
   | 'team'
   | 'audit'
@@ -105,6 +107,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           label: 'طلبيات العملاء والتقسيط',
           icon: <ShoppingBag className="w-4 h-4 text-amber-400" />,
           badge: pendingOrdersCount,
+        },
+        {
+          id: 'programs',
+          label: 'برامج التسميد والمكافحة',
+          icon: <Sprout className="w-4 h-4 text-emerald-400" />,
+          highlight: true,
         },
         {
           id: 'financing',

@@ -175,6 +175,7 @@ const TAB_REQUIRED_PERMISSIONS: Record<AdminTab, string[]> = {
   excel: ['excel'],
   ai_catalog: ['ai_catalog'],
   orders: ['orders', 'installments'],
+  programs: ['pdf', 'orders', 'products', 'overview'],
   financing: ['installments', 'orders'],
   showcases: ['advertisements', 'products', 'settings'],
   advertisements: ['advertisements'],
@@ -189,6 +190,7 @@ const TAB_REQUIRED_PERMISSIONS: Record<AdminTab, string[]> = {
 const TAB_FALLBACK_ORDER: AdminTab[] = [
   'overview',
   'orders',
+  'programs',
   'financing',
   'products',
   'categories',

@@ -15,6 +15,7 @@ import {
   PdfDividerAsset,
   SharedCustomCatalog,
   IslamicFinancingRequest,
+  AgronomicProgram,
 } from '../types';
 
 import {
@@ -46,6 +47,7 @@ export interface DbData {
   settings: CatalogSettings;
   importLogs: ImportLog[];
   auditLogs: AuditLog[];
+  programs?: AgronomicProgram[];
 }
 
 const STORAGE_KEYS = {
@@ -65,6 +67,7 @@ const STORAGE_KEYS = {
   AUDIT_LOGS: 'cropsa_audit_logs_v1',
   PDF_DIVIDERS: 'cropsa_pdf_dividers_v1',
   CUSTOM_CATALOGS: 'cropsa_custom_catalogs_v1',
+  PROGRAMS: 'cropsa_programs_v1',
   PENDING_CLOUD_SYNC: 'cropsa_pending_cloud_sync_v1',
 };
 
@@ -187,6 +190,7 @@ export const dbStorage = {
       teamMembers,
       priceHistory,
       settings,
+      programs,
     ] = await Promise.all([
       idbStorage.get<Category[]>(STORAGE_KEYS.CATEGORIES),
       idbStorage.get<Company[]>(STORAGE_KEYS.COMPANIES),
@@ -200,6 +204,7 @@ export const dbStorage = {
       idbStorage.get<TeamMember[]>(STORAGE_KEYS.TEAM),
       idbStorage.get<PriceHistory[]>(STORAGE_KEYS.PRICE_HISTORY),
       idbStorage.get<CatalogSettings>(STORAGE_KEYS.SETTINGS),
+      idbStorage.get<AgronomicProgram[]>(STORAGE_KEYS.PROGRAMS),
     ]);
 
     const result: Partial<DbData> = {};
@@ -251,6 +256,10 @@ export const dbStorage = {
       result.settings = settings;
       memoryCache[STORAGE_KEYS.SETTINGS] = settings;
     }
+    if (programs?.length) {
+      result.programs = programs;
+      memoryCache[STORAGE_KEYS.PROGRAMS] = programs;
+    }
     return result;
   },
   getData(): DbData {
@@ -269,6 +278,7 @@ export const dbStorage = {
       settings: this.getCatalogSettings(),
       importLogs: this.getImportLogs(),
       auditLogs: this.getAuditLogs(),
+      programs: this.getPrograms(),
     };
   },
 
@@ -682,6 +692,32 @@ export const dbStorage = {
     }
 
     return { updatedCount, errors };
+  },
+
+  // Agronomic Programs (برامج التسميد والمكافحة)
+  getPrograms(): AgronomicProgram[] {
+    return getItem<AgronomicProgram[]>(STORAGE_KEYS.PROGRAMS, []);
+  },
+  savePrograms(programs: AgronomicProgram[]): void {
+    setItem(STORAGE_KEYS.PROGRAMS, programs);
+    idbStorage.set(STORAGE_KEYS.PROGRAMS, programs).catch(() => {});
+  },
+  saveProgram(program: AgronomicProgram): void {
+    const list = this.getPrograms();
+    const idx = list.findIndex((p) => p.id === program.id);
+    if (idx >= 0) {
+      list[idx] = program;
+    } else {
+      list.unshift(program);
+    }
+    this.savePrograms(list);
+  },
+  getProgramById(id: string): AgronomicProgram | undefined {
+    return this.getPrograms().find((p) => p.id === id);
+  },
+  deleteProgram(id: string): void {
+    const list = this.getPrograms().filter((p) => p.id !== id);
+    this.savePrograms(list);
   },
 
   // Reset demo data

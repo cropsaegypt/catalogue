@@ -4,6 +4,8 @@ import { AdminPage } from './pages/AdminPage';
 import { OrderDetailsPage } from './components/common/OrderDetailsPage';
 import { SharedCatalogView } from './components/catalog/SharedCatalogView';
 import { PdfGeneratorView } from './components/admin/PdfGeneratorView';
+import { ProgramBuilderModal } from './components/programs/ProgramBuilderModal';
+import { PublicProgramView } from './components/programs/PublicProgramView';
 import { ToastContainer, ToastMessage } from './components/common/Toast';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { canBuildCustomCatalog } from './utils/permissions';
@@ -45,6 +47,7 @@ import {
   TeamMember,
   SharedCustomCatalog,
   IslamicFinancingRequest,
+  AgronomicProgram,
 } from './types';
 
 export default function App() {
@@ -96,6 +99,8 @@ export default function App() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null);
   const [sharedCatalog, setSharedCatalog] = useState<SharedCustomCatalog | null>(null);
+  const [sharedProgram, setSharedProgram] = useState<AgronomicProgram | null>(null);
+  const [isProgramBuilderOpen, setIsProgramBuilderOpen] = useState<boolean>(false);
   const [builderToasts, setBuilderToasts] = useState<ToastMessage[]>([]);
   const [cloudConnected, setCloudConnected] = useState<boolean>(false);
   const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
@@ -279,6 +284,22 @@ export default function App() {
               dbStorage.saveSharedCatalog(res.value);
               break;
             }
+          }
+        });
+      }
+    }
+
+    // 2.2 Check if customer/employee opened a program link (/program/... or ?program=...)
+    if (currentRoute.type === 'program') {
+      const progParam = currentRoute.programId;
+      const localProg = dbStorage.getProgramById(progParam);
+      if (localProg) {
+        setSharedProgram(localProg);
+      } else {
+        supabaseSync.fetchProgram(progParam).then((res) => {
+          if (res.ok && res.program) {
+            setSharedProgram(res.program);
+            dbStorage.saveProgram(res.program);
           }
         });
       }
@@ -517,8 +538,25 @@ export default function App() {
         setCurrentView('admin');
         setInspectedOrder(null);
         setSharedCatalog(null);
+        setSharedProgram(null);
       } else if (r.type === 'builder') {
         setCurrentView('catalog_builder');
+        setInspectedOrder(null);
+        setSharedCatalog(null);
+        setSharedProgram(null);
+      } else if (r.type === 'program') {
+        const progId = r.programId;
+        const localProg = dbStorage.getProgramById(progId);
+        if (localProg) {
+          setSharedProgram(localProg);
+        } else {
+          supabaseSync.fetchProgram(progId).then((res) => {
+            if (res.ok && res.program) {
+              setSharedProgram(res.program);
+              dbStorage.saveProgram(res.program);
+            }
+          });
+        }
         setInspectedOrder(null);
         setSharedCatalog(null);
       } else if (r.type === 'order') {
@@ -529,17 +567,20 @@ export default function App() {
         if (localMatch) {
           setInspectedOrder(localMatch);
         }
+        setSharedProgram(null);
       } else if (r.type === 'shared_catalog') {
         const catId = r.catalogId;
         const localCat = dbStorage.getSharedCatalogById(catId);
         if (localCat) {
           setSharedCatalog(localCat);
         }
+        setSharedProgram(null);
       } else {
         // 'home' | 'company' | 'companies' | 'product' | 'financing'
         setCurrentView('catalog');
         setInspectedOrder(null);
         setSharedCatalog(null);
+        setSharedProgram(null);
       }
     };
 
@@ -1224,6 +1265,14 @@ export default function App() {
             navigateTo('/admin');
           }}
         />
+      ) : sharedProgram ? (
+        <PublicProgramView
+          program={sharedProgram}
+          onNavigateHome={() => {
+            setSharedProgram(null);
+            navigateTo('/');
+          }}
+        />
       ) : sharedCatalog ? (
         <SharedCatalogView
           catalog={sharedCatalog}
@@ -1273,6 +1322,9 @@ export default function App() {
           onOpenCatalogBuilder={() => {
             setCurrentView('catalog_builder');
             navigateTo('/builder');
+          }}
+          onOpenPrograms={() => {
+            setIsProgramBuilderOpen(true);
           }}
           isAdminLoggedIn={isAdminLoggedIn}
           currentUser={currentUser}
@@ -1326,6 +1378,9 @@ export default function App() {
               setCurrentView('catalog');
               navigateTo('/');
             }}
+            onOpenProgramBuilder={() => {
+              setIsProgramBuilderOpen(true);
+            }}
             isAdminLoggedIn={isAdminLoggedIn}
             onLogin={handleLogin}
             onLogout={handleLogout}
@@ -1345,6 +1400,19 @@ export default function App() {
           onDismiss={(id) => setBuilderToasts((prev) => prev.filter((t) => t.id !== id))}
         />
       )}
+
+      {/* Interactive Agronomic Program Builder Modal */}
+      <ProgramBuilderModal
+        isOpen={isProgramBuilderOpen}
+        onClose={() => setIsProgramBuilderOpen(false)}
+        products={products}
+        companies={companies}
+        packages={packages}
+        currentUser={currentUser}
+        onProgramCreated={(prog) => {
+          addBuilderToast(`تم إنشاء برنامج "${prog.title}" ونشره بنجاح`, 'success');
+        }}
+      />
     </div>
   );
 }

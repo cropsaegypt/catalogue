@@ -8,6 +8,7 @@ import {
   CatalogSettings,
   Order,
   IslamicFinancingRequest,
+  AgronomicProgram,
 } from '../types';
 import { DbData } from './dbStorage';
 
@@ -262,6 +263,182 @@ export const supabaseSync = {
       return { ok: true, id };
     } catch (err: any) {
       return { ok: false, error: err?.message };
+    }
+  },
+
+  /**
+   * Saves or updates an Agronomic Program into Supabase
+   */
+  async saveProgram(
+    program: AgronomicProgram
+  ): Promise<{ ok: boolean; id: string; error?: string }> {
+    try {
+      // 1. Save to catalog_snapshots as dedicated snapshot row
+      const snapshotPayload = {
+        id: `program_${program.id}`,
+        version: 1,
+        data: program,
+        synced_at: new Date().toISOString(),
+      };
+      const { error: snapErr } = await supabase
+        .from('catalog_snapshots')
+        .upsert(snapshotPayload);
+
+      // 2. Also try relational table if exists
+      try {
+        await supabase.from('agronomic_programs').upsert({
+          id: program.id,
+          title: program.title,
+          program_type: program.programType,
+          crop: program.crop,
+          growth_stage: program.growthStage || null,
+          area_acres: program.areaAcres || 1,
+          soil_type: program.soilType || 'clay',
+          irrigation_type: program.irrigationType || 'drip',
+          drainage_type: program.drainageType || 'good',
+          target_issues: program.targetIssues || [],
+          company_ids: program.companyIds || [],
+          items: program.items || [],
+          original_total: program.originalTotal || 0,
+          final_total: program.finalTotal || 0,
+          total_savings: program.totalSavings || 0,
+          global_discount_percent: program.globalDiscountPercent || 0,
+          marketing_badge: program.marketingBadge || null,
+          client_name: program.clientName || '',
+          client_phone: program.clientPhone || null,
+          client_location: program.clientLocation || null,
+          sales_rep_name: program.salesRepName || null,
+          sales_rep_phone: program.salesRepPhone || null,
+          notes: program.notes || null,
+          active: program.active !== false,
+          updated_at: new Date().toISOString(),
+        });
+      } catch {
+        // Silently continue if relational table not yet created
+      }
+
+      if (snapErr) {
+        return { ok: false, id: program.id, error: snapErr.message };
+      }
+
+      return { ok: true, id: program.id };
+    } catch (err: any) {
+      return { ok: false, id: program.id, error: err?.message };
+    }
+  },
+
+  /**
+   * Fetches an Agronomic Program by ID
+   */
+  async fetchProgram(
+    id: string
+  ): Promise<{ ok: boolean; program?: AgronomicProgram; error?: string }> {
+    try {
+      // Try dedicated snapshot row first
+      const cleanId = id.startsWith('program_') ? id : `program_${id}`;
+      const { data, error } = await supabase
+        .from('catalog_snapshots')
+        .select('data')
+        .eq('id', cleanId)
+        .maybeSingle();
+
+      if (data && data.data) {
+        return { ok: true, program: data.data as AgronomicProgram };
+      }
+
+      // Try raw id in catalog_snapshots
+      const { data: rawData } = await supabase
+        .from('catalog_snapshots')
+        .select('data')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (rawData && rawData.data) {
+        return { ok: true, program: rawData.data as AgronomicProgram };
+      }
+
+      // Try relational table
+      const { data: relRow } = await supabase
+        .from('agronomic_programs')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (relRow) {
+        const mapped: AgronomicProgram = {
+          id: relRow.id,
+          title: relRow.title,
+          programType: relRow.program_type,
+          crop: relRow.crop,
+          growthStage: relRow.growth_stage,
+          areaAcres: Number(relRow.area_acres || 1),
+          soilType: relRow.soil_type,
+          irrigationType: relRow.irrigation_type,
+          drainageType: relRow.drainage_type,
+          targetIssues: relRow.target_issues || [],
+          companyIds: relRow.company_ids || [],
+          items: relRow.items || [],
+          originalTotal: Number(relRow.original_total || 0),
+          finalTotal: Number(relRow.final_total || 0),
+          totalSavings: Number(relRow.total_savings || 0),
+          globalDiscountPercent: Number(relRow.global_discount_percent || 0),
+          marketingBadge: relRow.marketing_badge,
+          clientName: relRow.client_name,
+          clientPhone: relRow.client_phone,
+          clientLocation: relRow.client_location,
+          salesRepName: relRow.sales_rep_name,
+          salesRepPhone: relRow.sales_rep_phone,
+          notes: relRow.notes,
+          createdAt: relRow.created_at,
+          updatedAt: relRow.updated_at,
+          active: relRow.active !== false,
+        };
+        return { ok: true, program: mapped };
+      }
+
+      return { ok: false, error: 'لم يتم العثور على البرنامج' };
+    } catch (err: any) {
+      return { ok: false, error: err?.message };
+    }
+  },
+
+  /**
+   * Fetches all saved Agronomic Programs
+   */
+  async fetchAllPrograms(): Promise<{ ok: boolean; programs: AgronomicProgram[] }> {
+    try {
+      const { data, error } = await supabase
+        .from('catalog_snapshots')
+        .select('data')
+        .like('id', 'program_%');
+
+      if (!error && data) {
+        const list = data
+          .map((row) => row.data as AgronomicProgram)
+          .filter((p) => p && p.id && p.title);
+        return { ok: true, programs: list };
+      }
+
+      return { ok: false, programs: [] };
+    } catch {
+      return { ok: false, programs: [] };
+    }
+  },
+
+  /**
+   * Deletes an Agronomic Program by ID
+   */
+  async deleteProgram(id: string): Promise<{ ok: boolean }> {
+    try {
+      const cleanId = id.startsWith('program_') ? id : `program_${id}`;
+      await Promise.allSettled([
+        supabase.from('catalog_snapshots').delete().eq('id', cleanId),
+        supabase.from('catalog_snapshots').delete().eq('id', id),
+        supabase.from('agronomic_programs').delete().eq('id', id),
+      ]);
+      return { ok: true };
+    } catch {
+      return { ok: false };
     }
   },
 };

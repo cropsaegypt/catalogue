@@ -82,6 +82,7 @@ interface PublicCatalogPageProps {
   settings: CatalogSettings;
   onOpenAdmin: () => void;
   onOpenCatalogBuilder?: () => void;
+  onOpenPrograms?: () => void;
   isAdminLoggedIn: boolean;
   currentUser?: TeamMember | null;
   activeSalesRep?: StoredSalesRep | null;
@@ -109,6 +110,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
   settings,
   onOpenAdmin,
   onOpenCatalogBuilder,
+  onOpenPrograms,
   isAdminLoggedIn,
   currentUser = null,
   activeSalesRep = null,
@@ -576,6 +578,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
         hasDashboardAccess={hasDashboardAccess(currentUser)}
         canBuildCatalog={canBuildCustomCatalog(currentUser)}
         onOpenCatalogBuilder={onOpenCatalogBuilder}
+        onOpenPrograms={onOpenPrograms}
         onOpenLogin={() => setIsEmployeeLoginOpen(true)}
         onLogout={() => {
           onLogout?.();

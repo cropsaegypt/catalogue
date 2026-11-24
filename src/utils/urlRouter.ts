@@ -9,6 +9,7 @@ export type AppRoute =
   | { type: 'admin' }
   | { type: 'builder' }
   | { type: 'order'; orderId: string }
+  | { type: 'program'; programId: string }
   | { type: 'shared_catalog'; catalogId: string };
 
 /**
@@ -101,6 +102,13 @@ export function getProductRoutePath(product: Product): string {
 }
 
 /**
+ * Returns human-friendly path for a program
+ */
+export function getProgramRoutePath(programId: string): string {
+  return `/program/${encodeURIComponent(programId)}`;
+}
+
+/**
  * Parses current window.location into a structured AppRoute
  */
 export function parseCurrentRoute(): AppRoute {
@@ -112,6 +120,9 @@ export function parseCurrentRoute(): AppRoute {
   // 1. Check legacy/backward-compatible query parameters (?order=... or ?catalog=... or ?company=...)
   const orderParam = searchParams.get('order') || searchParams.get('orderId');
   if (orderParam) return { type: 'order', orderId: orderParam };
+
+  const programParam = searchParams.get('program') || searchParams.get('programId');
+  if (programParam) return { type: 'program', programId: programParam };
 
   const catalogParam = searchParams.get('catalog') || searchParams.get('c');
   if (catalogParam && !catalogParam.startsWith('COMP-')) {
@@ -163,6 +174,10 @@ export function parseCurrentRoute(): AppRoute {
 
   if (first === 'order' && second) {
     return { type: 'order', orderId: second };
+  }
+
+  if (first === 'program' && second) {
+    return { type: 'program', programId: second };
   }
 
   if (first === 'shared' && second) {

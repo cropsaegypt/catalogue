@@ -11,6 +11,7 @@ import {
   LogOut,
   FileText,
   Banknote,
+  Sprout,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { TeamMember } from '../../types';
@@ -33,6 +34,7 @@ interface HeaderProps {
   hasDashboardAccess?: boolean;
   canBuildCatalog?: boolean;
   onOpenCatalogBuilder?: () => void;
+  onOpenPrograms?: () => void;
   onOpenLogin?: () => void;
   onLogout?: () => void;
   onNavigateHome: () => void;
@@ -55,6 +57,7 @@ export const Header: React.FC<HeaderProps> = ({
   hasDashboardAccess = false,
   canBuildCatalog = false,
   onOpenCatalogBuilder,
+  onOpenPrograms,
   onOpenLogin,
   onLogout,
   onNavigateHome,
@@ -264,6 +267,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
 
+              {canBuildCatalog && onOpenPrograms && (
+                <button
+                  type="button"
+                  onClick={onOpenPrograms}
+                  className="hidden sm:flex h-9 sm:h-10 items-center gap-1.5 bg-[#046A47] hover:bg-[#035438] text-white px-3 rounded-xl text-xs font-black transition-all cursor-pointer shadow-xs"
+                  title="إنشاء برنامج تسميد ومكافحة بالذكاء الاصطناعي مع عروض أسعار"
+                >
+                  <Sprout className="w-4 h-4 text-amber-300" />
+                  <span>البرامج الزراعية</span>
+                </button>
+              )}
+
               {hasDashboardAccess && (
                 <button
                   type="button"
@@ -355,7 +370,18 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-1 bg-amber-400 hover:bg-amber-300 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 cursor-pointer"
               >
                 <FileText className="w-3 h-3" />
-                <span>عمل كتالوج للعميل</span>
+                <span>عمل كتالوج</span>
+              </button>
+            )}
+
+            {canBuildCatalog && onOpenPrograms && (
+              <button
+                type="button"
+                onClick={onOpenPrograms}
+                className="flex items-center gap-1 bg-emerald-700 hover:bg-emerald-800 text-white text-[10px] font-black px-2 py-0.5 rounded-lg shrink-0 cursor-pointer"
+              >
+                <Sprout className="w-3 h-3 text-amber-300" />
+                <span>برامج زراعية</span>
               </button>
             )}
           </div>

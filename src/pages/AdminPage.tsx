@@ -15,6 +15,7 @@ import { AuditLogViewer } from '../components/admin/AuditLogViewer';
 import { AiCatalogExtractor } from '../components/admin/AiCatalogExtractor';
 import { HomeShowcasesManager } from '../components/admin/HomeShowcasesManager';
 import { IslamicFinancingManager } from '../components/admin/IslamicFinancingManager';
+import { AdminProgramsHub } from '../components/admin/AdminProgramsHub';
 import { ToastContainer, ToastMessage } from '../components/common/Toast';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
@@ -50,6 +51,7 @@ const TAB_LABELS: Record<AdminTab, string> = {
   excel: 'استيراد إكسيل',
   ai_catalog: 'استخراج ذكي (AI)',
   orders: 'الطلبيات والتقسيط',
+  programs: 'برامج التسميد والمكافحة',
   financing: 'التمويل الإسلامي',
   showcases: 'مربعات الرئيسية',
   advertisements: 'بانرات الرئيسية',
@@ -97,6 +99,7 @@ interface AdminPageProps {
   onAddImportLog: (log: any) => void;
 
   onBackToCatalog: () => void;
+  onOpenProgramBuilder?: () => void;
   isAdminLoggedIn: boolean;
   onLogin: (email: string, pass: string) => boolean;
   onLogout: () => void;
@@ -141,6 +144,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   onAddImportLog,
 
   onBackToCatalog,
+  onOpenProgramBuilder,
   isAdminLoggedIn,
   onLogin,
   onLogout,
@@ -578,6 +582,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             currentUser={currentUser}
             teamMembers={teamMembers}
           />
+        )}
+
+        {activeTab === 'programs' && (!currentUser || canAccessAdminTab(currentUser, 'programs')) && (
+          <AdminProgramsHub onOpenNewProgram={onOpenProgramBuilder || (() => {})} />
         )}
 
         {activeTab === 'financing' && (!currentUser || canAccessAdminTab(currentUser, 'financing')) && (
