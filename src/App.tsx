@@ -20,6 +20,7 @@ import {
 } from './services/dbStorage';
 import { firestoreSync } from './services/firestoreSync';
 import { serverSync } from './services/serverSync';
+import { supabaseSync } from './services/supabaseSync';
 import { auth, signInWithGoogleForCloudSync } from './services/firebase';
 import {
   INITIAL_COMPANIES,
@@ -251,20 +252,32 @@ export default function App() {
       })
       .catch(() => ({}));
 
-    // 3. Centralized Dual Hydration (Firestore Collections + Single-Doc Snapshot + Central Server Storage)
+    // 3. Centralized Multi-Cloud Hydration (Supabase PostgreSQL + Central Server + Firestore fallback)
     void Promise.all([
       idbHydratedPromise,
+      supabaseSync.pullSingleDocumentSnapshot(),
+      supabaseSync.pullAllFromCloud(),
+      serverSync.fetchFromCentralServer(),
       firestoreSync.pullSingleDocumentSnapshot(),
       firestoreSync.pullAllFromCloud(),
-      serverSync.fetchFromCentralServer(),
     ])
-      .then(([idbData, firestoreSnapRes, firestoreFullRes, serverRes]) => {
+      .then(([idbData, supaSnapRes, supaFullRes, serverRes, firestoreSnapRes, firestoreFullRes]) => {
         const localProducts =
           (idbData as any)?.products?.length >= INITIAL_PRODUCTS.length
             ? (idbData as any).products
             : INITIAL_PRODUCTS;
 
-        // Determine best remote dataset
+        // Determine remote datasets
+        const supaSnapProds =
+          supaSnapRes.success && Array.isArray(supaSnapRes.data?.products)
+            ? supaSnapRes.data.products
+            : [];
+        const supaFullProds =
+          supaFullRes.connected && Array.isArray(supaFullRes.data?.products)
+            ? supaFullRes.data.products
+            : [];
+        const serverProds =
+          serverRes.success && Array.isArray(serverRes.data?.products) ? serverRes.data.products : [];
         const firestoreSnapProds =
           firestoreSnapRes.success && Array.isArray(firestoreSnapRes.data?.products)
             ? firestoreSnapRes.data.products
@@ -273,10 +286,10 @@ export default function App() {
           firestoreFullRes.connected && Array.isArray(firestoreFullRes.data?.products)
             ? firestoreFullRes.data.products
             : [];
-        const serverProds =
-          serverRes.success && Array.isArray(serverRes.data?.products) ? serverRes.data.products : [];
 
         const candidateRemoteSets = [
+          { source: 'supabaseSnap', prods: supaSnapProds, data: supaSnapRes.data },
+          { source: 'supabaseFull', prods: supaFullProds, data: supaFullRes.data },
           { source: 'server', prods: serverProds, data: serverRes.data },
           { source: 'firestoreSnap', prods: firestoreSnapProds, data: firestoreSnapRes.data },
           { source: 'firestoreFull', prods: firestoreFullProds, data: firestoreFullRes.data },
@@ -284,8 +297,8 @@ export default function App() {
 
         // Sort candidates:
         // 1. Highest product count wins
-        // 2. Highest biostimulant classification count wins (server has 148 vs stale firestore 104)
-        // 3. Central server source precedence
+        // 2. Highest biostimulant classification count wins (148 vs stale 104)
+        // 3. Supabase and Server precedence over legacy Firestore
         candidateRemoteSets.sort((a, b) => {
           if (b.prods.length !== a.prods.length) {
             return b.prods.length - a.prods.length;
@@ -295,6 +308,8 @@ export default function App() {
           if (bStim !== aStim) {
             return bStim - aStim;
           }
+          if (b.source.startsWith('supabase')) return 1;
+          if (a.source.startsWith('supabase')) return -1;
           if (b.source === 'server') return 1;
           if (a.source === 'server') return -1;
           return 0;
@@ -676,6 +691,10 @@ export default function App() {
     dbStorage.addAuditLog('تحديث المنتجات', 'Product', 'تم حفظ تعديلات قائمة المنتجات');
     void trackCloudWrite(firestoreSync.syncCollection('products', updatedProducts));
     void serverSync.syncToCentralServer({ products: updatedProducts });
+    void supabaseSync.pushSingleDocumentSnapshot({
+      ...dbStorage.getData(),
+      products: updatedProducts,
+    });
     void firestoreSync.pushSingleDocumentSnapshot({
       ...dbStorage.getData(),
       products: updatedProducts,
@@ -804,6 +823,7 @@ export default function App() {
       `طلب تمويل رقم ${newReq.requestNumber} باسم ${newReq.applicantName} بمبلغ ${newReq.requestedAmount} ج.م`
     );
     void firestoreSync.saveFinancingRequest(newReq);
+    void supabaseSync.submitFinancingRequest(newReq);
     return newReq;
   };
 
@@ -982,8 +1002,9 @@ export default function App() {
       `طلب جديد بقيمة ${newOrder.totalAmount} جنيه باسم ${newOrder.customerName} (${newOrder.paymentMethod === 'installment' ? 'تقسيط' : 'كاش'})`
     );
 
-    // Sync order to Cloud Firestore & backend webhook/store
+    // Sync order to Supabase, Cloud Firestore & backend webhook/store
     void firestoreSync.saveOrder(newOrder);
+    void supabaseSync.submitOrder(newOrder);
     try {
       await fetch('/api/orders', {
         method: 'POST',
