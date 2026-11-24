@@ -20,12 +20,14 @@ import {
 } from './services/dbStorage';
 import { firestoreSync } from './services/firestoreSync';
 import { serverSync } from './services/serverSync';
+import { supabase } from './services/supabase';
 import { supabaseSync } from './services/supabaseSync';
 import { auth, signInWithGoogleForCloudSync } from './services/firebase';
 import {
   INITIAL_COMPANIES,
   INITIAL_PRODUCTS,
   INITIAL_PACKAGES,
+  INITIAL_CATEGORIES,
 } from './data/seedData';
 
 import {
@@ -134,6 +136,83 @@ export default function App() {
     setTimeout(() => {
       setBuilderToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
+  };
+
+  const applyRemoteCatalogData = (rd: any) => {
+    if (!rd || !Array.isArray(rd.products) || rd.products.length < INITIAL_PRODUCTS.length) return;
+
+    const cleanProducts = rd.products.map((p: any) => {
+      if (p.subCategoryId && p.categoryId) {
+        const sub = (rd.categories || INITIAL_CATEGORIES).find((c: any) => c.id === p.subCategoryId);
+        if (sub?.parentId && sub.parentId !== p.categoryId) {
+          const { subCategoryId, ...rest } = p;
+          return rest;
+        }
+      }
+      return p;
+    });
+
+    setProducts(cleanProducts);
+    dbStorage.saveProducts(cleanProducts);
+
+    if (rd.categories?.length) {
+      setCategories(rd.categories);
+      dbStorage.saveCategories(rd.categories);
+    }
+    if (rd.companies?.length) {
+      const repairedCompanies = rd.companies.map((c: Company) => {
+        if (!c.logoUrl || c.logoUrl === '') {
+          const init = INITIAL_COMPANIES.find((ic) => ic.id === c.id);
+          if (init?.logoUrl) return { ...c, logoUrl: init.logoUrl };
+        }
+        return c;
+      });
+      setCompanies(repairedCompanies);
+      dbStorage.saveCompanies(repairedCompanies);
+    }
+    if (rd.subCategories?.length) {
+      setSubCategories(rd.subCategories);
+      dbStorage.saveSubCategories(rd.subCategories);
+    }
+    if (rd.packages?.length) {
+      setPackages(rd.packages);
+      dbStorage.savePackages(rd.packages);
+    }
+    if (rd.advertisements?.length) {
+      setAdvertisements(rd.advertisements);
+      dbStorage.saveAdvertisements(rd.advertisements);
+    }
+    if (rd.images?.length) {
+      setImages(rd.images);
+      dbStorage.saveImages(rd.images);
+    }
+    if (rd.pdfDividers?.length) {
+      dbStorage.savePdfDividers(rd.pdfDividers);
+    }
+    if (rd.orders?.length) {
+      setOrders(rd.orders);
+      dbStorage.saveOrders(rd.orders);
+    }
+    if (rd.financingRequests?.length) {
+      setFinancingRequests(rd.financingRequests);
+      dbStorage.saveFinancingRequests(rd.financingRequests);
+    }
+    if (rd.teamMembers?.length) {
+      setTeamMembers(rd.teamMembers);
+      dbStorage.saveTeamMembers(rd.teamMembers);
+    }
+    if (rd.priceHistory?.length) {
+      setPriceHistory(rd.priceHistory);
+      dbStorage.savePriceHistory(rd.priceHistory);
+    }
+    if (rd.settings) {
+      setSettings(rd.settings);
+      dbStorage.saveSettings(rd.settings);
+    }
+    setCloudConnected(true);
+    setLastCloudSyncAt(new Date().toISOString());
+    dbStorage.setPendingCloudSync(false);
+    setHasUnsyncedChanges(false);
   };
 
   // Initialize DB Data & Check URL Deep Links (?order=... or ?catalog=...)
@@ -262,8 +341,15 @@ export default function App() {
       })
       .catch(() => ({}));
 
+    // 2.7 Fast Path: Immediate Supabase Snapshot Hydration (< 150ms)
+    void supabaseSync.pullSingleDocumentSnapshot().then((res) => {
+      if (res.success && res.data?.products?.length >= INITIAL_PRODUCTS.length) {
+        applyRemoteCatalogData(res.data);
+      }
+    });
+
     // 3. Centralized Multi-Cloud Hydration (Supabase PostgreSQL + Central Server + Firestore fallback)
-    void Promise.all([
+    void Promise.allSettled([
       idbHydratedPromise,
       supabaseSync.pullSingleDocumentSnapshot(),
       supabaseSync.pullAllFromCloud(),
@@ -271,7 +357,15 @@ export default function App() {
       firestoreSync.pullSingleDocumentSnapshot(),
       firestoreSync.pullAllFromCloud(),
     ])
-      .then(([idbData, supaSnapRes, supaFullRes, serverRes, firestoreSnapRes, firestoreFullRes]) => {
+      .then((results) => {
+        const [idbRes, supaSnapRes, supaFullRes, serverRes, firestoreSnapRes, firestoreFullRes] = results;
+        const idbData = idbRes.status === 'fulfilled' ? idbRes.value : {};
+        const supaSnap = supaSnapRes.status === 'fulfilled' ? (supaSnapRes.value as any) : { success: false };
+        const supaFull = supaFullRes.status === 'fulfilled' ? (supaFullRes.value as any) : { connected: false };
+        const server = serverRes.status === 'fulfilled' ? (serverRes.value as any) : { success: false };
+        const firestoreSnap = firestoreSnapRes.status === 'fulfilled' ? (firestoreSnapRes.value as any) : { success: false };
+        const firestoreFull = firestoreFullRes.status === 'fulfilled' ? (firestoreFullRes.value as any) : { connected: false };
+
         const localProducts =
           (idbData as any)?.products?.length >= INITIAL_PRODUCTS.length
             ? (idbData as any).products
@@ -279,30 +373,30 @@ export default function App() {
 
         // Determine remote datasets
         const supaSnapProds =
-          supaSnapRes.success && Array.isArray(supaSnapRes.data?.products)
-            ? supaSnapRes.data.products
+          supaSnap.success && Array.isArray(supaSnap.data?.products)
+            ? supaSnap.data.products
             : [];
         const supaFullProds =
-          supaFullRes.connected && Array.isArray(supaFullRes.data?.products)
-            ? supaFullRes.data.products
+          supaFull.connected && Array.isArray(supaFull.data?.products)
+            ? supaFull.data.products
             : [];
         const serverProds =
-          serverRes.success && Array.isArray(serverRes.data?.products) ? serverRes.data.products : [];
+          server.success && Array.isArray(server.data?.products) ? server.data.products : [];
         const firestoreSnapProds =
-          firestoreSnapRes.success && Array.isArray(firestoreSnapRes.data?.products)
-            ? firestoreSnapRes.data.products
+          firestoreSnap.success && Array.isArray(firestoreSnap.data?.products)
+            ? firestoreSnap.data.products
             : [];
         const firestoreFullProds =
-          firestoreFullRes.connected && Array.isArray(firestoreFullRes.data?.products)
-            ? firestoreFullRes.data.products
+          firestoreFull.connected && Array.isArray(firestoreFull.data?.products)
+            ? firestoreFull.data.products
             : [];
 
         const candidateRemoteSets = [
-          { source: 'supabaseSnap', prods: supaSnapProds, data: supaSnapRes.data },
-          { source: 'supabaseFull', prods: supaFullProds, data: supaFullRes.data },
-          { source: 'server', prods: serverProds, data: serverRes.data },
-          { source: 'firestoreSnap', prods: firestoreSnapProds, data: firestoreSnapRes.data },
-          { source: 'firestoreFull', prods: firestoreFullProds, data: firestoreFullRes.data },
+          { source: 'supabaseSnap', prods: supaSnapProds, data: supaSnap.data },
+          { source: 'supabaseFull', prods: supaFullProds, data: supaFull.data },
+          { source: 'server', prods: serverProds, data: server.data },
+          { source: 'firestoreSnap', prods: firestoreSnapProds, data: firestoreSnap.data },
+          { source: 'firestoreFull', prods: firestoreFullProds, data: firestoreFull.data },
         ].filter((s) => Array.isArray(s.prods) && s.prods.length > 0);
 
         // Sort candidates:
@@ -475,6 +569,8 @@ export default function App() {
 
       try {
         await Promise.allSettled([
+          supabaseSync.pushSingleDocumentSnapshot(payload),
+          supabaseSync.pushAllToCloud(payload),
           serverSync.syncToCentralServer(payload),
           firestoreSync.pushFullSnapshot(payload),
           firestoreSync.pushSingleDocumentSnapshot(payload),
@@ -515,10 +611,34 @@ export default function App() {
 
   // Live cross-browser session sync: updates even if a user has an active tab open right now
   useEffect(() => {
-    let lastKnownSyncTime = '';
+    // 1. Supabase Realtime WebSocket listener for instantaneous zero-refresh sync across all open browsers
+    const realtimeChannel = supabase
+      .channel('catalog_realtime_channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'catalog_snapshots' },
+        (payload) => {
+          const newData = (payload.new as any)?.data;
+          if (newData && Array.isArray(newData.products) && newData.products.length >= INITIAL_PRODUCTS.length) {
+            applyRemoteCatalogData(newData);
+          }
+        }
+      )
+      .subscribe();
 
     const checkServerUpdates = async () => {
-      // Fetch latest updates from central server or single-doc firestore snapshot
+      // 1. Check Supabase first (Ultra-fast and authoritative)
+      try {
+        const supaRes = await supabaseSync.pullSingleDocumentSnapshot();
+        if (supaRes.success && supaRes.data?.products?.length >= INITIAL_PRODUCTS.length) {
+          applyRemoteCatalogData(supaRes.data);
+          return;
+        }
+      } catch (err) {
+        console.warn('[Sync] Supabase quick check error:', err);
+      }
+
+      // 2. Fetch latest updates from central server or single-doc firestore snapshot
       const [serverRes, firestoreSnapRes] = await Promise.allSettled([
         serverSync.fetchFromCentralServer(),
         firestoreSync.pullSingleDocumentSnapshot(),
@@ -668,6 +788,7 @@ export default function App() {
     window.addEventListener('focus', onFocus);
 
     return () => {
+      supabase.removeChannel(realtimeChannel);
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', onFocus);
