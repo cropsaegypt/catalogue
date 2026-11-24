@@ -610,6 +610,9 @@ export const dbStorage = {
   getPriceHistory(): PriceHistory[] {
     return getItem<PriceHistory[]>(STORAGE_KEYS.PRICE_HISTORY, []);
   },
+  savePriceHistory(history: PriceHistory[]): void {
+    setItem(STORAGE_KEYS.PRICE_HISTORY, history);
+  },
   addPriceHistoryEntry(entry: Omit<PriceHistory, 'id' | 'createdAt'>): void {
     const history = this.getPriceHistory();
     const newEntry: PriceHistory = {

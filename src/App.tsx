@@ -445,6 +445,7 @@ export default function App() {
 
         const remoteStimCount = bestRemoteProds.filter((p: any) => p.categoryId === 'CAT-01').length;
         const localStimCount = localProducts.filter((p: any) => p.categoryId === 'CAT-01').length;
+        const initialStimCount = INITIAL_PRODUCTS.filter((p: any) => p.categoryId === 'CAT-01').length;
 
         // Case A: Local device has strictly MORE products than any remote source!
         // Immediately broadcast local catalog to central server and cloud snapshot + collections!
@@ -615,7 +616,6 @@ export default function App() {
       try {
         await Promise.allSettled([
           supabaseSync.pushSingleDocumentSnapshot(payload),
-          supabaseSync.pushAllToCloud(payload),
           serverSync.syncToCentralServer(payload),
           firestoreSync.pushFullSnapshot(payload),
           firestoreSync.pushSingleDocumentSnapshot(payload),
@@ -725,7 +725,7 @@ export default function App() {
         }
 
         // Build map of current local products
-        const localMap = new Map(localList.map((p) => [p.id, p]));
+        const localMap = new Map<string, Product>(localList.map((p) => [p.id, p]));
         let hasLocalEditsToPush = false;
         let hasChanges = false;
 
@@ -1138,15 +1138,14 @@ export default function App() {
         pdfDividers: dbStorage.getPdfDividers(),
       };
 
-      const [supaSnapRes, supaFullRes, serverResult, fullSnapshotRes, singleDocRes] = await Promise.all([
+      const [supaSnapRes, serverResult, fullSnapshotRes, singleDocRes] = await Promise.all([
         supabaseSync.pushSingleDocumentSnapshot(fullPayload),
-        supabaseSync.pushAllToCloud(fullPayload),
         serverSync.syncToCentralServer(fullPayload),
         firestoreSync.pushFullSnapshot(fullPayload),
         firestoreSync.pushSingleDocumentSnapshot(fullPayload),
       ]);
 
-      if (supaSnapRes.success || fullSnapshotRes.success || singleDocRes.success || serverResult.success) {
+      if (supaSnapRes.ok || fullSnapshotRes.success || singleDocRes.success || serverResult.success) {
         setCloudConnected(true);
         setLastCloudSyncAt(new Date().toISOString());
         dbStorage.setPendingCloudSync(false);

@@ -1288,7 +1288,7 @@ export const PublicCatalogPage: React.FC<PublicCatalogPageProps> = ({
           products={products}
           totalProductsCount={products.length}
           onApplyProposals={(approved) => {
-            const proposalMap = new Map(approved.map((a) => [a.product.id, a]));
+            const proposalMap = new Map<string, any>(approved.map((a: any) => [a.product.id, a]));
             const updated = products.map((p) => {
               if (proposalMap.has(p.id)) {
                 const prop = proposalMap.get(p.id)!;

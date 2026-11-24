@@ -106,6 +106,7 @@ export function generateLocalAgronomicProgram(params: RecommendProgramParams): R
     areaAcres,
     soilType,
     irrigationType,
+    drainageType = 'good',
     programType,
     targetIssues = [],
     selectedCompanyIds,
@@ -149,7 +150,7 @@ export function generateLocalAgronomicProgram(params: RecommendProgramParams): R
       const originalPrice = pkg?.price || 350;
       const unitPrice = Math.round(originalPrice * 0.9); // default 10% commercial discount
       const dose = soilType === 'calcareous' ? '2 كجم / فدان حقناً' : '1.5 لتر / فدان حقناً مع ماء الري';
-      const quantity = Math.max(1, Math.ceil(areaAcres * (soilType === 'calcareous' ? 2 : 1.5) / (pkg?.capacity || 1)));
+      const quantity = Math.max(1, Math.ceil(areaAcres * (soilType === 'calcareous' ? 2 : 1.5) / (pkg?.quantity || 1)));
 
       selectedItems.push({
         id: `ITEM-${Date.now()}-1`,
@@ -212,7 +213,7 @@ export function generateLocalAgronomicProgram(params: RecommendProgramParams): R
       const originalPrice = pkg?.price || 650;
       const unitPrice = Math.round(originalPrice * 0.9);
       const dose = irrigationType === 'flood' ? '5 كجم / فدان' : '3 كجم / فدان سمادة';
-      const quantity = Math.max(1, Math.ceil(areaAcres * (irrigationType === 'flood' ? 5 : 3) / (pkg?.capacity || 25)));
+      const quantity = Math.max(1, Math.ceil(areaAcres * (irrigationType === 'flood' ? 5 : 3) / (pkg?.quantity || 25)));
 
       selectedItems.push({
         id: `ITEM-${Date.now()}-2`,
@@ -252,7 +253,7 @@ export function generateLocalAgronomicProgram(params: RecommendProgramParams): R
       const originalPrice = pkg?.price || 420;
       const unitPrice = Math.round(originalPrice * 0.88);
       const dose = '200 إلى 250 سم / 100 لتر ماء (رش ورقي)';
-      const quantity = Math.max(1, Math.ceil(areaAcres * 0.5 / (pkg?.capacity || 1)));
+      const quantity = Math.max(1, Math.ceil(areaAcres * 0.5 / (pkg?.quantity || 1)));
 
       selectedItems.push({
         id: `ITEM-${Date.now()}-3`,
@@ -294,7 +295,7 @@ export function generateLocalAgronomicProgram(params: RecommendProgramParams): R
       const originalPrice = pkg?.price || 480;
       const unitPrice = Math.round(originalPrice * 0.9);
       const dose = drainageType === 'poor' ? '250 جم / 100 لتر ماء' : '200 جم / 100 لتر ماء';
-      const quantity = Math.max(1, Math.ceil(areaAcres * 0.4 / (pkg?.capacity || 1)));
+      const quantity = Math.max(1, Math.ceil(areaAcres * 0.4 / (pkg?.quantity || 1)));
 
       selectedItems.push({
         id: `ITEM-${Date.now()}-4`,
@@ -339,7 +340,7 @@ export function generateLocalAgronomicProgram(params: RecommendProgramParams): R
       const originalPrice = pkg?.price || 520;
       const unitPrice = Math.round(originalPrice * 0.9);
       const dose = '150 إلى 200 سم / 100 لتر ماء';
-      const quantity = Math.max(1, Math.ceil(areaAcres * 0.3 / (pkg?.capacity || 1)));
+      const quantity = Math.max(1, Math.ceil(areaAcres * 0.3 / (pkg?.quantity || 1)));
 
       selectedItems.push({
         id: `ITEM-${Date.now()}-5`,

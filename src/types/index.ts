@@ -57,6 +57,7 @@ export interface Package {
 
 export interface Product {
   id: string; // Product ID e.g. KIMA-001
+  slug?: string;
   companyId: string;
   categoryId: string;
   subCategoryId?: string;
@@ -384,6 +385,7 @@ export interface TeamMember {
   password?: string;
   role: TeamRole;
   phone?: string;
+  avatarUrl?: string;
   active: boolean;
   permissions: string[];
   createdAt: string;
