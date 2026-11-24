@@ -78,6 +78,13 @@ export const PERMISSION_DEFINITIONS: PermissionDefinition[] = [
     group: 'catalog',
   },
   {
+    key: 'programs',
+    label: 'إنشاء وإدارة برامج التسميد والمكافحة وعروض الأسعار',
+    description: 'إعداد برامج زراعية مخصصة للمزارع بجرعات وتوقيتات ذكية مع خصومات تسويقية وروابط ومطبوعات PDF.',
+    group: 'sales',
+    highlight: true,
+  },
+  {
     key: 'gallery',
     label: 'معرض صور الشركات',
     description: 'إدارة ورفع صور المنتجات والعبوات.',
@@ -127,14 +134,14 @@ export const ROLE_METADATA: Record<
     shortLabel: 'أخصائي كتالوج',
     desc: 'إدارة وتوليد الكتالوجات، الشركات، الأقسام، الأسعار، والمعرض والتحليل الذكي',
     badge: 'bg-blue-700 text-white',
-    defaultPermissions: ['overview', 'products', 'categories', 'companies', 'prices', 'excel', 'ai_catalog', 'gallery', 'pdf'],
+    defaultPermissions: ['overview', 'products', 'categories', 'companies', 'prices', 'excel', 'ai_catalog', 'gallery', 'pdf', 'programs'],
   },
   orders_manager: {
     label: 'مسؤول مبيعات وطلبيات',
     shortLabel: 'مسؤول مبيعات',
     desc: 'استقبال الطلبيات، تجهيز كتالوجات العملاء، وعرض رابط الطلبية للموظف',
     badge: 'bg-emerald-700 text-white',
-    defaultPermissions: ['overview', 'orders', 'order_link', 'pdf'],
+    defaultPermissions: ['overview', 'orders', 'order_link', 'pdf', 'programs'],
   },
   installment_officer: {
     label: 'مسؤول فحص واعتماد التقسيط',
@@ -148,7 +155,7 @@ export const ROLE_METADATA: Record<
     shortLabel: 'مندوب مبيعات',
     desc: 'دخول من الكتالوج لتجهيز كتالوج مخصص للعميل وتسجيل الطلبيات وعرض فواتيره ورابطه التسويقي',
     badge: 'bg-teal-700 text-white',
-    defaultPermissions: ['order_link', 'pdf', 'orders'],
+    defaultPermissions: ['order_link', 'pdf', 'orders', 'programs'],
   },
 };
 

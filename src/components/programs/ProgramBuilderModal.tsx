@@ -50,6 +50,7 @@ interface ProgramBuilderModalProps {
   companies: Company[];
   packages: Package[];
   currentUser?: TeamMember | null;
+  teamMembers?: TeamMember[];
   onProgramCreated?: (program: AgronomicProgram) => void;
 }
 
@@ -60,6 +61,7 @@ export const ProgramBuilderModal: React.FC<ProgramBuilderModalProps> = ({
   companies,
   packages,
   currentUser,
+  teamMembers = [],
   onProgramCreated,
 }) => {
   // Step navigation (1: Farm Profile, 2: Companies, 3: Products & Pricing, 4: Share & Export)
@@ -68,6 +70,22 @@ export const ProgramBuilderModal: React.FC<ProgramBuilderModalProps> = ({
   // Step 1: Farm & Client Details
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
+  const [salesRepId, setSalesRepId] = useState<string>(currentUser?.id || '');
+  const [salesRepName, setSalesRepName] = useState<string>(currentUser?.name || '');
+  const [salesRepPhone, setSalesRepPhone] = useState<string>(currentUser?.phone || '');
+
+  useEffect(() => {
+    if (currentUser) {
+      setSalesRepId(currentUser.id);
+      setSalesRepName(currentUser.name);
+      setSalesRepPhone(currentUser.phone || '');
+    } else if (teamMembers && teamMembers.length > 0) {
+      const firstRep = teamMembers.find((m) => m.role === 'sales_rep' || m.role === 'orders_manager') || teamMembers[0];
+      setSalesRepId(firstRep.id);
+      setSalesRepName(firstRep.name);
+      setSalesRepPhone(firstRep.phone || '');
+    }
+  }, [currentUser, teamMembers]);
   const [crop, setCrop] = useState(POPULAR_CROPS[0]);
   const [customCrop, setCustomCrop] = useState('');
   const [areaAcres, setAreaAcres] = useState<number>(5);
@@ -267,8 +285,8 @@ export const ProgramBuilderModal: React.FC<ProgramBuilderModalProps> = ({
       marketingBadge: totalSavings > 0 ? `وفر ${totalSavings.toLocaleString('ar-EG')} ج` : undefined,
       clientName: clientName.trim() || 'عميل كروپسا',
       clientPhone: clientPhone.trim() || undefined,
-      salesRepName: currentUser?.name || 'فريق مبيعات كروپسا',
-      salesRepPhone: currentUser?.phone,
+      salesRepName: salesRepName.trim() || currentUser?.name || 'فريق مبيعات كروپسا',
+      salesRepPhone: salesRepPhone.trim() || currentUser?.phone,
       notes: notes.trim() || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -410,6 +428,48 @@ export const ProgramBuilderModal: React.FC<ProgramBuilderModalProps> = ({
                     onChange={(e) => setClientPhone(e.target.value)}
                     placeholder="010XXXXXXXX"
                     className="w-full h-10 px-3 bg-white border border-stone-300 rounded-xl text-xs font-bold focus:border-[#046A47] focus:outline-none text-left dir-ltr"
+                  />
+                </div>
+              </div>
+
+              {/* Sales Rep / Engineer Assignment ("تحديد البيع") */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200">
+                <div>
+                  <label className="block text-xs font-bold text-emerald-950 mb-1">
+                    تحديد مسؤول ومندوب البيع المعد لهذا البرنامج:
+                  </label>
+                  <select
+                    value={salesRepId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSalesRepId(id);
+                      const rep = teamMembers.find((m) => m.id === id);
+                      if (rep) {
+                        setSalesRepName(rep.name);
+                        setSalesRepPhone(rep.phone || '');
+                      }
+                    }}
+                    className="w-full h-10 px-3 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-stone-900 focus:ring-2 focus:ring-[#046A47]"
+                  >
+                    <option value="">كتابة يدوية / فريق مبيعات كروپسا</option>
+                    {teamMembers.filter((m) => m.active).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} (@{m.username}) {m.role === 'sales_rep' ? '— مندوب مبيعات' : `— ${m.role}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-emerald-950 mb-1">
+                    رقم واتساب المندوب (المطبوع على عرض السعر):
+                  </label>
+                  <input
+                    type="tel"
+                    value={salesRepPhone}
+                    onChange={(e) => setSalesRepPhone(e.target.value)}
+                    placeholder="010XXXXXXXX"
+                    className="w-full h-10 px-3 bg-white border border-emerald-300 rounded-xl text-xs font-bold text-stone-900 focus:border-[#046A47] text-left dir-ltr font-mono"
                   />
                 </div>
               </div>

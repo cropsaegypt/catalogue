@@ -220,6 +220,12 @@ export const AdminProgramsHub: React.FC<AdminProgramsHubProps> = ({
                   <span>التاريخ: {new Date(program.createdAt).toLocaleDateString('ar-EG')}</span>
                   <span>•</span>
                   <span>عدد المركبات: {program.items.length} مركب</span>
+                  {program.salesRepName && (
+                    <>
+                      <span>•</span>
+                      <span>المسؤول: <strong className="text-emerald-700">{program.salesRepName}</strong></span>
+                    </>
+                  )}
                 </div>
               </div>
 

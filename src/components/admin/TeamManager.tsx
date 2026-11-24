@@ -37,6 +37,7 @@ interface TeamManagerProps {
   teamMembers: TeamMember[];
   onSaveTeamMembers: (members: TeamMember[]) => void;
   currentUser?: TeamMember | null;
+  onShowToast?: (msg: string, type: 'success' | 'error') => void;
 }
 
 const ROLE_CARD_COLORS: Record<TeamRole, string> = {
@@ -51,6 +52,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
   teamMembers,
   onSaveTeamMembers,
   currentUser,
+  onShowToast,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
@@ -117,7 +119,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
 
     if (editingMember) {
       const collision = teamMembers.some(
-        (m) => m.id !== editingMember.id && m.username.toLowerCase() === cleanUsername
+        (m) => m.id !== editingMember.id && (m.username || '').toLowerCase() === cleanUsername
       );
       if (collision) {
         alert('اسم المستخدم هذا مستخدم لحساب آخر، يرجى اختيار اسم مختلف.');
@@ -129,7 +131,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
               ...m,
               name: name.trim(),
               username: cleanUsername,
-              email: email.trim().toLowerCase(),
+              email: email.trim().toLowerCase() || `${cleanUsername}@cropsa.com`,
               password: password.trim(),
               role,
               permissions: cleanPermissions,
@@ -138,8 +140,9 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
           : m
       );
       onSaveTeamMembers(updated);
+      onShowToast?.(`تم تحديث بيانات وحساب الموظف (${name.trim()}) بنجاح ✓`, 'success');
     } else {
-      if (teamMembers.some((m) => m.username.toLowerCase() === cleanUsername)) {
+      if (teamMembers.some((m) => (m.username || '').toLowerCase() === cleanUsername)) {
         alert('اسم المستخدم هذا مستخدم بالفعل، يرجى اختيار اسم مستخدم آخر.');
         return;
       }
@@ -156,6 +159,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
         createdAt: new Date().toISOString(),
       };
       onSaveTeamMembers([...teamMembers, newMember]);
+      onShowToast?.(`تم تسجيل وإضافة الموظف الجديد (${name.trim()}) بنجاح ✓`, 'success');
     }
 
     setIsModalOpen(false);

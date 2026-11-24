@@ -34,6 +34,7 @@ import {
 interface OrderManagerProps {
   orders: Order[];
   onUpdateOrderStatus: (orderId: string, status: Order['status']) => void;
+  onUpdateOrderAssignee?: (orderId: string, rep: TeamMember | null) => void;
   onShowToast: (msg: string, type: 'success' | 'error') => void;
   currentUser?: TeamMember | null;
   teamMembers?: TeamMember[];
@@ -42,6 +43,7 @@ interface OrderManagerProps {
 export const OrderManager: React.FC<OrderManagerProps> = ({
   orders,
   onUpdateOrderStatus,
+  onUpdateOrderAssignee,
   onShowToast,
   currentUser,
   teamMembers = [],
@@ -634,6 +636,47 @@ export const OrderManager: React.FC<OrderManagerProps> = ({
                     {getOrderDirectShortcutUrl(selectedOrder.orderNumber)}
                   </span>
                 </div>
+              </div>
+
+              {/* Assign or Reassign Sales Rep */}
+              <div className="pt-2 border-t border-emerald-200">
+                <label className="text-[11px] font-bold text-emerald-950 block mb-1">
+                  تحديد / تغيير مندوب المبيعات المسؤول عن هذه الفاتورة:
+                </label>
+                <select
+                  value={selectedOrder.salesRepId || ''}
+                  onChange={(e) => {
+                    const repId = e.target.value;
+                    const rep = teamMembers.find((m) => m.id === repId) || null;
+                    onUpdateOrderAssignee?.(selectedOrder.id, rep);
+                    setSelectedOrder((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            salesRepId: rep?.id,
+                            salesRepName: rep?.name,
+                            salesRepUsername: rep?.username,
+                            salesRepPhone: rep?.phone,
+                          }
+                        : null
+                    );
+                    if (rep?.phone) {
+                      setModalRepPhoneOverride(rep.phone);
+                    }
+                    onShowToast(
+                      rep ? `تم إسناد الفاتورة للمندوب (${rep.name}) بنجاح ✓` : 'تم تحويل الفاتورة لتسوق مباشر (بدون مندوب) ✓',
+                      'success'
+                    );
+                  }}
+                  className="w-full text-xs p-2 rounded-xl border border-emerald-300 bg-white font-bold text-gray-800 focus:ring-2 focus:ring-[#046A47]"
+                >
+                  <option value="">طلب مباشر (بدون مندوب)</option>
+                  {teamMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} (@{m.username}) {m.role === 'sales_rep' ? '— مندوب مبيعات' : `— ${m.role}`}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* WhatsApp Shortcut Ping Controls */}

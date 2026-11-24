@@ -90,6 +90,7 @@ interface AdminPageProps {
   onSaveTeamMembers?: (team: TeamMember[]) => void;
   onSaveFinancingRequests?: (requests: IslamicFinancingRequest[]) => void;
   onUpdateOrderStatus: (orderId: string, status: Order['status']) => void;
+  onUpdateOrderAssignee?: (orderId: string, rep: TeamMember | null) => void;
   onBatchUpdatePrices: (
     updates: { productId: string; packageId: string; newPrice: number }[],
     source: 'manual' | 'excel',
@@ -139,6 +140,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   onSaveTeamMembers,
   onSaveFinancingRequests,
   onUpdateOrderStatus,
+  onUpdateOrderAssignee,
   onBatchUpdatePrices,
   onAddPriceHistory,
   onAddImportLog,
@@ -578,6 +580,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           <OrderManager
             orders={orders}
             onUpdateOrderStatus={onUpdateOrderStatus}
+            onUpdateOrderAssignee={onUpdateOrderAssignee}
             onShowToast={addToast}
             currentUser={currentUser}
             teamMembers={teamMembers}
@@ -603,6 +606,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             teamMembers={teamMembers}
             onSaveTeamMembers={onSaveTeamMembers || (() => {})}
             currentUser={currentUser}
+            onShowToast={addToast}
           />
         )}
 

@@ -519,6 +519,10 @@ export default function App() {
           if (rd.pdfDividers?.length) {
             dbStorage.savePdfDividers(rd.pdfDividers);
           }
+          if (rd.teamMembers?.length) {
+            setTeamMembers(rd.teamMembers);
+            dbStorage.saveTeamMembers(rd.teamMembers);
+          }
           if (rd.settings) {
             setSettings(rd.settings);
             dbStorage.saveSettings(rd.settings);
@@ -890,6 +894,10 @@ export default function App() {
     setHasUnsyncedChanges(true);
     void trackCloudWrite(firestoreSync.syncCollection('team', updatedTeam));
     void serverSync.syncToCentralServer({ teamMembers: updatedTeam });
+    void supabaseSync.pushSingleDocumentSnapshot({
+      ...dbStorage.getData(),
+      teamMembers: updatedTeam,
+    });
     if (currentUser) {
       const updatedSelf = updatedTeam.find((m) => m.id === currentUser.id);
       if (!updatedSelf || !updatedSelf.active) {
@@ -964,6 +972,29 @@ export default function App() {
     setOrders(updated);
     dbStorage.saveOrders(updated);
     void firestoreSync.updateOrderStatus(orderId, status);
+  };
+
+  const handleUpdateOrderAssignee = (orderId: string, rep: TeamMember | null) => {
+    const updated = orders.map((o) =>
+      o.id === orderId || o.orderNumber === orderId
+        ? {
+            ...o,
+            salesRepId: rep ? rep.id : undefined,
+            salesRepName: rep ? rep.name : undefined,
+            salesRepUsername: rep ? rep.username : undefined,
+            salesRepPhone: rep ? rep.phone : undefined,
+            referralSource: rep ? 'rep_link' : 'direct',
+            updatedAt: new Date().toISOString(),
+          }
+        : o
+    );
+    setOrders(updated);
+    dbStorage.saveOrders(updated);
+    const targetOrder = updated.find((o) => o.id === orderId || o.orderNumber === orderId);
+    if (targetOrder) {
+      void firestoreSync.saveOrder(targetOrder);
+      void supabaseSync.submitOrder(targetOrder);
+    }
   };
 
   const handleSaveFinancingRequests = (updatedRequests: IslamicFinancingRequest[]) => {
@@ -1073,6 +1104,10 @@ export default function App() {
         if (rd.subCategories?.length) {
           setSubCategories(rd.subCategories);
           dbStorage.saveSubCategories(rd.subCategories);
+        }
+        if (rd.teamMembers?.length) {
+          setTeamMembers(rd.teamMembers);
+          dbStorage.saveTeamMembers(rd.teamMembers);
         }
         setCloudConnected(true);
         setLastCloudSyncAt(new Date().toISOString());
@@ -1371,6 +1406,7 @@ export default function App() {
             onSaveTeamMembers={handleSaveTeamMembers}
             onSaveFinancingRequests={handleSaveFinancingRequests}
             onUpdateOrderStatus={handleUpdateOrderStatus}
+            onUpdateOrderAssignee={handleUpdateOrderAssignee}
             onBatchUpdatePrices={handleBatchUpdatePrices}
             onAddPriceHistory={handleAddPriceHistory}
             onAddImportLog={handleAddImportLog}
@@ -1409,6 +1445,7 @@ export default function App() {
         companies={companies}
         packages={packages}
         currentUser={currentUser}
+        teamMembers={teamMembers}
         onProgramCreated={(prog) => {
           addBuilderToast(`تم إنشاء برنامج "${prog.title}" ونشره بنجاح`, 'success');
         }}
